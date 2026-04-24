@@ -281,11 +281,14 @@ extension CompactNativeAdView {
         priceStack.accessibilityIdentifier = "Price Stack"
         priceStack.axis = .vertical
         priceStack.spacing = 4
-        // `.fill` stretches both chips to the stack's width, which the stack
-        // hugs to the wider chip — so "App Store" and "Free" render at
-        // matching width even though their text is different.
+        // `.fill` alignment stretches both chips to the stack's width (= the
+        // wider chip's intrinsic width), so "App Store" and "Free" render at
+        // matching width. `.fillEqually` distribution splits the stack's
+        // height evenly between the two children so their heights match too
+        // — without this, font descender/ascender differences could cause
+        // small height mismatches.
         priceStack.alignment = .fill
-        priceStack.distribution = .fill
+        priceStack.distribution = .fillEqually
         priceStack.translatesAutoresizingMaskIntoConstraints = false
         priceStack.setContentHuggingPriority(.required, for: .horizontal)
         priceStack.setContentCompressionResistancePriority(.required, for: .horizontal)
