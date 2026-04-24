@@ -6,18 +6,22 @@
 //
 
 #if canImport(UIKit)
+import AdRevenueClient
 import GoogleMobileAds
 import MobileAdsClient
 
 final internal class InterstitialAdManager: BaseAdManager<InterstitialAd> {
+    override var format: AdRevenueEvent.AdFormat { .interstitial }
+
     override func loadAd(adUnitID: String) async throws -> InterstitialAd {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<InterstitialAd, Error>) in
             let request = Request()
-            InterstitialAd.load(with: adUnitID, request: request) { ad, error in
+            InterstitialAd.load(with: adUnitID, request: request) { [weak self] ad, error in
                 if let error = error {
                     continuation.resume(throwing: error)
                 } else if let ad = ad {
                     ad.fullScreenContentDelegate = self
+                    self?.attachPaidEventHandler(ad, adUnitID: adUnitID)
                     continuation.resume(returning: ad)
                 }
             }

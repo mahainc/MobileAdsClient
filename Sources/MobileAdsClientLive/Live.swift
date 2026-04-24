@@ -6,12 +6,11 @@
 //
 
 #if canImport(UIKit)
+import AdRevenueClient
 import AppTrackingTransparency
 import ComposableArchitecture
 import MobileAdsClient
 import RemoteConfigClient
-import AdjustClient
-import AnalyticClient
 @preconcurrency import ads_swift
 @preconcurrency import GoogleMobileAds
 
@@ -61,9 +60,10 @@ extension MobileAdsClient: DependencyKey {
     }()
 }
 
-/// Bridges ads_swift's `AdRevenueDelegate` onto the AdjustClient + AnalyticClient dependency
-/// clients. MainActor-isolated so delegate assignment + `@Dependency` capture share a single
-/// isolation domain — no `@unchecked Sendable` needed.
+/// Bridges ads_swift's `AdRevenueDelegate` onto `AdRevenueClient`, which fans
+/// events out to Adjust + Analytics via a long-lived TCA subscriber. Keeping
+/// this thin ensures MobileAdsClientLive stays SDK-only and doesn't know about
+/// Adjust or Firebase Analytics.
 @MainActor
 private final class RevenueBridge: NSObject, AdRevenueDelegate {
     static let shared = RevenueBridge()
@@ -76,32 +76,32 @@ private final class RevenueBridge: NSObject, AdRevenueDelegate {
     }
 
     nonisolated func didTrackAdRevenue(adValue: AdValue, adUnit: String, adType: ads_swift.AdType) {
-        @Dependency(\.adjustClient) var adjustClient
-        @Dependency(\.analyticClient) var analyticClient
+        @Dependency(\.adRevenueClient) var adRevenueClient
 
-        // Extract every Sendable primitive eagerly — the `Task { }` below must not
-        // capture `AdValue` (not Sendable) or `adType` (from ads_swift, `@preconcurrency`
-        // elided its Sendable conformance). This keeps the async body Sendable-clean
-        // even with strict concurrency enabled.
-        let amount = Double(truncating: adValue.value)
-        let currency = adValue.currencyCode
-        let adTypeRaw = adType.rawValue
-        let revenue = AdjustRevenue(
-            amount: amount,
-            currency: currency,
-            adUnit: adTypeRaw
-        )
+        // Extract every Sendable primitive eagerly — the publish closure below
+        // must not capture `AdValue` (not Sendable) or `adType` (from ads_swift,
+        // `@preconcurrency` elided its Sendable conformance).
+        adRevenueClient.publish(AdRevenueEvent(
+            amount: Double(truncating: adValue.value),
+            currency: adValue.currencyCode,
+            adUnitId: adUnit,
+            format: AdRevenueEvent.AdFormat(from: adType),
+            source: .adsSwift,
+            receivedAt: .now
+        ))
+    }
+}
 
-        Task {
-            await adjustClient.trackRevenue(revenue)
-            let safe = Double(String(format: "%.6f", amount)) ?? 0.0
-            await analyticClient.trackEvent("ad_revenue", [
-                "ad_platform": "AdMob",
-                "currency": .string(currency),
-                "value": .double(safe),
-                "ad_unit": .string(adUnit),
-                "ad_type": .string(adTypeRaw),
-            ])
+private extension AdRevenueEvent.AdFormat {
+    init(from adType: ads_swift.AdType) {
+        switch adType {
+        case .openResume:           self = .appOpen
+        case .interstitial,
+             .rewardedInterstitial: self = .interstitial
+        case .rewarded:             self = .rewarded
+        case .banner:               self = .banner
+        case .native,
+             .nativeFullScreen:     self = .native
         }
     }
 }

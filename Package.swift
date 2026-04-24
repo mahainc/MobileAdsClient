@@ -23,6 +23,7 @@ let package = Package(
         .package(path: "../RemoteConfigClient"),
         .package(path: "../AdjustClient"),
         .package(path: "../AnalyticClient"),
+        .package(path: "../AdRevenueClient"),
     ],
     targets: [
         .target(
@@ -40,8 +41,7 @@ let package = Package(
                 .product(name: "GoogleMobileAds", package: "swift-package-manager-google-mobile-ads"),
                 .product(name: "ads-swift", package: "ads-swift"),
                 .product(name: "RemoteConfigClient", package: "RemoteConfigClient"),
-                .product(name: "AdjustClient", package: "AdjustClient"),
-                .product(name: "AnalyticClient", package: "AnalyticClient"),
+                .product(name: "AdRevenueClient", package: "AdRevenueClient"),
                 "MobileAdsClient",
             ]
         ),

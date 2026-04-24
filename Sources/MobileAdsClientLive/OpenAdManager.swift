@@ -6,18 +6,22 @@
 //
 
 #if canImport(UIKit)
+import AdRevenueClient
 import GoogleMobileAds
 import MobileAdsClient
 
 final internal class OpenAdManager: BaseAdManager<AppOpenAd> {
+    override var format: AdRevenueEvent.AdFormat { .appOpen }
+
     override func loadAd(adUnitID: String) async throws -> AppOpenAd {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<AppOpenAd, Error>) in
             let request = Request()
-            AppOpenAd.load(with: adUnitID, request: request) { ad, error in
+            AppOpenAd.load(with: adUnitID, request: request) { [weak self] ad, error in
                 if let error = error {
                     continuation.resume(throwing: error)
                 } else if let ad = ad {
                     ad.fullScreenContentDelegate = self
+                    self?.attachPaidEventHandler(ad, adUnitID: adUnitID)
                     continuation.resume(returning: ad)
                 }
             }

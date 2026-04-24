@@ -6,15 +6,34 @@
 //
 
 #if canImport(UIKit)
+import AdRevenueClient
+import ComposableArchitecture
 import GoogleMobileAds
 import MobileAdsClient
 
+/// Ad types that expose `paidEventHandler`. `InterstitialAd`, `AppOpenAd`, and
+/// `RewardedAd` all match this shape; used by `BaseAdManager` to attach a shared
+/// revenue publisher at load time without subclass-specific glue.
+protocol PaidEventCapable: AnyObject {
+    var paidEventHandler: ((AdValue) -> Void)? { get set }
+}
+
+extension InterstitialAd: PaidEventCapable {}
+extension AppOpenAd: PaidEventCapable {}
+extension RewardedAd: PaidEventCapable {}
+
 /// Generic base class for managing full-screen ads with thread-safe operations.
-/// Subclasses must override `loadAd(adUnitID:)` and `adTypeName()` to specify ad type.
+/// Subclasses must override `loadAd(adUnitID:)`, `adTypeName()`, and set `format`
+/// to the matching `AdRevenueEvent.AdFormat` so paid-event revenue is published
+/// with the correct classification.
 class BaseAdManager<AdType: FullScreenPresentingAd>: NSObject, FullScreenContentDelegate, @unchecked Sendable {
     private let lock = NSLock()
     private var ads: [String: AdType] = [:]
     private var dismissContinuations: [String: CheckedContinuation<Void, Error>] = [:]
+
+    /// Set by each subclass; threaded through the paid-event publisher so Adjust
+    /// + Analytics can distinguish app-open vs interstitial vs rewarded revenue.
+    var format: AdRevenueEvent.AdFormat { .interstitial }
 
     // MARK: - Thread-Safe Accessors
 
@@ -52,6 +71,27 @@ class BaseAdManager<AdType: FullScreenPresentingAd>: NSObject, FullScreenContent
         lock.lock()
         defer { lock.unlock() }
         return ads.first(where: { $0.value === ad })?.key
+    }
+
+    // MARK: - Revenue attribution
+
+    /// Attaches a paid-event handler to a freshly loaded ad. The handler forwards
+    /// every paid impression to `AdRevenueClient.publish` with the subclass's
+    /// `format`. Subclasses call this in `loadAd(adUnitID:)` right before handing
+    /// the loaded ad back to the continuation.
+    final func attachPaidEventHandler(_ ad: PaidEventCapable, adUnitID: String) {
+        let format = self.format
+        ad.paidEventHandler = { adValue in
+            @Dependency(\.adRevenueClient) var adRevenueClient
+            adRevenueClient.publish(AdRevenueEvent(
+                amount: Double(truncating: adValue.value),
+                currency: adValue.currencyCode,
+                adUnitId: adUnitID,
+                format: format,
+                source: .googleMobileAds,
+                receivedAt: .now
+            ))
+        }
     }
 
     // MARK: - Abstract Methods (Override in subclass)
