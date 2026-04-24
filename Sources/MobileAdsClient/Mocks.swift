@@ -28,7 +28,8 @@ extension MobileAdsClient: TestDependencyKey {
             nativeAllAdUnitID: { "test-native-unit" },
             nativeAdUnitID: { _ in "test-native-unit" },
             installRevenueBridge: { },
-            installResumeAdHandler: { _ in }
+            installResumeAdHandler: { _ in },
+            showNativeFullScreen: { _ in }
         )
     }()
 
@@ -50,7 +51,10 @@ extension MobileAdsClient: TestDependencyKey {
             nativeAllAdUnitID: { "preview-native-unit" },
             nativeAdUnitID: { _ in "preview-native-unit" },
             installRevenueBridge: { },
-            installResumeAdHandler: { _ in }
+            installResumeAdHandler: { _ in },
+            showNativeFullScreen: { _ in
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+            }
         )
     }()
 }
@@ -69,6 +73,7 @@ extension MobileAdsClient {
         nativeAllAdUnitID: { "" },
         nativeAdUnitID: { _ in "" },
         installRevenueBridge: { },
-        installResumeAdHandler: { _ in }
+        installResumeAdHandler: { _ in },
+        showNativeFullScreen: { _ in }
     )
 }

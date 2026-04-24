@@ -11,7 +11,6 @@ import AppTrackingTransparency
 import ComposableArchitecture
 import MobileAdsClient
 import RemoteConfigClient
-@preconcurrency import ads_swift
 @preconcurrency import GoogleMobileAds
 
 extension MobileAdsClient: DependencyKey {
@@ -57,64 +56,29 @@ extension MobileAdsClient: DependencyKey {
                 await PlacementBridge.nativeAdUnitID(for: placement)
             },
             installRevenueBridge: {
-                await RevenueBridge.shared.install()
+                // No-op. Historically registered an ads_swift AdRevenueDelegate
+                // to mirror paid events into AdRevenueClient. With ads_swift
+                // removed, every format (appOpen / interstitial / rewarded /
+                // native) attaches its own `paidEventHandler` at load time via
+                // `BaseAdManager.attachPaidEventHandler` or
+                // `NativeAdManager.adLoader(_:didReceive:)` — there is no
+                // longer anything to bridge. Kept on the interface so
+                // `AdsBootstrap.installingRevenueBridge` still calls through
+                // without needing a phase rename.
             },
             installResumeAdHandler: { isPremium in
                 await ResumeAdHandler.shared.install(isPremium: isPremium)
+            },
+            showNativeFullScreen: { adUnitID in
+                await FullScreenNativePresenter.present(adUnitID: adUnitID)
             }
         )
     }()
 }
 
-/// Bridges ads_swift's `AdRevenueDelegate` onto `AdRevenueClient`, which fans
-/// events out to Adjust + Analytics via a long-lived TCA subscriber. Keeping
-/// this thin ensures MobileAdsClientLive stays SDK-only and doesn't know about
-/// Adjust or Firebase Analytics.
-@MainActor
-private final class RevenueBridge: NSObject, AdRevenueDelegate {
-    static let shared = RevenueBridge()
-    private var isInstalled = false
-
-    func install() {
-        guard !isInstalled else { return }
-        AdRevenueTracker.shared.delegate = self
-        isInstalled = true
-    }
-
-    nonisolated func didTrackAdRevenue(adValue: AdValue, adUnit: String, adType: ads_swift.AdType) {
-        @Dependency(\.adRevenueClient) var adRevenueClient
-
-        // Extract every Sendable primitive eagerly — the publish closure below
-        // must not capture `AdValue` (not Sendable) or `adType` (from ads_swift,
-        // `@preconcurrency` elided its Sendable conformance).
-        adRevenueClient.publish(AdRevenueEvent(
-            amount: Double(truncating: adValue.value),
-            currency: adValue.currencyCode,
-            adUnitId: adUnit,
-            format: AdRevenueEvent.AdFormat(from: adType),
-            source: .adsSwift,
-            receivedAt: .now
-        ))
-    }
-}
-
-private extension AdRevenueEvent.AdFormat {
-    init(from adType: ads_swift.AdType) {
-        switch adType {
-        case .openResume:           self = .appOpen
-        case .interstitial,
-             .rewardedInterstitial: self = .interstitial
-        case .rewarded:             self = .rewarded
-        case .banner:               self = .banner
-        case .native,
-             .nativeFullScreen:     self = .native
-        }
-    }
-}
-
-/// Bridges MobileAdsClient's placement-aware closures to the underlying ads_swift `AdsManager`
-/// using Remote Config as the source of truth for ad unit IDs and placement flags.
-/// Lives in this target so MobileAdsClient (the interface) stays SDK-free.
+/// Bridges MobileAdsClient's placement-aware closures to the underlying
+/// `AdsManager` actor + BaseAdManager cache, using Remote Config as the source
+/// of truth for ad unit IDs and placement flags.
 enum PlacementBridge {
     /// Reads the `RemoteConfigClient` dependency at call time so each closure body sees the
     /// current injected value (test/preview swaps work correctly without a static cache).
@@ -124,14 +88,10 @@ enum PlacementBridge {
     }
 
     static func preloadAd(_ adType: MobileAdsClient.AdType) async {
-        switch adType {
-        case let .interstitial(id):
-            ads_swift.AdsManager.shared.preloadInterstitialAd(adUnitID: id, opacity: 1)
-        case let .appOpen(id):
-            ads_swift.AdsManager.shared.preloadAppOpenAd(adUnitID: id, opacity: 1)
-        case let .rewarded(id):
-            ads_swift.AdsManager.shared.preloadRewardedAd(adUnitID: id, opacity: 1)
-        }
+        // `shouldShowAd` auto-loads into `AdsManager`'s BaseAdManager cache
+        // when nothing is resident, which is exactly the "warm the slot" we
+        // want. The returned Bool doesn't matter at preload time.
+        _ = await AdsManager.shared.shouldShowAd(adType, rules: [])
     }
 
     static func preload(interPlacement placement: MobileAdsClient.AdPlacement) async {
@@ -139,10 +99,7 @@ enum PlacementBridge {
         guard adConfig.showAllAds else { return }
         let interAll = adConfig.adUnitsConfig.interAll
         guard interAll.enable, interAll.opacity > 0 else { return }
-        ads_swift.AdsManager.shared.preloadInterstitialAd(
-            adUnitID: interAll.id,
-            opacity: interAll.opacity
-        )
+        _ = await AdsManager.shared.shouldShowAd(.interstitial(interAll.id), rules: [])
     }
 
     static func show(interPlacement placement: MobileAdsClient.AdPlacement) async throws {
@@ -155,17 +112,8 @@ enum PlacementBridge {
         let interAll = adConfig.adUnitsConfig.interAll
         let chosen: RemoteConfigClient.AdUnitConfig = (useInterAll && interAll.opacity > 0) ? interAll : unitConfig
 
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            Task { @MainActor in
-                let box = VoidResumeOnce()
-                ads_swift.AdsManager.shared.showInterstitialAd(
-                    adUnitID: chosen.id,
-                    onDismissed: { box.resume(continuation) },
-                    onFailed: { _ in box.resume(continuation) },
-                    showLoading: false
-                )
-            }
-        }
+        guard await AdsManager.shared.shouldShowAd(.interstitial(chosen.id), rules: []) else { return }
+        try await AdsManager.shared.showAd(.interstitial(chosen.id))
     }
 
     static func show(rewardPlacement placement: MobileAdsClient.RewardPlacement) async -> Bool {
@@ -183,16 +131,10 @@ enum PlacementBridge {
         let adUnitId = v2.rewards.watchAds.adUnitId
         guard !adUnitId.isEmpty else { return true }
 
-        return await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
-            Task { @MainActor in
-                let box = ResumeOnceBox<Bool>()
-                ads_swift.AdsManager.shared.showRewardedAd(
-                    adUnitID: adUnitId,
-                    onDismissed: { rewarded in box.resume(continuation, with: rewarded) },
-                    onFailed: { _ in box.resume(continuation, with: true) }
-                )
-            }
-        }
+        // Warm the ad, then present. If loading fails, grant the reward
+        // anyway — consistent with the prior behaviour when ads were off.
+        guard await AdsManager.shared.shouldShowAd(.rewarded(adUnitId), rules: []) else { return true }
+        return await AdsManager.shared.showRewardAd(adUnitId)
     }
 
     /// Guards against double-resume when ads_swift fires both `onDismissed` and `onFailed`

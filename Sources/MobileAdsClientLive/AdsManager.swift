@@ -56,5 +56,17 @@ extension AdsManager {
 
         debugPrint("👉 The \(adType.description) ad has been closed, proceeding with the next action!")
     }
+
+    /// Presents the rewarded ad and returns whether the user earned the reward.
+    /// Distinct from `showAd(.rewarded(_:))` which returns Void — the reward
+    /// result is captured via `userDidEarnRewardHandler` inside
+    /// `RewardedAdManager.showAndAwaitReward`.
+    @MainActor
+    internal func showRewardAd(_ adUnitID: String) async -> Bool {
+        guard let rootViewController = UIApplication.shared.topViewController() else {
+            return false
+        }
+        return (try? await rewardedAdManager.showAndAwaitReward(adUnitID, from: rootViewController)) ?? false
+    }
 }
 #endif

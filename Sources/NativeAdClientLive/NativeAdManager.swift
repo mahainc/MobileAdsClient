@@ -6,6 +6,8 @@
 //
 
 #if canImport(UIKit)
+@preconcurrency import AdRevenueClient
+import ComposableArchitecture
 @preconcurrency import GoogleMobileAds
 import NativeAdClient
 import UIKit
@@ -121,7 +123,22 @@ extension NativeAdManager: NativeAdLoaderDelegate {
 		#endif
 		let adUnitID = adLoader.adUnitID
 		nativeAd.delegate = self
-		
+
+		// Publish every paid impression into `AdRevenueClient` so `AdRevenueSyncer`
+		// fans out to Adjust + Analytics. Matches the pattern
+		// `BaseAdManager.attachPaidEventHandler` uses for full-screen formats.
+		nativeAd.paidEventHandler = { adValue in
+			@Dependency(\.adRevenueClient) var adRevenueClient
+			adRevenueClient.publish(AdRevenueEvent(
+				amount: Double(truncating: adValue.value),
+				currency: adValue.currencyCode,
+				adUnitId: adUnitID,
+				format: .native,
+				source: .googleMobileAds,
+				receivedAt: .now
+			))
+		}
+
 		queue.async(flags: .barrier) {
 			if self.nativeAds[adUnitID] != nil {
 				self.nativeAds[adUnitID]?.append(nativeAd)
@@ -129,7 +146,7 @@ extension NativeAdManager: NativeAdLoaderDelegate {
 				self.nativeAds[adUnitID] = [nativeAd]
 			}
 		}
-		
+
 		queue.async {
 			let matchingRequest = self.pendingRequests.first { $0.value.adLoader === adLoader }
 			if let (id, _) = matchingRequest {

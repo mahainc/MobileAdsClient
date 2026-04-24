@@ -30,9 +30,12 @@ public struct MobileAdsClient: Sendable {
     /// missing from Remote Config.
     public var nativeAdUnitID: @Sendable (_ placement: MobileAdsClient.NativeAdPlacement) async -> String = { _ in "" }
 
-    /// Registers as the ads_swift `AdRevenueDelegate` and fans out each incoming revenue
-    /// callback to `AdjustClient.trackRevenue` + `AnalyticClient.trackEvent("ad_revenue", …)`.
-    /// Idempotent — call once at app startup (after `AdjustClient.initialize(_:)`).
+    /// Historically registered a paid-event bridge for the legacy ads_swift
+    /// `AdRevenueDelegate`. Now a no-op: every ad format attaches its own
+    /// `paidEventHandler` at load time (see `BaseAdManager.attachPaidEventHandler`
+    /// and `NativeAdManager.adLoader(_:didReceive:)`) and publishes directly to
+    /// `AdRevenueClient` → `AdRevenueSyncer`. Kept on the interface so
+    /// `AdsBootstrap.installingRevenueBridge` still calls through.
     public var installRevenueBridge: @Sendable () async -> Void
     /// Installs a MainActor observer on `UIScene.didEnterBackgroundNotification`
     /// and `.willEnterForegroundNotification`, then runs the full
@@ -44,6 +47,13 @@ public struct MobileAdsClient: Sendable {
     /// `isPremium` is passed in (instead of read from `@Shared(.isPremium)`
     /// directly) so `MobileAdsClient` stays independent of `AppSchemas`.
     public var installResumeAdHandler: @Sendable (_ isPremium: @escaping @Sendable () -> Bool) async -> Void = { _ in }
+    /// Presents a native ad as a full-screen modal via an in-house renderer
+    /// (`FullScreenNativeAdView` in `MobileAdsClientUI`). Loads via
+    /// `NativeAdClient`, publishes paid events through `AdRevenueClient`
+    /// (`format: .native`, `source: .googleMobileAds`). The `async` call
+    /// resumes once the user taps the close button — or immediately if the
+    /// load fails — so reducers can `await` before continuing their flow.
+    public var showNativeFullScreen: @Sendable (_ adUnitID: String) async -> Void = { _ in }
 }
 
 extension Effect {
