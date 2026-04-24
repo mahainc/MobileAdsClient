@@ -209,10 +209,12 @@ enum PlacementBridge {
     // MARK: - Placement resolution
 
     /// Resolves an interstitial `AdPlacement` to a unit ID by reading the v2
-    /// `interstitials.<placement>` slot. Falls back to
-    /// `global.interstitial.fallbackAdUnitId` when the placement is disabled
-    /// or has an empty unit ID. Applies the DEBUG test-ID swap so simulator /
-    /// TestFlight builds don't fire production units.
+    /// `interstitials.<placement>` slot. Returns `nil` when any gate is off
+    /// — including when the slot itself has `enabled: false`. Falls back to
+    /// `global.interstitial.fallbackAdUnitId` only for the "enabled but unit
+    /// ID missing" case, NOT for "user explicitly disabled this placement".
+    /// Applies the DEBUG test-ID swap so simulator / TestFlight builds don't
+    /// fire production units.
     private static func resolveInterstitialUnitID(
         for placement: MobileAdsClient.AdPlacement
     ) async -> String? {
@@ -229,9 +231,13 @@ enum PlacementBridge {
             }
         }()
 
-        let configured: String = (slot.enabled && !slot.adUnitId.isEmpty)
-            ? slot.adUnitId
-            : v2.global.interstitial.fallbackAdUnitId
+        // Placement kill-switch comes first — a disabled slot never shows,
+        // with or without a configured unit ID. The fallback only rescues
+        // "enabled but unit ID missing" payloads.
+        guard slot.enabled else { return nil }
+        let configured = slot.adUnitId.isEmpty
+            ? v2.global.interstitial.fallbackAdUnitId
+            : slot.adUnitId
         return resolvedInterstitialUnitId(configured: configured)
     }
 
