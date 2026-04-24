@@ -19,10 +19,10 @@ let package = Package(
         .package(url: "https://github.com/pointfreeco/swift-composable-architecture.git", branch: "main"),
         .package(url: "https://github.com/googleads/swift-package-manager-google-mobile-ads.git", branch: "main"),
         .package(url: "https://github.com/ThanhHaiKhong/TCAInitializableReducer.git", branch: "master"),
-        .package(path: "../RemoteConfigClient"),
-        .package(path: "../AdjustClient"),
-        .package(path: "../AnalyticClient"),
-        .package(path: "../AdRevenueClient"),
+        .package(url: "https://github.com/mahainc/RemoteConfigClient.git", branch: "master"),
+        .package(url: "https://github.com/mahainc/AdjustClient.git", branch: "master"),
+        .package(url: "https://github.com/mahainc/AnalyticClient.git", branch: "master"),
+        .package(url: "https://github.com/mahainc/AdRevenueClient.git", branch: "master"),
     ],
     targets: [
         .target(
