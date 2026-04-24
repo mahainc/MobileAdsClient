@@ -62,54 +62,101 @@ final class ResumeAdHandler {
 
     private func onBackground() async {
         backgroundedAt = .now
+        log("backgroundedAt stamped; warming resume ad cache")
         @Dependency(\.remoteConfigClient) var remoteConfigClient
         guard
             let cfg = try? await remoteConfigClient.adConfigV2(),
             cfg.global.adsEnabled,
             cfg.global.appOpen.enabled,
             cfg.appOpens.resume.enabled
-        else { return }
+        else {
+            log("preload skipped — gates off")
+            return
+        }
         let unitID = cfg.appOpens.resume.adUnitId
-        guard !unitID.isEmpty else { return }
-        // `shouldShowAd` auto-loads into the cache `showAd` reads from; a plain
-        // `preloadAd` goes to the legacy ads_swift pool which `showAd` can't see.
-        _ = await AdsManager.shared.shouldShowAd(.appOpen(unitID), rules: [])
+        guard !unitID.isEmpty else {
+            log("preload skipped — empty adUnitId")
+            return
+        }
+        // `shouldShowAd` auto-loads into the cache `showAd` reads from.
+        let loaded = await AdsManager.shared.shouldShowAd(.appOpen(unitID), rules: [])
+        log("preload finished adUnit=\(unitID) loaded=\(loaded)")
     }
 
     private func onForeground() async {
         // Cold-start guard. `willEnterForeground` fires on first scene
         // connection before any `didEnterBackground` stamps `backgroundedAt`.
-        guard let backgroundedAt = self.backgroundedAt else { return }
-        guard !showInFlight, !isPremiumProvider() else { return }
+        guard let backgroundedAt = self.backgroundedAt else {
+            log("skip — cold start (no backgroundedAt stamp)")
+            return
+        }
+        guard !showInFlight else {
+            log("skip — show already in flight")
+            return
+        }
+        guard !isPremiumProvider() else {
+            log("skip — premium")
+            return
+        }
         showInFlight = true
         defer { showInFlight = false }
 
         @Dependency(\.remoteConfigClient) var remoteConfigClient
-        guard
-            let cfg = try? await remoteConfigClient.adConfigV2(),
-            cfg.global.adsEnabled,
-            cfg.global.appOpen.enabled,
-            cfg.appOpens.resume.enabled
-        else { return }
-        let policy = cfg.global.appOpen
-
-        if Date.now.timeIntervalSince(backgroundedAt) < TimeInterval(policy.minBackgroundSeconds) { return }
-        if let last = lastAdShownAt,
-           Date.now.timeIntervalSince(last) < TimeInterval(policy.postAdSuppressionSeconds) {
+        guard let cfg = try? await remoteConfigClient.adConfigV2() else {
+            log("skip — adConfigV2 load failed")
             return
         }
-        if policy.maxPerSession > 0, sessionShows >= policy.maxPerSession { return }
+        guard cfg.global.adsEnabled else { log("skip — global.adsEnabled false"); return }
+        guard cfg.global.appOpen.enabled else { log("skip — global.appOpen.enabled false"); return }
+        guard cfg.appOpens.resume.enabled else { log("skip — appOpens.resume.enabled false"); return }
+        let policy = cfg.global.appOpen
+
+        // In DEBUG reduce the min-background gate to 2s so quick
+        // background/foreground cycles during development still show the
+        // ad. Release uses the Remote Config value verbatim.
+        #if DEBUG
+        let minBackground = min(2, policy.minBackgroundSeconds)
+        #else
+        let minBackground = policy.minBackgroundSeconds
+        #endif
+
+        let elapsed = Date.now.timeIntervalSince(backgroundedAt)
+        if elapsed < TimeInterval(minBackground) {
+            log("skip — minBackgroundSeconds=\(minBackground), elapsed=\(Int(elapsed))s")
+            return
+        }
+        if let last = lastAdShownAt,
+           Date.now.timeIntervalSince(last) < TimeInterval(policy.postAdSuppressionSeconds) {
+            log("skip — postAdSuppression (cooldown from last show)")
+            return
+        }
+        if policy.maxPerSession > 0, sessionShows >= policy.maxPerSession {
+            log("skip — maxPerSession=\(policy.maxPerSession) reached")
+            return
+        }
 
         let unitID = cfg.appOpens.resume.adUnitId
-        guard !unitID.isEmpty,
-              await AdsManager.shared.shouldShowAd(.appOpen(unitID), rules: [])
-        else { return }
+        guard !unitID.isEmpty else {
+            log("skip — appOpens.resume.adUnitId is empty")
+            return
+        }
+        guard await AdsManager.shared.shouldShowAd(.appOpen(unitID), rules: []) else {
+            log("skip — shouldShowAd returned false (load failed?)")
+            return
+        }
 
+        log("showing resume app-open ad adUnit=\(unitID)")
         lastAdShownAt = .now
         sessionShows += 1
         try? await AdsManager.shared.showAd(.appOpen(unitID))
         // Refill the pool for the next resume cycle.
         _ = await AdsManager.shared.shouldShowAd(.appOpen(unitID), rules: [])
+    }
+
+    private func log(_ message: @autoclosure () -> String) {
+        #if DEBUG
+        print("[ResumeAdHandler] \(message())")
+        #endif
     }
 }
 #endif
