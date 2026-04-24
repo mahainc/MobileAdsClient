@@ -95,25 +95,14 @@ enum PlacementBridge {
     }
 
     static func preload(interPlacement placement: MobileAdsClient.AdPlacement) async {
-        guard let adConfig = try? await remoteConfigClient.adConfig() else { return }
-        guard adConfig.showAllAds else { return }
-        let interAll = adConfig.adUnitsConfig.interAll
-        guard interAll.enable, interAll.opacity > 0 else { return }
-        _ = await AdsManager.shared.shouldShowAd(.interstitial(interAll.id), rules: [])
+        guard let unitID = await resolveInterstitialUnitID(for: placement), !unitID.isEmpty else { return }
+        _ = await AdsManager.shared.shouldShowAd(.interstitial(unitID), rules: [])
     }
 
     static func show(interPlacement placement: MobileAdsClient.AdPlacement) async throws {
-        guard let adConfig = try? await remoteConfigClient.adConfig(),
-              adConfig.showAllAds else { return }
-
-        let (unitConfig, useInterAll) = resolveInter(placement: placement, adConfig: adConfig)
-        guard unitConfig.enable else { return }
-
-        let interAll = adConfig.adUnitsConfig.interAll
-        let chosen: RemoteConfigClient.AdUnitConfig = (useInterAll && interAll.opacity > 0) ? interAll : unitConfig
-
-        guard await AdsManager.shared.shouldShowAd(.interstitial(chosen.id), rules: []) else { return }
-        try await AdsManager.shared.showAd(.interstitial(chosen.id))
+        guard let unitID = await resolveInterstitialUnitID(for: placement), !unitID.isEmpty else { return }
+        guard await AdsManager.shared.shouldShowAd(.interstitial(unitID), rules: []) else { return }
+        try await AdsManager.shared.showAd(.interstitial(unitID))
     }
 
     static func show(rewardPlacement placement: MobileAdsClient.RewardPlacement) async -> Bool {
@@ -219,21 +208,41 @@ enum PlacementBridge {
 
     // MARK: - Placement resolution
 
-    /// Resolves an `AdPlacement` to its `AdUnitConfig`. Returns `useInterAll = true` when
-    /// the placement should fall back to the pooled `interAll` unit instead of its own.
-    /// The new recorder-app schema has no `interAll.extraKeys`, so fallback defaults to
-    /// "use interAll when opacity > 0".
-    private static func resolveInter(
-        placement: MobileAdsClient.AdPlacement,
-        adConfig: RemoteConfigClient.AdConfig
-    ) -> (unit: RemoteConfigClient.AdUnitConfig, useInterAll: Bool) {
-        let units = adConfig.adUnitsConfig
-        let extras = units.interAll.extraKeys ?? [:]
+    /// Resolves an interstitial `AdPlacement` to a unit ID by reading the v2
+    /// `interstitials.<placement>` slot. Falls back to
+    /// `global.interstitial.fallbackAdUnitId` when the placement is disabled
+    /// or has an empty unit ID. Applies the DEBUG test-ID swap so simulator /
+    /// TestFlight builds don't fire production units.
+    private static func resolveInterstitialUnitID(
+        for placement: MobileAdsClient.AdPlacement
+    ) async -> String? {
+        guard let v2 = try? await remoteConfigClient.adConfigV2(),
+              v2.global.adsEnabled,
+              v2.global.interstitial.enabled else { return nil }
 
-        switch placement {
-        case .interRecorder:
-            return (units.interRecorder, extras["interRecorder"] ?? true)
-        }
+        let slot: RemoteConfigClient.AdConfigV2.InterstitialPlacement = {
+            switch placement {
+            case .interRecorder: return v2.interstitials.recorder
+            case .home:          return v2.interstitials.home
+            }
+        }()
+
+        let configured: String = (slot.enabled && !slot.adUnitId.isEmpty)
+            ? slot.adUnitId
+            : v2.global.interstitial.fallbackAdUnitId
+        return resolvedInterstitialUnitId(configured: configured)
+    }
+
+    /// Mirror of `resolvedNativeUnitId(configured:)`: swap production IDs for
+    /// Google's test interstitial unit in DEBUG so simulator traffic never
+    /// fires a real impression.
+    private static func resolvedInterstitialUnitId(configured: String) -> String {
+        guard !configured.isEmpty else { return "" }
+        #if DEBUG
+        return "ca-app-pub-3940256099942544/4411468910"
+        #else
+        return configured
+        #endif
     }
 }
 #endif

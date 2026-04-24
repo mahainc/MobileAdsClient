@@ -11,14 +11,16 @@ import Foundation
 
 extension MobileAdsClient {
 
-    /// Interstitial placements beyond the splash + preloaded-pool units.
-    /// Cases correspond 1:1 to fields in `RemoteConfigClient.AdUnitsConfig`.
+    /// Interstitial placements. Cases resolve to `v2.interstitials.<key>` in
+    /// Remote Config.
     public enum AdPlacement: Sendable, Equatable, CaseIterable, CustomStringConvertible {
         case interRecorder
+        case home
 
         public var remoteConfigKey: String {
             switch self {
-            case .interRecorder: return "interRecorder"
+            case .interRecorder: return "recorder"
+            case .home:          return "home"
             }
         }
 
