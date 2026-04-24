@@ -212,16 +212,17 @@ enum PlacementBridge {
     }
 
     static func isNativeAllEnabled(_ placement: MobileAdsClient.NativeAllPlacement) async -> Bool {
+        // Previously fanned out to `v2.placementGates.native.<placement>` for
+        // per-screen render gates. That layer was dropped in the v2 schema —
+        // the feature is gated by `natives.fallback.enabled` alone now.
+        _ = placement
         guard let v2 = try? await remoteConfigClient.adConfigV2(),
               v2.global.adsEnabled,
               v2.global.native.enabled,
               v2.natives.fallback.enabled else {
             return false
         }
-        switch placement {
-        case .nativeAppearance:      return v2.placementGates.native.appearance
-        case .nativeLanguageSetting: return v2.placementGates.native.languageSettings
-        }
+        return true
     }
 
     static func nativeAllAdUnitID() async -> String {
