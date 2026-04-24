@@ -10,8 +10,18 @@ import UIKit
 public class CompactNativeAdView: NativeAdView {
 
     public struct Style: Sendable, Equatable {
+        /// Shape applied to the CTA button's background.
+        /// `.capsule` computes the radius at layout time from the button's
+        /// current height, so it stays a pill regardless of Dynamic Type.
+        public enum CTAShape: Sendable, Equatable {
+            case rect(cornerRadius: CGFloat)
+            case capsule
+        }
+
+        public var backgroundColor: UIColor
         public var actionButtonBackgroundColor: UIColor
         public var actionButtonTitleColor: UIColor
+        public var ctaShape: CTAShape
         public var attributionBackgroundColor: UIColor
         public var attributionTextColor: UIColor
         public var storeBackgroundColor: UIColor
@@ -20,8 +30,10 @@ public class CompactNativeAdView: NativeAdView {
         public var priceTextColor: UIColor
 
         public init(
+            backgroundColor: UIColor = .secondarySystemBackground,
             actionButtonBackgroundColor: UIColor = .systemBlue,
             actionButtonTitleColor: UIColor = .white,
+            ctaShape: CTAShape = .rect(cornerRadius: 8),
             attributionBackgroundColor: UIColor = .systemBlue,
             attributionTextColor: UIColor = .white,
             storeBackgroundColor: UIColor = .systemGreen,
@@ -29,8 +41,10 @@ public class CompactNativeAdView: NativeAdView {
             priceBackgroundColor: UIColor = .systemGreen,
             priceTextColor: UIColor = .white
         ) {
+            self.backgroundColor = backgroundColor
             self.actionButtonBackgroundColor = actionButtonBackgroundColor
             self.actionButtonTitleColor = actionButtonTitleColor
+            self.ctaShape = ctaShape
             self.attributionBackgroundColor = attributionBackgroundColor
             self.attributionTextColor = attributionTextColor
             self.storeBackgroundColor = storeBackgroundColor
@@ -47,12 +61,24 @@ public class CompactNativeAdView: NativeAdView {
     }
 
     private let fixedHeight: CGFloat = 300
-    private let defaultSpacing: CGFloat = 12
+    private let defaultSpacing: CGFloat = 8
+    private let containerPadding: CGFloat = 10
 
     private lazy var adContainerView: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
         view.backgroundColor = .clear
+        return view
+    }()
+
+    private lazy var adMediaView: MediaView = {
+        let view = MediaView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.contentMode = .scaleAspectFill
+        view.layer.cornerRadius = 8
+        view.layer.masksToBounds = true
+        view.clipsToBounds = true
+        view.setContentHuggingPriority(.defaultHigh, for: .vertical)
         return view
     }()
 
@@ -71,7 +97,7 @@ public class CompactNativeAdView: NativeAdView {
         label.accessibilityIdentifier = "Ad Headline Label"
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 1
-        label.font = .preferredFont(forTextStyle: .headline)
+        label.font = .preferredFont(forTextStyle: .subheadline)
         label.textColor = .label
         return label
     }()
@@ -82,19 +108,19 @@ public class CompactNativeAdView: NativeAdView {
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 1
         label.textColor = .secondaryLabel
-        label.font = .preferredFont(forTextStyle: .subheadline)
+        label.font = Self.sponsorFont
         return label
     }()
 
     private lazy var adAttributionLabel: PaddedLabel = {
-        let label = PaddedLabel(padding: UIEdgeInsets(top: 4, left: 6, bottom: 4, right: 6))
+        let label = PaddedLabel(padding: UIEdgeInsets(top: 3, left: 5, bottom: 3, right: 5))
         label.accessibilityIdentifier = "Ad Attribution Label"
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = "Sponsored"
         label.textAlignment = .center
-        label.layer.cornerRadius = 5
+        label.layer.cornerRadius = 4
         label.layer.masksToBounds = true
-        label.font = .preferredFont(forTextStyle: .footnote)
+        label.font = .preferredFont(forTextStyle: .caption2)
         label.setContentHuggingPriority(.required, for: .horizontal)
         return label
     }()
@@ -111,40 +137,68 @@ public class CompactNativeAdView: NativeAdView {
         let label = UILabel()
         label.accessibilityIdentifier = "Ad Body Label"
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.numberOfLines = 2
+        label.numberOfLines = 1
         label.lineBreakMode = .byTruncatingTail
-        label.font = .preferredFont(forTextStyle: .callout)
+        label.font = .preferredFont(forTextStyle: .footnote)
         label.textAlignment = .left
         label.textColor = .secondaryLabel
         return label
     }()
 
     private lazy var adStoreLabel: PaddedLabel = {
-        let label = PaddedLabel(padding: UIEdgeInsets(top: 4, left: 6, bottom: 4, right: 6))
+        let label = PaddedLabel(padding: UIEdgeInsets(top: 3, left: 5, bottom: 3, right: 5))
         label.accessibilityIdentifier = "Ad Store Label"
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 1
         label.textAlignment = .center
-        label.font = .preferredFont(forTextStyle: .subheadline)
+        label.font = Self.chipFont
         label.text = "App Store"
-        label.layer.cornerRadius = 5
+        label.layer.cornerRadius = 4
         label.layer.masksToBounds = true
-        label.setContentHuggingPriority(.required, for: .horizontal)
+        // Low hugging lets the parent stack's `.fill` alignment stretch the
+        // chip to the stack's width (= widest chip's intrinsic width). High
+        // compression resistance keeps the text from being clipped narrower
+        // than it needs.
+        label.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        label.setContentCompressionResistancePriority(.required, for: .horizontal)
         return label
     }()
 
     private lazy var adPriceLabel: PaddedLabel = {
-        let label = PaddedLabel(padding: UIEdgeInsets(top: 4, left: 6, bottom: 4, right: 6))
+        let label = PaddedLabel(padding: UIEdgeInsets(top: 3, left: 5, bottom: 3, right: 5))
         label.accessibilityIdentifier = "Ad Price Label"
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 1
         label.textAlignment = .center
-        label.font = .preferredFont(forTextStyle: .subheadline)
+        label.font = Self.chipFont
         label.text = "Free"
-        label.layer.cornerRadius = 5
+        label.layer.cornerRadius = 4
         label.layer.masksToBounds = true
-        label.setContentHuggingPriority(.required, for: .horizontal)
+        label.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        label.setContentCompressionResistancePriority(.required, for: .horizontal)
         return label
+    }()
+
+    /// Caption1-scaled semibold system font. Shared by the store + price chips
+    /// so they render at the same point size and weight, and `UIFontMetrics`
+    /// keeps them matched as Dynamic Type scales.
+    private static let chipFont: UIFont = {
+        let base = UIFont.systemFont(
+            ofSize: UIFont.preferredFont(forTextStyle: .caption1).pointSize,
+            weight: .semibold
+        )
+        return UIFontMetrics(forTextStyle: .caption1).scaledFont(for: base)
+    }()
+
+    /// Caption2-scaled semibold — smaller than `chipFont` so the sponsor line
+    /// reads as tertiary metadata under the headline while still being
+    /// emphasized against the body copy.
+    private static let sponsorFont: UIFont = {
+        let base = UIFont.systemFont(
+            ofSize: UIFont.preferredFont(forTextStyle: .caption2).pointSize,
+            weight: .semibold
+        )
+        return UIFontMetrics(forTextStyle: .caption2).scaledFont(for: base)
     }()
 
     private lazy var actionButton: UIButton = {
@@ -153,7 +207,8 @@ public class CompactNativeAdView: NativeAdView {
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setTitle("Install Now", for: .normal)
         button.titleLabel?.font = .preferredFont(forTextStyle: .headline)
-        button.layer.cornerRadius = 8
+        // Corner radius is driven by `Style.ctaShape` via `applyCTAShape()` /
+        // `layoutSubviews`, not a fixed value here.
         button.layer.masksToBounds = true
         button.isUserInteractionEnabled = false
         return button
@@ -172,6 +227,15 @@ public class CompactNativeAdView: NativeAdView {
 
     public override var intrinsicContentSize: CGSize {
         CGSize(width: UIView.noIntrinsicMetric, height: fixedHeight)
+    }
+
+    public override func layoutSubviews() {
+        super.layoutSubviews()
+        // Capsule shape depends on the button's laid-out height, which is only
+        // known after Auto Layout resolves. Re-apply every pass; no-op for rect.
+        if case .capsule = style.ctaShape {
+            applyCTAShape()
+        }
     }
 }
 
@@ -213,45 +277,56 @@ extension CompactNativeAdView {
         headlineStack.addArrangedSubview(adIconImageView)
         headlineStack.addArrangedSubview(headlineTextStack)
 
-        let storeSpacer = UIView()
-        storeSpacer.translatesAutoresizingMaskIntoConstraints = false
-        storeSpacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        storeSpacer.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        let priceStack = AutoHidingStackView()
+        priceStack.accessibilityIdentifier = "Price Stack"
+        priceStack.axis = .vertical
+        priceStack.spacing = 4
+        // `.fill` stretches both chips to the stack's width, which the stack
+        // hugs to the wider chip — so "App Store" and "Free" render at
+        // matching width even though their text is different.
+        priceStack.alignment = .fill
+        priceStack.distribution = .fill
+        priceStack.translatesAutoresizingMaskIntoConstraints = false
+        priceStack.setContentHuggingPriority(.required, for: .horizontal)
+        priceStack.setContentCompressionResistancePriority(.required, for: .horizontal)
+        priceStack.addArrangedSubview(adStoreLabel)
+        priceStack.addArrangedSubview(adPriceLabel)
 
-        let storeStack = UIStackView()
-        storeStack.accessibilityIdentifier = "Store Stack"
-        storeStack.axis = .horizontal
-        storeStack.spacing = 8
-        storeStack.alignment = .center
-        storeStack.distribution = .fill
-        storeStack.translatesAutoresizingMaskIntoConstraints = false
-        storeStack.addArrangedSubview(adStoreLabel)
-        storeStack.addArrangedSubview(adPriceLabel)
-        storeStack.addArrangedSubview(storeSpacer)
+        adBodyLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        adBodyLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         let middleStack = AutoHidingStackView()
         middleStack.accessibilityIdentifier = "Middle Stack"
-        middleStack.axis = .vertical
-        middleStack.spacing = 8
-        middleStack.alignment = .fill
+        middleStack.axis = .horizontal
+        middleStack.spacing = 12
+        middleStack.alignment = .center
         middleStack.distribution = .fill
         middleStack.translatesAutoresizingMaskIntoConstraints = false
         middleStack.addArrangedSubview(adBodyLabel)
-        middleStack.addArrangedSubview(storeStack)
+        middleStack.addArrangedSubview(priceStack)
 
+        adContainerView.addSubview(adMediaView)
         adContainerView.addSubview(headlineStack)
         adContainerView.addSubview(middleStack)
         adContainerView.addSubview(actionButton)
 
         addSubview(adContainerView)
 
-        NSLayoutConstraint.activate([
-            adContainerView.topAnchor.constraint(equalTo: topAnchor, constant: 12),
-            adContainerView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            adContainerView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
-            adContainerView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -12),
+        let mediaHeightConstraint = adMediaView.heightAnchor.constraint(equalToConstant: 160)
+        mediaHeightConstraint.priority = .required
 
-            headlineStack.topAnchor.constraint(equalTo: adContainerView.topAnchor),
+        NSLayoutConstraint.activate([
+            adContainerView.topAnchor.constraint(equalTo: topAnchor, constant: containerPadding),
+            adContainerView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            adContainerView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            adContainerView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -containerPadding),
+
+            adMediaView.topAnchor.constraint(equalTo: adContainerView.topAnchor),
+            adMediaView.leadingAnchor.constraint(equalTo: adContainerView.leadingAnchor),
+            adMediaView.trailingAnchor.constraint(equalTo: adContainerView.trailingAnchor),
+            mediaHeightConstraint,
+
+            headlineStack.topAnchor.constraint(equalTo: adMediaView.bottomAnchor, constant: defaultSpacing),
             headlineStack.leadingAnchor.constraint(equalTo: adContainerView.leadingAnchor),
             headlineStack.trailingAnchor.constraint(equalTo: adContainerView.trailingAnchor),
 
@@ -263,16 +338,19 @@ extension CompactNativeAdView {
             actionButton.leadingAnchor.constraint(equalTo: adContainerView.leadingAnchor),
             actionButton.trailingAnchor.constraint(equalTo: adContainerView.trailingAnchor),
             actionButton.bottomAnchor.constraint(equalTo: adContainerView.bottomAnchor),
-            actionButton.heightAnchor.constraint(equalToConstant: 44),
+            actionButton.heightAnchor.constraint(equalToConstant: 40),
 
-            adIconImageView.widthAnchor.constraint(equalToConstant: 60),
-            adIconImageView.heightAnchor.constraint(equalToConstant: 60),
+            adIconImageView.widthAnchor.constraint(equalToConstant: 36),
+            adIconImageView.heightAnchor.constraint(equalToConstant: 36),
         ])
     }
 
     private func applyStyle() {
+        self.backgroundColor = style.backgroundColor
+
         actionButton.backgroundColor = style.actionButtonBackgroundColor
         actionButton.setTitleColor(style.actionButtonTitleColor, for: .normal)
+        applyCTAShape()
 
         adAttributionLabel.backgroundColor = style.attributionBackgroundColor
         adAttributionLabel.textColor = style.attributionTextColor
@@ -282,6 +360,19 @@ extension CompactNativeAdView {
 
         adPriceLabel.backgroundColor = style.priceBackgroundColor
         adPriceLabel.textColor = style.priceTextColor
+    }
+
+    private func applyCTAShape() {
+        switch style.ctaShape {
+        case let .rect(cornerRadius):
+            actionButton.layer.cornerRadius = cornerRadius
+        case .capsule:
+            // Height is 0 during first applyStyle() (pre-layout); `layoutSubviews`
+            // re-applies once the frame settles. Fall back to half the constraint
+            // height (40) so the first layout pass is already round.
+            let h = actionButton.bounds.height > 0 ? actionButton.bounds.height : 40
+            actionButton.layer.cornerRadius = h / 2
+        }
     }
 }
 
@@ -304,6 +395,7 @@ extension CompactNativeAdView {
 
 extension CompactNativeAdView {
     private func updateUI(with nativeAd: NativeAd) {
+        adMediaView.mediaContent = nativeAd.mediaContent
         adIconImageView.image = nativeAd.icon?.image
         adHeadlineLabel.text = nativeAd.headline?.capitalized
         adSponsorLabel.text = nativeAd.advertiser
@@ -315,6 +407,7 @@ extension CompactNativeAdView {
     }
 
     private func updateViewBindings() {
+        self.mediaView = adMediaView
         self.iconView = adIconImageView
         self.headlineView = adHeadlineLabel
         self.advertiserView = adSponsorLabel
@@ -326,6 +419,12 @@ extension CompactNativeAdView {
     }
 
     private func updateVisibility(for nativeAd: NativeAd) {
+        // `MediaView` shows image ads via the SDK once `mediaContent` is set.
+        // Hide the slot when the creative has neither a video nor a meaningful
+        // aspect ratio (rare; most served creatives include at least one).
+        let mediaContent = nativeAd.mediaContent
+        let hasMedia = mediaContent.hasVideoContent || mediaContent.aspectRatio > 0
+        adMediaView.isHidden = !hasMedia
         adIconImageView.isHidden = nativeAd.icon == nil
         adHeadlineLabel.isHidden = nativeAd.headline == nil
         adSponsorLabel.isHidden = nativeAd.advertiser == nil
