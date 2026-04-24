@@ -19,6 +19,10 @@ let package = Package(
         .package(url: "https://github.com/pointfreeco/swift-composable-architecture.git", branch: "main"),
         .package(url: "https://github.com/googleads/swift-package-manager-google-mobile-ads.git", branch: "main"),
         .package(url: "https://github.com/ThanhHaiKhong/TCAInitializableReducer.git", branch: "master"),
+        .package(url: "https://DucManh98@bitbucket.org/innofyapp/ads-swift.git", branch: "feature/preload_ads"),
+        .package(path: "../RemoteConfigClient"),
+        .package(path: "../AdjustClient"),
+        .package(path: "../AnalyticClient"),
     ],
     targets: [
         .target(
@@ -34,6 +38,10 @@ let package = Package(
             dependencies: [
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
                 .product(name: "GoogleMobileAds", package: "swift-package-manager-google-mobile-ads"),
+                .product(name: "ads-swift", package: "ads-swift"),
+                .product(name: "RemoteConfigClient", package: "RemoteConfigClient"),
+                .product(name: "AdjustClient", package: "AdjustClient"),
+                .product(name: "AnalyticClient", package: "AnalyticClient"),
                 "MobileAdsClient",
             ]
         ),
@@ -43,7 +51,10 @@ let package = Package(
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
                 .product(name: "GoogleMobileAds", package: "swift-package-manager-google-mobile-ads"),
 				.product(name: "TCAInitializableReducer", package: "TCAInitializableReducer"),
+                .product(name: "ads-swift", package: "ads-swift"),
+                .product(name: "RemoteConfigClient", package: "RemoteConfigClient"),
                 "NativeAdClient",
+                "MobileAdsClient",
             ],
             resources: [
                 .process("Resources/stars_3_5.png"),
@@ -67,6 +78,10 @@ let package = Package(
                 .product(name: "GoogleMobileAds", package: "swift-package-manager-google-mobile-ads"),
                 "NativeAdClient",
             ]
+        ),
+        .testTarget(
+            name: "MobileAdsClientTests",
+            dependencies: ["MobileAdsClient", "MobileAdsClientUI"]
         ),
     ]
 )
