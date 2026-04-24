@@ -16,11 +16,15 @@ extension MobileAdsClient {
     public enum AdPlacement: Sendable, Equatable, CaseIterable, CustomStringConvertible {
         case interRecorder
         case home
+        case tab
+        case paywallClose
 
         public var remoteConfigKey: String {
             switch self {
             case .interRecorder: return "recorder"
             case .home:          return "home"
+            case .tab:           return "tab"
+            case .paywallClose:  return "paywallClose"
             }
         }
 

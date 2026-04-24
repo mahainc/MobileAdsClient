@@ -224,6 +224,8 @@ enum PlacementBridge {
             switch placement {
             case .interRecorder: return v2.interstitials.recorder
             case .home:          return v2.interstitials.home
+            case .tab:           return v2.interstitials.tab
+            case .paywallClose:  return v2.interstitials.paywallClose
             }
         }()
 
