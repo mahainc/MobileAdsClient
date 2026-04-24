@@ -58,6 +58,9 @@ extension MobileAdsClient: DependencyKey {
             },
             installRevenueBridge: {
                 await RevenueBridge.shared.install()
+            },
+            installResumeAdHandler: { isPremium in
+                await ResumeAdHandler.shared.install(isPremium: isPremium)
             }
         )
     }()

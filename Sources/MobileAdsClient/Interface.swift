@@ -34,6 +34,16 @@ public struct MobileAdsClient: Sendable {
     /// callback to `AdjustClient.trackRevenue` + `AnalyticClient.trackEvent("ad_revenue", …)`.
     /// Idempotent — call once at app startup (after `AdjustClient.initialize(_:)`).
     public var installRevenueBridge: @Sendable () async -> Void
+    /// Installs a MainActor observer on `UIScene.didEnterBackgroundNotification`
+    /// and `.willEnterForegroundNotification`, then runs the full
+    /// `appOpens.resume` policy internally — `global.adsEnabled` +
+    /// `global.appOpen.*` + `appOpens.resume.*`, `minBackgroundSeconds`,
+    /// `postAdSuppressionSeconds`, `maxPerSession`, and the caller-supplied
+    /// `isPremium` predicate. Idempotent — safe to call once at app startup.
+    ///
+    /// `isPremium` is passed in (instead of read from `@Shared(.isPremium)`
+    /// directly) so `MobileAdsClient` stays independent of `AppSchemas`.
+    public var installResumeAdHandler: @Sendable (_ isPremium: @escaping @Sendable () -> Bool) async -> Void = { _ in }
 }
 
 extension Effect {
