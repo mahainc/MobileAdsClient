@@ -54,4 +54,23 @@ extension MobileAdsClient {
 
         public var description: String { remoteConfigKey }
     }
+
+    /// v2 native-ad placements mapped 1:1 to slots under `ad_config_v2.natives.*`.
+    /// Resolved by `MobileAdsClient.nativeAdUnitID(_:)` at call time; the closure
+    /// returns `""` when any enclosing gate is off or the slot is missing.
+    public enum NativeAdPlacement: Sendable, Equatable, Hashable, CustomStringConvertible {
+        case language
+        case languageSelected
+        case introStep(Int)
+        case fallback
+
+        public var description: String {
+            switch self {
+            case .language:          return "language"
+            case .languageSelected:  return "languageSelected"
+            case let .introStep(n):  return "introStep(\(n))"
+            case .fallback:          return "fallback"
+            }
+        }
+    }
 }

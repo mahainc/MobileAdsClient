@@ -24,6 +24,11 @@ public struct MobileAdsClient: Sendable {
     public var isNativeAllPlacementEnabled: @Sendable (_ placement: MobileAdsClient.NativeAllPlacement) async -> Bool = { _ in false }
     /// The current Remote-Config-resolved native-ad unit ID (empty string when unavailable or disabled).
     public var nativeAllAdUnitID: @Sendable () async -> String = { "" }
+    /// Resolves the ad unit for a v2 native placement, honouring
+    /// `global.adsEnabled` + `global.native.enabled` + the placement's own
+    /// `.enabled` flag. Returns `""` when any gate is off or the placement is
+    /// missing from Remote Config.
+    public var nativeAdUnitID: @Sendable (_ placement: MobileAdsClient.NativeAdPlacement) async -> String = { _ in "" }
 
     /// Registers as the ads_swift `AdRevenueDelegate` and fans out each incoming revenue
     /// callback to `AdjustClient.trackRevenue` + `AnalyticClient.trackEvent("ad_revenue", …)`.

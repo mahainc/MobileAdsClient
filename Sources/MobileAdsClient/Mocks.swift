@@ -26,6 +26,7 @@ extension MobileAdsClient: TestDependencyKey {
             showRewardPlacement: { _ in true },
             isNativeAllPlacementEnabled: { _ in true },
             nativeAllAdUnitID: { "test-native-unit" },
+            nativeAdUnitID: { _ in "test-native-unit" },
             installRevenueBridge: { }
         )
     }()
@@ -46,6 +47,7 @@ extension MobileAdsClient: TestDependencyKey {
             showRewardPlacement: { _ in true },
             isNativeAllPlacementEnabled: { _ in true },
             nativeAllAdUnitID: { "preview-native-unit" },
+            nativeAdUnitID: { _ in "preview-native-unit" },
             installRevenueBridge: { }
         )
     }()
@@ -63,6 +65,7 @@ extension MobileAdsClient {
         showRewardPlacement: { _ in true }, // user still gets the reward
         isNativeAllPlacementEnabled: { _ in false },
         nativeAllAdUnitID: { "" },
+        nativeAdUnitID: { _ in "" },
         installRevenueBridge: { }
     )
 }

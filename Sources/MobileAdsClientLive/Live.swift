@@ -53,6 +53,9 @@ extension MobileAdsClient: DependencyKey {
             nativeAllAdUnitID: {
                 await PlacementBridge.nativeAllAdUnitID()
             },
+            nativeAdUnitID: { placement in
+                await PlacementBridge.nativeAdUnitID(for: placement)
+            },
             installRevenueBridge: {
                 await RevenueBridge.shared.install()
             }
@@ -232,7 +235,41 @@ enum PlacementBridge {
               v2.natives.fallback.enabled else {
             return ""
         }
-        return v2.natives.fallback.adUnitId
+        return resolvedNativeUnitId(configured: v2.natives.fallback.adUnitId)
+    }
+
+    /// Resolves a v2 native-ad placement against the current `AdConfigV2`. Honours
+    /// `global.adsEnabled` + `global.native.enabled` + the slot's own `.enabled`
+    /// flag. Returns `""` when any gate is off or the slot is missing.
+    static func nativeAdUnitID(for placement: MobileAdsClient.NativeAdPlacement) async -> String {
+        guard let v2 = try? await remoteConfigClient.adConfigV2(),
+              v2.global.adsEnabled,
+              v2.global.native.enabled else { return "" }
+
+        let slot: RemoteConfigClient.AdConfigV2.NativePlacement = {
+            switch placement {
+            case .language:          return v2.natives.language
+            case .languageSelected:  return v2.natives.languageSelected
+            case let .introStep(n):  return v2.natives.intro["\(n)"] ?? .init()
+            case .fallback:          return v2.natives.fallback
+            }
+        }()
+        guard slot.enabled else { return "" }
+        return resolvedNativeUnitId(configured: slot.adUnitId)
+    }
+
+    /// Swaps the configured production native unit for Google's universal test
+    /// unit in DEBUG so simulator / TestFlight runs never generate invalid
+    /// impressions against the real unit. Release keeps the Remote-Config value.
+    /// Empty configured IDs still short-circuit to `""` so the gate matrix is
+    /// identical across build configurations.
+    private static func resolvedNativeUnitId(configured: String) -> String {
+        guard !configured.isEmpty else { return "" }
+        #if DEBUG
+        return "ca-app-pub-3940256099942544/3986624511"
+        #else
+        return configured
+        #endif
     }
 
     // MARK: - Placement resolution
