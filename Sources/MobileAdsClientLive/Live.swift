@@ -224,7 +224,7 @@ enum PlacementBridge {
 
         let slot: RemoteConfigClient.AdConfigV2.InterstitialPlacement = {
             switch placement {
-            case .interRecorder: return v2.interstitials.recorder
+            case .back:          return v2.interstitials.back
             case .home:          return v2.interstitials.home
             case .tab:           return v2.interstitials.tab
             case .paywallClose:  return v2.interstitials.paywallClose

@@ -14,14 +14,14 @@ extension MobileAdsClient {
     /// Interstitial placements. Cases resolve to `v2.interstitials.<key>` in
     /// Remote Config.
     public enum AdPlacement: Sendable, Equatable, CaseIterable, CustomStringConvertible {
-        case interRecorder
+        case back
         case home
         case tab
         case paywallClose
 
         public var remoteConfigKey: String {
             switch self {
-            case .interRecorder: return "recorder"
+            case .back:          return "back"
             case .home:          return "home"
             case .tab:           return "tab"
             case .paywallClose:  return "paywallClose"
