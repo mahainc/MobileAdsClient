@@ -27,7 +27,7 @@ public struct Native: TCAInitializableReducer, Sendable {
         }
     }
     
-    public enum Action: Equatable, BindableAction {
+    public enum Action: Equatable, BindableAction, @unchecked Sendable {
         case onAppear
         case binding(BindingAction<State>)
         case receivedNativeAd(NativeAd)
