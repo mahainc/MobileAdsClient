@@ -9,6 +9,7 @@
 
 #if canImport(UIKit)
 @preconcurrency import GoogleMobileAds
+import NativeAdClient
 import SwiftUI
 import UIKit
 
@@ -19,7 +20,7 @@ public struct FullScreenNativeView: UIViewRepresentable {
 
     public init(
         nativeAd: NativeAd,
-        style: FullScreenNativeAdView.Style = .default,
+        style: FullScreenNativeAdView.Style = .fullScreen,
         onClose: @escaping () -> Void
     ) {
         self.nativeAd = nativeAd

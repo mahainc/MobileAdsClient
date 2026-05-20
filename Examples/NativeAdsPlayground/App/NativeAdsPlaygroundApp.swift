@@ -39,6 +39,15 @@ struct NativeAdsPlaygroundApp: App {
                 .tabItem {
                     Label("Natives", systemImage: "square.text.square")
                 }
+
+                RowAdsListView(
+                    store: Store(initialState: RowAdsList.State()) {
+                        RowAdsList()
+                    }
+                )
+                .tabItem {
+                    Label("Rows", systemImage: "list.bullet.rectangle")
+                }
             }
         }
     }

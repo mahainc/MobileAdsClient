@@ -76,9 +76,7 @@ extension NativeAdClient {
 }
 
 extension NativeAdClient {
-	
 	public struct MediaAspectRatioOption: AdLoaderOption {
-
 		private let ratio: Ratio
 
 		public init(ratio: Ratio) {
@@ -117,7 +115,6 @@ extension NativeAdClient {
 }
 
 extension NativeAdClient {
-	
 	public struct VideoPlaybackOption: AdLoaderOption {
 		private let shouldStartMuted: Bool
 		private let areCustomControlsRequested: Bool
@@ -151,9 +148,7 @@ extension NativeAd: @retroactive @unchecked Sendable {
 // MARK: - AdStyle
 
 extension NativeAdClient {
-
 	public struct AdStyle: Sendable, Equatable {
-
 		public enum ButtonShape: Sendable, Equatable {
 			case rect(cornerRadius: CGFloat)
 			case capsule
@@ -243,6 +238,16 @@ extension NativeAdClient {
 			containerBackgroundColor: UIColor(red: 122 / 255, green: 159 / 255, blue: 126 / 255, alpha: 1),
 			headlineTextColor: UIColor(red: 66 / 255, green: 66 / 255, blue: 66 / 255, alpha: 1),
 			buttonShape: .rect(cornerRadius: 5)
+		)
+
+		/// Preset for `RowNativeAdView` — secondary canvas, capsule CTA, subtle "Sponsored" attribution that fits in-feed rows without shouting.
+		public static let row: AdStyle = .init(
+			backgroundColor: .secondarySystemBackground,
+			actionButtonBackgroundColor: .systemBlue,
+			actionButtonTitleColor: .white,
+			buttonShape: .capsule,
+			attributionBackgroundColor: .clear,
+			attributionTextColor: .secondaryLabel
 		)
 	}
 }

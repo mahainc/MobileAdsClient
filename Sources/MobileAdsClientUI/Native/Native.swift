@@ -21,15 +21,18 @@ public struct Native: TCAInitializableReducer, Sendable {
         public var nativeAd: NativeAd?
         public var adHeight: CGFloat = 300.0
         public var adStyle: NativeAdClient.AdStyle = .compact
+        public var rowLayout: RowNativeAdView.Layout = .inline
 
 		public init(
             adUnitID: String,
             options: [NativeAdClient.AnyAdLoaderOption] = [],
-            adStyle: NativeAdClient.AdStyle = .compact
+            adStyle: NativeAdClient.AdStyle = .compact,
+            rowLayout: RowNativeAdView.Layout = .inline
         ) {
             self.adUnitID = adUnitID
             self.adLoaderOptions = options
             self.adStyle = adStyle
+            self.rowLayout = rowLayout
         }
     }
     
