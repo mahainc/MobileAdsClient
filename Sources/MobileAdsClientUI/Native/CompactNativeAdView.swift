@@ -5,56 +5,12 @@
 
 #if canImport(UIKit)
 import GoogleMobileAds
+import NativeAdClient
 import UIKit
 
 public class CompactNativeAdView: NativeAdView {
 
-    public struct Style: Sendable, Equatable {
-        /// Shape applied to the CTA button's background.
-        /// `.capsule` computes the radius at layout time from the button's
-        /// current height, so it stays a pill regardless of Dynamic Type.
-        public enum CTAShape: Sendable, Equatable {
-            case rect(cornerRadius: CGFloat)
-            case capsule
-        }
-
-        public var backgroundColor: UIColor
-        public var actionButtonBackgroundColor: UIColor
-        public var actionButtonTitleColor: UIColor
-        public var ctaShape: CTAShape
-        public var attributionBackgroundColor: UIColor
-        public var attributionTextColor: UIColor
-        public var storeBackgroundColor: UIColor
-        public var storeTextColor: UIColor
-        public var priceBackgroundColor: UIColor
-        public var priceTextColor: UIColor
-
-        public init(
-            backgroundColor: UIColor = .secondarySystemBackground,
-            actionButtonBackgroundColor: UIColor = .systemBlue,
-            actionButtonTitleColor: UIColor = .white,
-            ctaShape: CTAShape = .rect(cornerRadius: 8),
-            attributionBackgroundColor: UIColor = .systemBlue,
-            attributionTextColor: UIColor = .white,
-            storeBackgroundColor: UIColor = .systemGreen,
-            storeTextColor: UIColor = .white,
-            priceBackgroundColor: UIColor = .systemGreen,
-            priceTextColor: UIColor = .white
-        ) {
-            self.backgroundColor = backgroundColor
-            self.actionButtonBackgroundColor = actionButtonBackgroundColor
-            self.actionButtonTitleColor = actionButtonTitleColor
-            self.ctaShape = ctaShape
-            self.attributionBackgroundColor = attributionBackgroundColor
-            self.attributionTextColor = attributionTextColor
-            self.storeBackgroundColor = storeBackgroundColor
-            self.storeTextColor = storeTextColor
-            self.priceBackgroundColor = priceBackgroundColor
-            self.priceTextColor = priceTextColor
-        }
-
-        public static let `default`: Style = .init()
-    }
+    public typealias Style = NativeAdClient.AdStyle
 
     public var style: Style {
         didSet { applyStyle() }
@@ -214,7 +170,7 @@ public class CompactNativeAdView: NativeAdView {
         return button
     }()
 
-    public init(frame: CGRect = .zero, style: Style = .default) {
+    public init(frame: CGRect = .zero, style: Style = .compact) {
         self.style = style
         super.init(frame: frame)
         setupViews()
