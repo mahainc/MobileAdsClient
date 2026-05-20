@@ -1,0 +1,6 @@
+NativeAdsPlayground.xcodeproj/
+*.xcworkspace/
+DerivedData/
+.build/
+.swiftpm/
+xcuserdata/
