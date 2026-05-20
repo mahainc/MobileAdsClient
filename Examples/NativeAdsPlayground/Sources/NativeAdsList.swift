@@ -28,7 +28,7 @@ public struct NativeAdsList: Sendable {
                 guard state.ads.isEmpty else { return .none }
 
                 let options: [NativeAdClient.AnyAdLoaderOption] = [
-                    NativeAdClient.AnyAdLoaderOption(NativeAdClient.MediaAspectRatioOption(type: .landscape)),
+                    NativeAdClient.AnyAdLoaderOption(NativeAdClient.MediaAspectRatioOption(ratio: .landscape)),
                     NativeAdClient.AnyAdLoaderOption(NativeAdClient.AdChoicesPositionOption(corner: .topRight)),
                 ]
 

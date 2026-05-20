@@ -68,7 +68,7 @@ public struct GoogleAds: Sendable {
                 state.items = .init(uniqueElements: items.enumerated().map(\.element))
 
                 let options: [NativeAdClient.AnyAdLoaderOption] = [
-                    NativeAdClient.AnyAdLoaderOption(NativeAdClient.MediaAspectRatioOption(type: .landscape)),
+                    NativeAdClient.AnyAdLoaderOption(NativeAdClient.MediaAspectRatioOption(ratio: .landscape)),
                     NativeAdClient.AnyAdLoaderOption(NativeAdClient.AdChoicesPositionOption(corner: .topRight)),
                 ]
 

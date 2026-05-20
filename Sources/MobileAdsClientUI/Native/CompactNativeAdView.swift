@@ -163,7 +163,7 @@ public class CompactNativeAdView: NativeAdView {
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setTitle("Install Now", for: .normal)
         button.titleLabel?.font = .preferredFont(forTextStyle: .headline)
-        // Corner radius is driven by `Style.ctaShape` via `applyCTAShape()` /
+        // Corner radius is driven by `Style.buttonShape` via `applyButtonShape()` /
         // `layoutSubviews`, not a fixed value here.
         button.layer.masksToBounds = true
         button.isUserInteractionEnabled = false
@@ -189,8 +189,8 @@ public class CompactNativeAdView: NativeAdView {
         super.layoutSubviews()
         // Capsule shape depends on the button's laid-out height, which is only
         // known after Auto Layout resolves. Re-apply every pass; no-op for rect.
-        if case .capsule = style.ctaShape {
-            applyCTAShape()
+        if case .capsule = style.buttonShape {
+            applyButtonShape()
         }
     }
 }
@@ -309,7 +309,7 @@ extension CompactNativeAdView {
 
         actionButton.backgroundColor = style.actionButtonBackgroundColor
         actionButton.setTitleColor(style.actionButtonTitleColor, for: .normal)
-        applyCTAShape()
+        applyButtonShape()
 
         adAttributionLabel.backgroundColor = style.attributionBackgroundColor
         adAttributionLabel.textColor = style.attributionTextColor
@@ -321,8 +321,8 @@ extension CompactNativeAdView {
         adPriceLabel.textColor = style.priceTextColor
     }
 
-    private func applyCTAShape() {
-        switch style.ctaShape {
+    private func applyButtonShape() {
+        switch style.buttonShape {
         case let .rect(cornerRadius):
             actionButton.layer.cornerRadius = cornerRadius
         case .capsule:

@@ -13,14 +13,12 @@ import UIKit
 // MARK: - AdChoicesOptions
 
 extension NativeAdClient {
-
 	public protocol AdLoaderOption: Sendable, Equatable {
 		func toGADAdLoaderOptions() -> GADAdLoaderOptions
 	}
 }
 
 extension NativeAdClient {
-	
 	public struct AnyAdLoaderOption: Sendable, Equatable {
 		private let base: any AdLoaderOption
 		private let equals: @Sendable (any AdLoaderOption) -> Bool
@@ -43,13 +41,13 @@ extension NativeAdClient {
 extension NativeAdClient {
 	
 	public struct AdChoicesPositionOption: AdLoaderOption {
-		private let corner: AdChoicesCorner
-		
-		public init(corner: AdChoicesCorner) {
+		private let corner: Corner
+
+		public init(corner: Corner) {
 			self.corner = corner
 		}
-		
-		public enum AdChoicesCorner: Int, Sendable, Equatable {
+
+		public enum Corner: Int, Sendable, Equatable {
 			case topLeft
 			case topRight
 			case bottomRight
@@ -80,21 +78,21 @@ extension NativeAdClient {
 extension NativeAdClient {
 	
 	public struct MediaAspectRatioOption: AdLoaderOption {
-		
-		private let type: MediaAspectRatioType
-		
-		public init(type: MediaAspectRatioType) {
-			self.type = type
+
+		private let ratio: Ratio
+
+		public init(ratio: Ratio) {
+			self.ratio = ratio
 		}
-		
-		public enum MediaAspectRatioType: Int, Sendable, Equatable {
+
+		public enum Ratio: Int, Sendable, Equatable {
 			case unknown
 			case any
 			case landscape
 			case portrait
 			case square
-			
-			public func toMediaAspectRatio() -> MediaAspectRatio {
+
+			func toMediaAspectRatio() -> MediaAspectRatio {
 				switch self {
 				case .unknown:
 					return .unknown
@@ -112,7 +110,7 @@ extension NativeAdClient {
 		
 		public func toGADAdLoaderOptions() -> GADAdLoaderOptions {
 			let mediaOptions = NativeAdMediaAdLoaderOptions()
-			mediaOptions.mediaAspectRatio = type.toMediaAspectRatio()
+			mediaOptions.mediaAspectRatio = ratio.toMediaAspectRatio()
 			return mediaOptions
 		}
 	}
@@ -156,48 +154,96 @@ extension NativeAdClient {
 
 	public struct AdStyle: Sendable, Equatable {
 
-		public enum CTAShape: Sendable, Equatable {
+		public enum ButtonShape: Sendable, Equatable {
 			case rect(cornerRadius: CGFloat)
 			case capsule
 		}
 
 		public var backgroundColor: UIColor
+		public var containerBackgroundColor: UIColor
+		public var headlineTextColor: UIColor
+		public var bodyTextColor: UIColor
+		public var sponsorTextColor: UIColor
 		public var actionButtonBackgroundColor: UIColor
 		public var actionButtonTitleColor: UIColor
-		public var ctaShape: CTAShape
+		public var buttonShape: ButtonShape
 		public var attributionBackgroundColor: UIColor
 		public var attributionTextColor: UIColor
 		public var storeBackgroundColor: UIColor
 		public var storeTextColor: UIColor
 		public var priceBackgroundColor: UIColor
 		public var priceTextColor: UIColor
+		public var closeButtonTintColor: UIColor
+		public var closeButtonBackgroundColor: UIColor
 
 		public init(
 			backgroundColor: UIColor = .secondarySystemBackground,
+			containerBackgroundColor: UIColor = .clear,
+			headlineTextColor: UIColor = .label,
+			bodyTextColor: UIColor = .secondaryLabel,
+			sponsorTextColor: UIColor = .secondaryLabel,
 			actionButtonBackgroundColor: UIColor = .systemBlue,
 			actionButtonTitleColor: UIColor = .white,
-			ctaShape: CTAShape = .rect(cornerRadius: 8),
+			buttonShape: ButtonShape = .rect(cornerRadius: 8),
 			attributionBackgroundColor: UIColor = .systemBlue,
 			attributionTextColor: UIColor = .white,
 			storeBackgroundColor: UIColor = .systemGreen,
 			storeTextColor: UIColor = .white,
 			priceBackgroundColor: UIColor = .systemGreen,
-			priceTextColor: UIColor = .white
+			priceTextColor: UIColor = .white,
+			closeButtonTintColor: UIColor = .label,
+			closeButtonBackgroundColor: UIColor = UIColor.label.withAlphaComponent(0.08)
 		) {
 			self.backgroundColor = backgroundColor
+			self.containerBackgroundColor = containerBackgroundColor
+			self.headlineTextColor = headlineTextColor
+			self.bodyTextColor = bodyTextColor
+			self.sponsorTextColor = sponsorTextColor
 			self.actionButtonBackgroundColor = actionButtonBackgroundColor
 			self.actionButtonTitleColor = actionButtonTitleColor
-			self.ctaShape = ctaShape
+			self.buttonShape = buttonShape
 			self.attributionBackgroundColor = attributionBackgroundColor
 			self.attributionTextColor = attributionTextColor
 			self.storeBackgroundColor = storeBackgroundColor
 			self.storeTextColor = storeTextColor
 			self.priceBackgroundColor = priceBackgroundColor
 			self.priceTextColor = priceTextColor
+			self.closeButtonTintColor = closeButtonTintColor
+			self.closeButtonBackgroundColor = closeButtonBackgroundColor
 		}
 
 		/// Preset matching `CompactNativeAdView`'s historical defaults.
 		public static let compact: AdStyle = .init()
+
+		/// Preset matching `FullScreenNativeAdView`'s historical defaults — capsule CTA, system-background canvas.
+		public static let fullScreen: AdStyle = .init(
+			backgroundColor: .systemBackground,
+			buttonShape: .capsule
+		)
+
+		/// Preset matching `NativeAdvancedView`'s historical look — light-blue container, outlined attribution chip, soft-tinted CTA + store/price chips.
+		public static let advanced: AdStyle = .init(
+			backgroundColor: .clear,
+			containerBackgroundColor: UIColor(red: 234 / 255, green: 240 / 255, blue: 253 / 255, alpha: 1),
+			headlineTextColor: UIColor(red: 66 / 255, green: 66 / 255, blue: 66 / 255, alpha: 1),
+			actionButtonBackgroundColor: .systemBlue.withAlphaComponent(0.15),
+			actionButtonTitleColor: .systemBlue,
+			buttonShape: .rect(cornerRadius: 5),
+			attributionBackgroundColor: .clear,
+			attributionTextColor: .systemBlue,
+			storeBackgroundColor: .systemGreen.withAlphaComponent(0.15),
+			storeTextColor: .systemGreen,
+			priceBackgroundColor: .systemGreen.withAlphaComponent(0.15),
+			priceTextColor: .systemGreen
+		)
+
+		/// Preset matching `CustomNativeAdView`'s historical look — green container, solid attribution chip, solid CTA.
+		public static let custom: AdStyle = .init(
+			backgroundColor: .clear,
+			containerBackgroundColor: UIColor(red: 122 / 255, green: 159 / 255, blue: 126 / 255, alpha: 1),
+			headlineTextColor: UIColor(red: 66 / 255, green: 66 / 255, blue: 66 / 255, alpha: 1),
+			buttonShape: .rect(cornerRadius: 5)
+		)
 	}
 }
 #endif

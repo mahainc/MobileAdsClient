@@ -22,56 +22,12 @@
 
 #if canImport(UIKit)
 import GoogleMobileAds
+import NativeAdClient
 import UIKit
 
 public class FullScreenNativeAdView: NativeAdView {
 
-    public struct Style: Sendable, Equatable {
-        public enum CTAShape: Sendable, Equatable {
-            case rect(cornerRadius: CGFloat)
-            case capsule
-        }
-
-        public var backgroundColor: UIColor
-        public var headlineTextColor: UIColor
-        public var bodyTextColor: UIColor
-        public var sponsorTextColor: UIColor
-        public var attributionBackgroundColor: UIColor
-        public var attributionTextColor: UIColor
-        public var ctaBackgroundColor: UIColor
-        public var ctaTitleColor: UIColor
-        public var ctaShape: CTAShape
-        public var closeButtonTintColor: UIColor
-        public var closeButtonBackgroundColor: UIColor
-
-        public init(
-            backgroundColor: UIColor = .systemBackground,
-            headlineTextColor: UIColor = .label,
-            bodyTextColor: UIColor = .secondaryLabel,
-            sponsorTextColor: UIColor = .secondaryLabel,
-            attributionBackgroundColor: UIColor = .systemBlue,
-            attributionTextColor: UIColor = .white,
-            ctaBackgroundColor: UIColor = .systemBlue,
-            ctaTitleColor: UIColor = .white,
-            ctaShape: CTAShape = .capsule,
-            closeButtonTintColor: UIColor = .label,
-            closeButtonBackgroundColor: UIColor = UIColor.label.withAlphaComponent(0.08)
-        ) {
-            self.backgroundColor = backgroundColor
-            self.headlineTextColor = headlineTextColor
-            self.bodyTextColor = bodyTextColor
-            self.sponsorTextColor = sponsorTextColor
-            self.attributionBackgroundColor = attributionBackgroundColor
-            self.attributionTextColor = attributionTextColor
-            self.ctaBackgroundColor = ctaBackgroundColor
-            self.ctaTitleColor = ctaTitleColor
-            self.ctaShape = ctaShape
-            self.closeButtonTintColor = closeButtonTintColor
-            self.closeButtonBackgroundColor = closeButtonBackgroundColor
-        }
-
-        public static let `default`: Style = .init()
-    }
+    public typealias Style = NativeAdClient.AdStyle
 
     public var style: Style {
         didSet { applyStyle() }
@@ -166,7 +122,7 @@ public class FullScreenNativeAdView: NativeAdView {
 
     // MARK: - Init
 
-    public init(frame: CGRect = .zero, style: Style = .default) {
+    public init(frame: CGRect = .zero, style: Style = .fullScreen) {
         self.style = style
         super.init(frame: frame)
         setupViews()
@@ -179,7 +135,7 @@ public class FullScreenNativeAdView: NativeAdView {
 
     public override func layoutSubviews() {
         super.layoutSubviews()
-        applyCTAShape()
+        applyButtonShape()
         closeButton.layer.cornerRadius = closeButton.bounds.height / 2
     }
 }
@@ -259,15 +215,15 @@ extension FullScreenNativeAdView {
         adSponsorLabel.textColor = style.sponsorTextColor
         adAttributionLabel.backgroundColor = style.attributionBackgroundColor
         adAttributionLabel.textColor = style.attributionTextColor
-        actionButton.backgroundColor = style.ctaBackgroundColor
-        actionButton.setTitleColor(style.ctaTitleColor, for: .normal)
+        actionButton.backgroundColor = style.actionButtonBackgroundColor
+        actionButton.setTitleColor(style.actionButtonTitleColor, for: .normal)
         closeButton.tintColor = style.closeButtonTintColor
         closeButton.backgroundColor = style.closeButtonBackgroundColor
-        applyCTAShape()
+        applyButtonShape()
     }
 
-    private func applyCTAShape() {
-        switch style.ctaShape {
+    private func applyButtonShape() {
+        switch style.buttonShape {
         case let .rect(cornerRadius):
             actionButton.layer.cornerRadius = cornerRadius
         case .capsule:

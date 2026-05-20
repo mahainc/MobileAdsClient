@@ -7,33 +7,48 @@
 
 #if canImport(UIKit)
 import GoogleMobileAds
+import NativeAdClient
 import UIKit
 
 public class NativeAdvancedView: NativeAdView {
-	
-	public override init(frame: CGRect) {
+
+	public typealias Style = NativeAdClient.AdStyle
+
+	public var style: Style {
+		didSet { applyStyle() }
+	}
+
+	public init(frame: CGRect = .zero, style: Style = .advanced) {
+		self.style = style
 		super.init(frame: frame)
-		
+
 		setupViews()
 		updateViewBindings()
+		applyStyle()
 	}
-	
+
 	required init?(coder: NSCoder) {
 		fatalError("init(coder:) has not been implemented")
 	}
-	
+
+	public override func layoutSubviews() {
+		super.layoutSubviews()
+		if case .capsule = style.buttonShape {
+			applyButtonShape()
+		}
+	}
+
 	// MARK: - SetupViews
-	
+
 	private lazy var contentView: UIView = {
 		let view = UIView()
 		view.translatesAutoresizingMaskIntoConstraints = false
 		view.accessibilityIdentifier = "Ad Content View"
-		view.backgroundColor = UIColor(red: 234 / 255, green: 240 / 255, blue: 253 / 255, alpha: 1)
 		view.layer.cornerRadius = 5
 		view.layer.masksToBounds = true
 		return view
 	}()
-	
+
 	public lazy var containerView: UIImageView = {
 		let imageView = UIImageView()
 		imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -41,49 +56,46 @@ public class NativeAdvancedView: NativeAdView {
 		imageView.contentMode = .scaleAspectFill
 		imageView.layer.cornerRadius = 5
 		imageView.layer.masksToBounds = true
-		imageView.backgroundColor = UIColor(red: 234 / 255, green: 240 / 255, blue: 253 / 255, alpha: 1)
 		imageView.image = UIImage.fromSPM(named: "placeholder_image")
-		
+
 		return imageView
 	}()
-	
+
 	public lazy var headlineLabel: UILabel = {
 		let label = UILabel()
 		label.accessibilityIdentifier = "Ad Headline Label"
 		label.translatesAutoresizingMaskIntoConstraints = false
 		label.numberOfLines = 0
 		label.font = .boldSystemFont(ofSize: 16)
-		label.textColor = UIColor(red: 66 / 255, green: 66 / 255, blue: 66 / 255, alpha: 1)
 		label.text = "Ad Headline"
-		
+
 		return label
 	}()
-	
+
 	public lazy var sponsorLabel: UILabel = {
 		let label = UILabel()
 		label.accessibilityIdentifier = "Ad Sponsor Label"
 		label.translatesAutoresizingMaskIntoConstraints = false
 		label.numberOfLines = 0
-		label.textColor = .secondaryLabel
 		label.text = "Ad Sponsor"
 		label.font = .systemFont(ofSize: 14, weight: .medium)
-		
+
 		return label
 	}()
-	
+
 	public lazy var attributionLabel: PaddedLabel = {
 		let label = PaddedLabel(padding: UIEdgeInsets(top: 2, left: 6, bottom: 2, right: 6))
 		label.accessibilityIdentifier = "Ad Attribution Label"
 		label.translatesAutoresizingMaskIntoConstraints = false
-		label.textColor = .systemBlue
 		label.text = "Sponsored"
 		label.textAlignment = .center
 		label.layer.cornerRadius = 4
 		label.layer.masksToBounds = true
-		label.layer.borderColor = UIColor.systemBlue.cgColor
+		// Border width is structural; color tracks `style.attributionTextColor`
+		// via `applyStyle()` so outlined-chip presets (e.g. `.advanced`) work.
 		label.layer.borderWidth = 1.4
 		label.font = .systemFont(ofSize: 13, weight: .semibold)
-		
+
 		return label
 	}()
 	
@@ -113,16 +125,14 @@ public class NativeAdvancedView: NativeAdView {
 		button.accessibilityIdentifier = "Ad Action Button"
 		button.translatesAutoresizingMaskIntoConstraints = false
 		button.setTitle("Install Now", for: .normal)
-		button.backgroundColor = .systemBlue.withAlphaComponent(0.15)
-		button.setTitleColor(.systemBlue, for: .normal)
 		button.titleLabel?.font = .boldSystemFont(ofSize: 15)
-		button.layer.cornerRadius = 5
+		// Corner radius is driven by `style.buttonShape` via `applyButtonShape()`.
 		button.layer.masksToBounds = true
 		button.isUserInteractionEnabled = false
-		
+
 		return button
 	}()
-	
+
 	public lazy var bodyLabel: UILabel = {
 		let label = UILabel()
 		label.accessibilityIdentifier = "Ad Body Label"
@@ -130,40 +140,35 @@ public class NativeAdvancedView: NativeAdView {
 		label.numberOfLines = 0
 		label.font = .systemFont(ofSize: 13, weight: .regular)
 		label.textAlignment = .left
-		label.textColor = .secondaryLabel
-		
+
 		return label
 	}()
-	
+
 	public lazy var storeLabel: PaddedLabel = {
 		let label = PaddedLabel(padding: UIEdgeInsets(top: 4, left: 6, bottom: 4, right: 6))
 		label.accessibilityIdentifier = "Ad Store Label"
 		label.translatesAutoresizingMaskIntoConstraints = false
 		label.numberOfLines = 0
-		label.textColor = .systemGreen
 		label.textAlignment = .center
-		label.backgroundColor = .systemGreen.withAlphaComponent(0.15)
 		label.font = .boldSystemFont(ofSize: 15)
 		label.text = "App Store"
 		label.layer.cornerRadius = 5
 		label.layer.masksToBounds = true
-		
+
 		return label
 	}()
-	
+
 	public lazy var priceLabel: PaddedLabel = {
 		let label = PaddedLabel(padding: UIEdgeInsets(top: 4, left: 6, bottom: 4, right: 6))
 		label.accessibilityIdentifier = "Ad Price Label"
 		label.translatesAutoresizingMaskIntoConstraints = false
 		label.numberOfLines = 0
-		label.textColor = .systemGreen
 		label.textAlignment = .center
 		label.font = .boldSystemFont(ofSize: 15)
 		label.text = "Free"
 		label.layer.cornerRadius = 5
 		label.layer.masksToBounds = true
-		label.backgroundColor = .systemGreen.withAlphaComponent(0.15)
-		
+
 		return label
 	}()
 	
@@ -398,13 +403,52 @@ extension NativeAdvancedView {
 	}
 }
 
+// MARK: - Styling
+
+extension NativeAdvancedView {
+
+	private func applyStyle() {
+		backgroundColor = style.backgroundColor
+		contentView.backgroundColor = style.containerBackgroundColor
+		containerView.backgroundColor = style.containerBackgroundColor
+
+		headlineLabel.textColor = style.headlineTextColor
+		sponsorLabel.textColor = style.sponsorTextColor
+		bodyLabel.textColor = style.bodyTextColor
+
+		attributionLabel.textColor = style.attributionTextColor
+		attributionLabel.backgroundColor = style.attributionBackgroundColor
+		attributionLabel.layer.borderColor = style.attributionTextColor.cgColor
+
+		actionButton.backgroundColor = style.actionButtonBackgroundColor
+		actionButton.setTitleColor(style.actionButtonTitleColor, for: .normal)
+		applyButtonShape()
+
+		storeLabel.backgroundColor = style.storeBackgroundColor
+		storeLabel.textColor = style.storeTextColor
+
+		priceLabel.backgroundColor = style.priceBackgroundColor
+		priceLabel.textColor = style.priceTextColor
+	}
+
+	private func applyButtonShape() {
+		switch style.buttonShape {
+		case let .rect(cornerRadius):
+			actionButton.layer.cornerRadius = cornerRadius
+		case .capsule:
+			let h = actionButton.bounds.height > 0 ? actionButton.bounds.height : 40
+			actionButton.layer.cornerRadius = h / 2
+		}
+	}
+}
+
 // MARK: - Public Methods
 
 extension NativeAdvancedView {
-	
+
 	public func configure(with nativeAd: NativeAd) {
 		self.nativeAd = nativeAd
-		
+
 		updateUI(with: nativeAd)
 		updateVisibility(for: nativeAd)
 	}
