@@ -25,12 +25,12 @@ private struct _CompactNativeRepresentable: UIViewRepresentable {
     let store: StoreOf<Native>
 
     func makeUIView(context: Context) -> CompactNativeAdView {
-        CompactNativeAdView(style: store.compactStyle)
+        CompactNativeAdView(style: store.adStyle)
     }
 
     func updateUIView(_ uiView: CompactNativeAdView, context: Context) {
-        if uiView.style != store.compactStyle {
-            uiView.style = store.compactStyle
+        if uiView.style != store.adStyle {
+            uiView.style = store.adStyle
         }
         guard let nativeAd = store.nativeAd else { return }
         uiView.configure(with: nativeAd)

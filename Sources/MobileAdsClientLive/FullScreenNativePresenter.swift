@@ -18,7 +18,10 @@ import UIKit
 @preconcurrency import GoogleMobileAds
 
 enum FullScreenNativePresenter {
-    static func present(adUnitID: String) async {
+    static func present(
+        adUnitID: String,
+        style: NativeAdClient.AdStyle = .fullScreen
+    ) async {
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             Task { @MainActor in
                 let resumeBox = ResumeOnce()
@@ -53,6 +56,7 @@ enum FullScreenNativePresenter {
 
                 let content = FullScreenNativeView(
                     nativeAd: nativeAd,
+                    style: style,
                     onClose: { [weak hostVC] in
                         hostVC?.presentedViewController?.dismiss(animated: true) {
                             resumeBox.resume(continuation)
@@ -62,7 +66,7 @@ enum FullScreenNativePresenter {
 
                 let host = UIHostingController(rootView: content)
                 host.modalPresentationStyle = .fullScreen
-                host.view.backgroundColor = FullScreenNativeAdView.Style.default.backgroundColor
+                host.view.backgroundColor = style.backgroundColor
                 hostVC.present(host, animated: true)
             }
         }

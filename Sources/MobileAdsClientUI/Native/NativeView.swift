@@ -18,16 +18,19 @@ public struct NativeView: UIViewRepresentable {
     }
     
     public func makeUIView(context: Context) -> CustomNativeAdView {
-        return CustomNativeAdView()
+        return CustomNativeAdView(style: store.adStyle)
     }
-    
+
     public func updateUIView(_ nativeAdView: CustomNativeAdView, context: Context) {
+        if nativeAdView.style != store.adStyle {
+            nativeAdView.style = store.adStyle
+        }
         guard let nativeAd = store.nativeAd else {
             return
         }
-        
+
         nativeAdView.configure(with: nativeAd)
-        
+
         DispatchQueue.main.async {
             let totalHeight = nativeAdView.calculateTotalHeight()
             store.send(.updateAdHeight(totalHeight))
