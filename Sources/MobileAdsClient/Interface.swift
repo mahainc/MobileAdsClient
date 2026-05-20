@@ -192,22 +192,22 @@ where Content.State: Identifiable, Content.State: Sendable,
 	  Content.Action: Sendable, Ad.Action: Sendable {
     
     @ObservableState
-    public enum State: Identifiable {
+    public enum State: Identifiable, Sendable {
         case content(Content.State)
         case ad(Ad.State)
-        
+
         public var id: AnyHashable {
             switch self {
             case .content(let contentState):
                 return contentState.id
-                
+
             case .ad(let adState):
                 return adState.id
             }
         }
     }
-    
-    public enum Action {
+
+    public enum Action: Sendable {
         case content(Content.Action)
         case ad(Ad.Action)
     }
@@ -254,10 +254,6 @@ extension ItemWithAdReducer.Action: Equatable where Content.Action: Equatable, A
 }
 
 // MARK: - Sendable
-
-extension ItemWithAdReducer.State: Sendable where Content.State: Sendable, Ad.State: Sendable { }
-
-extension ItemWithAdReducer.Action: Sendable where Content.Action: Sendable, Ad.Action: Sendable { }
 
 extension ItemWithAdReducer: Sendable where Content: Sendable, Ad: Sendable { }
 
