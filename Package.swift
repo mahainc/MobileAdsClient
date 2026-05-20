@@ -5,8 +5,10 @@ import PackageDescription
 
 let package = Package(
     name: "MobileAdsClient",
+    defaultLocalization: "en",
     platforms: [
-		.iOS(.v16), .macOS(.v13)
+		.iOS(.v16),
+		.macOS(.v13),
     ],
     products: [
         .singleTargetLibrary("MobileAdsClient"),
@@ -20,8 +22,6 @@ let package = Package(
         .package(url: "https://github.com/googleads/swift-package-manager-google-mobile-ads.git", branch: "main"),
         .package(url: "https://github.com/ThanhHaiKhong/TCAInitializableReducer.git", branch: "master"),
         .package(url: "https://github.com/mahainc/RemoteConfigClient.git", branch: "master"),
-        .package(url: "https://github.com/mahainc/AdjustClient.git", branch: "master"),
-        .package(url: "https://github.com/mahainc/AnalyticClient.git", branch: "master"),
         .package(url: "https://github.com/mahainc/AdRevenueClient.git", branch: "master"),
     ],
     targets: [
@@ -56,10 +56,7 @@ let package = Package(
                 "MobileAdsClient",
             ],
             resources: [
-                .process("Resources/stars_3_5.png"),
-                .process("Resources/stars_4.png"),
-                .process("Resources/stars_4_5.png"),
-                .process("Resources/stars_5.png"),
+                .process("Resources"),
             ]
         ),
         .target(

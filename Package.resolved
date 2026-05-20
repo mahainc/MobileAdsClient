@@ -1,5 +1,5 @@
 {
-  "originHash" : "031ea47861ea31e1ebac8d073e0accb6dde290c49ceb3e9c25e46298487c6382",
+  "originHash" : "b8406e393569f2ae1b8f81aba26f639d360688de67ec99aa592954b48b306760",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -11,21 +11,12 @@
       }
     },
     {
-      "identity" : "adjust_signature_sdk",
+      "identity" : "adrevenueclient",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/adjust/adjust_signature_sdk.git",
+      "location" : "https://github.com/mahainc/AdRevenueClient.git",
       "state" : {
-        "revision" : "8af71c556087b2f6cc35b70f0076b944b1b38e44",
-        "version" : "3.67.0"
-      }
-    },
-    {
-      "identity" : "ads-swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://DucManh98@bitbucket.org/innofyapp/ads-swift.git",
-      "state" : {
-        "branch" : "feature/preload_ads",
-        "revision" : "8fff71763024fc3d94349a4d34fe468494c21303"
+        "branch" : "master",
+        "revision" : "43b73b7c327bbf44a2727c686bbb293fb298e31f"
       }
     },
     {
@@ -119,30 +110,12 @@
       }
     },
     {
-      "identity" : "ios_sdk",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/adjust/ios_sdk.git",
-      "state" : {
-        "revision" : "0a8cccacfb354c36f8f7fbc57331e7d3a52ed9e5",
-        "version" : "5.6.2"
-      }
-    },
-    {
       "identity" : "leveldb",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/firebase/leveldb.git",
       "state" : {
         "revision" : "a0bc79961d7be727d258d33d5a6b2f1023270ba1",
         "version" : "1.22.5"
-      }
-    },
-    {
-      "identity" : "lottie-spm",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/airbnb/lottie-spm.git",
-      "state" : {
-        "revision" : "69faaefa7721fba9e434a52c16adf4329c9084db",
-        "version" : "4.6.0"
       }
     },
     {
@@ -161,6 +134,15 @@
       "state" : {
         "revision" : "540318ecedd63d883069ae7f1ed811a2df00b6ac",
         "version" : "2.4.0"
+      }
+    },
+    {
+      "identity" : "remoteconfigclient",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mahainc/RemoteConfigClient.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "6bd08cb052f5e01afc7975eaf9eeb1383cd1498b"
       }
     },
     {

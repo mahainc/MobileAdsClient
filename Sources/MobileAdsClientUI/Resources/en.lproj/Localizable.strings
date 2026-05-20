@@ -1,0 +1,14 @@
+/* "Ad" attribution badge — the policy-required mark identifying a native ad placement. */
+"native_ad.attribution.ad" = "Ad";
+
+/* Footer label when the ad has no advertiser. */
+"native_ad.sponsored" = "Sponsored";
+
+/* Footer label with advertiser. Argument: advertiser name. */
+"native_ad.sponsored_with_advertiser" = "Sponsored · %@";
+
+/* VoiceOver announcement for the entire native ad container. Argument: headline. */
+"native_ad.a11y.advertisement_format" = "Advertisement: %@";
+
+/* VoiceOver announcement when the ad has no headline (rare). */
+"native_ad.a11y.advertisement_generic" = "Advertisement";
