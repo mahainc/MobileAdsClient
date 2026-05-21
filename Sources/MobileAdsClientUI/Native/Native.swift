@@ -49,34 +49,45 @@ public struct Native: TCAInitializableReducer, Sendable {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                return .run(priority: .background) { [adUnitID = state.adUnitID, adLoaderOptions = state.adLoaderOptions] send in
+                return .run(priority: .background) {
+                    [
+                        adUnitID = state.adUnitID,
+                        configuration = state.configuration,
+                        adLoaderOptions = state.adLoaderOptions
+                    ] send in
                     var rootViewController: UIViewController? = nil
                     if let scene = await UIApplication.shared.connectedScenes.first as? UIWindowScene, let rootVC = await scene.windows.first?.rootViewController {
                         rootViewController = rootVC
                     }
-                    let nativeAd = try await nativeAdClient.loadAd(adUnitID, rootViewController, adLoaderOptions)
+                    let options = Native.sanitizedOptions(for: configuration, options: adLoaderOptions)
+                    let nativeAd = try await nativeAdClient.loadAd(adUnitID, rootViewController, options)
                     await send(.receivedNativeAd(nativeAd), animation: .default)
                 } catch: { error, send in
 					#if DEBUG
                     print("Error LOADING native ad: \(error.localizedDescription)")
 					#endif
                 }
-                
+
             case let .receivedNativeAd(nativeAd):
                 state.nativeAd = nativeAd
                 return .none
-                
+
             case let .updateAdHeight(height):
                 state.adHeight = height
                 return .none
-                
+
             case let .refreshAd(adUnitID):
-                return .run(priority: .background) { [adLoaderOptions = state.adLoaderOptions] send in
+                return .run(priority: .background) {
+                    [
+                        configuration = state.configuration,
+                        adLoaderOptions = state.adLoaderOptions
+                    ] send in
                     var rootViewController: UIViewController? = nil
                     if let scene = await UIApplication.shared.connectedScenes.first as? UIWindowScene, let rootVC = await scene.windows.first?.rootViewController {
                         rootViewController = rootVC
                     }
-                    let nativeAd = try await nativeAdClient.loadAd(adUnitID, rootViewController, adLoaderOptions)
+                    let options = Native.sanitizedOptions(for: configuration, options: adLoaderOptions)
+                    let nativeAd = try await nativeAdClient.loadAd(adUnitID, rootViewController, options)
                     await send(.receivedNativeAd(nativeAd), animation: .default)
                 } catch: { error, send in
 					#if DEBUG
@@ -91,5 +102,23 @@ public struct Native: TCAInitializableReducer, Sendable {
     }
 
     public init() { }
+
+    /// Strip media-related loader options when the consumer's `configuration`
+    /// is a Row (icon-only template). Row has no `mediaView` slot — media
+    /// options would steer the SDK toward unrenderable creatives and trip
+    /// AdMob's debug validator with "unbound media view" warnings.
+    private static func sanitizedOptions(
+        for configuration: NativeAdClient.AnyConfiguration,
+        options: [NativeAdClient.AnyAdLoaderOption]
+    ) -> [NativeAdClient.AnyAdLoaderOption] {
+        guard configuration.base is NativeAdClient.Configuration.Row else {
+            return options
+        }
+        return options.filter { option in
+            let underlying = option.unwrapped
+            return !(underlying is NativeAdClient.MediaAspectRatioOption)
+                && !(underlying is NativeAdClient.VideoPlaybackOption)
+        }
+    }
 }
 #endif
