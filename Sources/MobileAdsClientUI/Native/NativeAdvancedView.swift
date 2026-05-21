@@ -464,6 +464,14 @@ extension NativeAdvancedView {
 
 		updateUI(with: nativeAd)
 		updateVisibility(for: nativeAd)
+
+		// The Google SDK rebinds the registered `iconView` when `nativeAd`
+		// is assigned and may reset its image-rendering knobs. Re-assert
+		// them here so the icon stays cropped-and-filled inside its slot
+		// instead of being letterboxed at the asset's native aspect ratio.
+		iconImageView.contentMode = .scaleAspectFill
+		iconImageView.clipsToBounds = true
+		iconImageView.layer.masksToBounds = true
 	}
 }
 #endif
