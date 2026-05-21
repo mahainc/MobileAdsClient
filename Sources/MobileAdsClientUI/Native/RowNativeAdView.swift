@@ -89,20 +89,20 @@ public class RowNativeAdView: NativeAdView {
 
     private lazy var actionButton: UIButton = {
         let button = UIButton(type: .system)
-        // On iOS 15+, `UIButton(type: .system)` ships with a default
-        // `UIButton.Configuration`, which makes the legacy `contentEdgeInsets`
-        // a no-op and collapses the button to text-only height. Clear it so
-        // the legacy padding API below takes effect.
-        button.configuration = nil
+        // Use `UIButton.Configuration` (iOS 15+) so `contentInsets` — the
+        // modern replacement for the deprecated `contentEdgeInsets` — takes
+        // effect. Background, foreground, font, and corner radius are all
+        // driven via the same configuration in `applyStyle()` /
+        // `applyButtonShape()` so the styling pipeline is unified.
+        var config = UIButton.Configuration.plain()
+        config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 14, bottom: 8, trailing: 14)
+        button.configuration = config
         button.accessibilityIdentifier = "Row Native CTA"
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setTitle("Install", for: .normal)
-        // Corner radius is driven by `style.actionButton.shape` via `applyButtonShape()`.
-        button.layer.masksToBounds = true
         // CTA is not user-interactive at the UIKit level — GoogleMobileAds'
         // NativeAdView proxies taps through `callToActionView` binding.
         button.isUserInteractionEnabled = false
-        button.contentEdgeInsets = UIEdgeInsets(top: 8, left: 14, bottom: 8, right: 14)
         button.setContentHuggingPriority(.required, for: .horizontal)
         // Pair with hugging-required: the CTA must always show its full title
         // even when an `oversizedIcon` metrics override squeezes the inline row.
@@ -131,9 +131,6 @@ public class RowNativeAdView: NativeAdView {
     public override func layoutSubviews() {
         super.layoutSubviews()
         layoutNativeAdGradient()
-        if case .capsule = style.actionButton.shape.mode {
-            applyButtonShape()
-        }
     }
 
     public override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -306,22 +303,32 @@ extension RowNativeAdView {
         adAttributionLabel.textColor = style.attribution.text
         adAttributionLabel.font = style.attribution.font.resolved
 
-        actionButton.backgroundColor = style.actionButton.background
-        actionButton.setTitleColor(style.actionButton.title, for: .normal)
-        actionButton.titleLabel?.font = style.actionButton.font.resolved
+        var buttonConfig = actionButton.configuration ?? UIButton.Configuration.plain()
+        buttonConfig.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 14, bottom: 8, trailing: 14)
+        buttonConfig.background.backgroundColor = style.actionButton.background
+        buttonConfig.baseForegroundColor = style.actionButton.title
+        let titleFont = style.actionButton.font.resolved
+        buttonConfig.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { container in
+            var c = container
+            c.font = titleFont
+            return c
+        }
+        actionButton.configuration = buttonConfig
         applyButtonShape()
     }
 
     private func applyButtonShape() {
+        var config = actionButton.configuration ?? UIButton.Configuration.plain()
         switch style.actionButton.shape.mode {
         case let .rect(cornerRadius):
-            actionButton.layer.cornerRadius = cornerRadius
+            config.cornerStyle = .fixed
+            config.background.cornerRadius = cornerRadius
         case .capsule:
-            // Height is 0 during first applyStyle() (pre-layout); `layoutSubviews`
-            // re-applies once the frame settles.
-            let h = actionButton.bounds.height > 0 ? actionButton.bounds.height : configuration.metrics.ctaMinHeight
-            actionButton.layer.cornerRadius = h / 2
+            // `.capsule` lets UIButton derive the radius from its current
+            // bounds; no manual re-apply needed once the frame settles.
+            config.cornerStyle = .capsule
         }
+        actionButton.configuration = config
     }
 }
 
