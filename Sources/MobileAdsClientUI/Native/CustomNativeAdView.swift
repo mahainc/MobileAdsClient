@@ -39,7 +39,6 @@ public class CustomNativeAdView: NativeAdView {
         label.accessibilityIdentifier = "Ad Headline Label"
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 0
-		label.font = .preferredFont(forTextStyle: .headline)
         label.text = "Ad Headline"
 
         return label
@@ -51,7 +50,6 @@ public class CustomNativeAdView: NativeAdView {
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 0
         label.text = "Ad Sponsor"
-		label.font = .preferredFont(forTextStyle: .subheadline)
 
         return label
     }()
@@ -64,7 +62,6 @@ public class CustomNativeAdView: NativeAdView {
         label.textAlignment = .center
         label.layer.cornerRadius = 5
         label.layer.masksToBounds = true
-		label.font = .preferredFont(forTextStyle: .footnote)
 
         return label
     }()
@@ -94,7 +91,6 @@ public class CustomNativeAdView: NativeAdView {
         button.accessibilityIdentifier = "Ad Action Button"
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setTitle("Install Now", for: .normal)
-		button.titleLabel?.font = .preferredFont(forTextStyle: .title3)
         // Corner radius is driven by `style.actionButton.shape` via `applyButtonShape()`.
         button.layer.masksToBounds = true
         button.isUserInteractionEnabled = false
@@ -107,7 +103,6 @@ public class CustomNativeAdView: NativeAdView {
         label.accessibilityIdentifier = "Ad Body Label"
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 0
-		label.font = .preferredFont(forTextStyle: .callout)
         label.textAlignment = .left
 
         return label
@@ -119,7 +114,6 @@ public class CustomNativeAdView: NativeAdView {
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 0
         label.textAlignment = .center
-		label.font = .preferredFont(forTextStyle: .subheadline)
         label.text = "App Store"
         label.layer.cornerRadius = 5
         label.layer.masksToBounds = true
@@ -133,7 +127,6 @@ public class CustomNativeAdView: NativeAdView {
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 0
         label.textAlignment = .center
-        label.font = .preferredFont(forTextStyle: .subheadline)
         label.text = "Free"
         label.layer.cornerRadius = 5
         label.layer.masksToBounds = true
@@ -295,21 +288,28 @@ extension CustomNativeAdView {
         adContainerView.applyBackgroundFill(style.backgrounds.content)
 
         adHeadlineLabel.textColor = style.text.headline
+        adHeadlineLabel.font = style.text.headlineFont.resolved
         adSponsorLabel.textColor = style.text.sponsor
+        adSponsorLabel.font = style.text.sponsorFont.resolved
         adBodyLabel.textColor = style.text.body
+        adBodyLabel.font = style.text.bodyFont.resolved
 
         adAttributionLabel.textColor = style.attribution.text
         adAttributionLabel.backgroundColor = style.attribution.background
+        adAttributionLabel.font = style.attribution.font.resolved
 
         actionButton.backgroundColor = style.actionButton.background
         actionButton.setTitleColor(style.actionButton.title, for: .normal)
+        actionButton.titleLabel?.font = style.actionButton.font.resolved
         applyButtonShape()
 
         adStoreLabel.backgroundColor = style.store.background
         adStoreLabel.textColor = style.store.text
+        adStoreLabel.font = style.store.font.resolved
 
         adPriceLabel.backgroundColor = style.price.background
         adPriceLabel.textColor = style.price.text
+        adPriceLabel.font = style.price.font.resolved
     }
 
     private func applyButtonShape() {

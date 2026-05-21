@@ -88,14 +88,22 @@ public struct RowAdsList: Sendable {
                     text: .init(
                         headline: .systemPurple,
                         body: .label,
-                        sponsor: .systemPurple.withAlphaComponent(0.7)
+                        sponsor: .systemPurple.withAlphaComponent(0.7),
+                        headlineFont: .system(size: 16, weight: .heavy, scaledFor: .headline),
+                        bodyFont: .textStyle(.footnote),
+                        sponsorFont: .textStyle(.caption1, weight: .semibold)
                     ),
                     actionButton: .init(
                         background: .systemPurple,
                         title: .white,
-                        shape: .rect(cornerRadius: 5)
+                        shape: .rect(cornerRadius: 5),
+                        font: .system(size: 14, weight: .bold, scaledFor: .subheadline)
                     ),
-                    attribution: .init(background: .systemYellow, text: .black)
+                    attribution: .init(
+                        background: .systemYellow,
+                        text: .black,
+                        font: .textStyle(.caption2, weight: .bold)
+                    )
                 )
                 let themedMetrics = NativeAdClient.Configuration.Metrics(
                     containerCornerRadius: 5

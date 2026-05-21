@@ -54,7 +54,6 @@ public class CompactNativeAdView: NativeAdView {
         label.accessibilityIdentifier = "Ad Headline Label"
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 1
-        label.font = .preferredFont(forTextStyle: .subheadline)
         label.textColor = .label
         return label
     }()
@@ -65,7 +64,6 @@ public class CompactNativeAdView: NativeAdView {
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 1
         label.textColor = .secondaryLabel
-        label.font = Self.sponsorFont
         return label
     }()
 
@@ -77,7 +75,6 @@ public class CompactNativeAdView: NativeAdView {
         label.textAlignment = .center
         label.layer.cornerRadius = 4
         label.layer.masksToBounds = true
-        label.font = .preferredFont(forTextStyle: .caption2)
         label.setContentHuggingPriority(.required, for: .horizontal)
         return label
     }()
@@ -96,7 +93,6 @@ public class CompactNativeAdView: NativeAdView {
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 1
         label.lineBreakMode = .byTruncatingTail
-        label.font = .preferredFont(forTextStyle: .footnote)
         label.textAlignment = .left
         label.textColor = .secondaryLabel
         return label
@@ -108,7 +104,6 @@ public class CompactNativeAdView: NativeAdView {
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 1
         label.textAlignment = .center
-        label.font = Self.chipFont
         label.text = "App Store"
         label.layer.cornerRadius = 4
         label.layer.masksToBounds = true
@@ -127,7 +122,6 @@ public class CompactNativeAdView: NativeAdView {
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 1
         label.textAlignment = .center
-        label.font = Self.chipFont
         label.text = "Free"
         label.layer.cornerRadius = 4
         label.layer.masksToBounds = true
@@ -136,34 +130,11 @@ public class CompactNativeAdView: NativeAdView {
         return label
     }()
 
-    /// Caption1-scaled semibold system font. Shared by the store + price chips
-    /// so they render at the same point size and weight, and `UIFontMetrics`
-    /// keeps them matched as Dynamic Type scales.
-    private static let chipFont: UIFont = {
-        let base = UIFont.systemFont(
-            ofSize: UIFont.preferredFont(forTextStyle: .caption1).pointSize,
-            weight: .semibold
-        )
-        return UIFontMetrics(forTextStyle: .caption1).scaledFont(for: base)
-    }()
-
-    /// Caption2-scaled semibold — smaller than `chipFont` so the sponsor line
-    /// reads as tertiary metadata under the headline while still being
-    /// emphasized against the body copy.
-    private static let sponsorFont: UIFont = {
-        let base = UIFont.systemFont(
-            ofSize: UIFont.preferredFont(forTextStyle: .caption2).pointSize,
-            weight: .semibold
-        )
-        return UIFontMetrics(forTextStyle: .caption2).scaledFont(for: base)
-    }()
-
     private lazy var actionButton: UIButton = {
         let button = UIButton()
         button.accessibilityIdentifier = "Ad Action Button"
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setTitle("Install Now", for: .normal)
-        button.titleLabel?.font = .preferredFont(forTextStyle: .headline)
         // Corner radius is driven by `style.actionButton.shape` via `applyButtonShape()` /
         // `layoutSubviews`, not a fixed value here.
         button.layer.masksToBounds = true
@@ -316,18 +287,26 @@ extension CompactNativeAdView {
     private func applyStyle() {
         applyBackgroundFill(style.backgrounds.card)
 
+        adHeadlineLabel.font = style.text.headlineFont.resolved
+        adSponsorLabel.font = style.text.sponsorFont.resolved
+        adBodyLabel.font = style.text.bodyFont.resolved
+
         actionButton.backgroundColor = style.actionButton.background
         actionButton.setTitleColor(style.actionButton.title, for: .normal)
+        actionButton.titleLabel?.font = style.actionButton.font.resolved
         applyButtonShape()
 
         adAttributionLabel.backgroundColor = style.attribution.background
         adAttributionLabel.textColor = style.attribution.text
+        adAttributionLabel.font = style.attribution.font.resolved
 
         adStoreLabel.backgroundColor = style.store.background
         adStoreLabel.textColor = style.store.text
+        adStoreLabel.font = style.store.font.resolved
 
         adPriceLabel.backgroundColor = style.price.background
         adPriceLabel.textColor = style.price.text
+        adPriceLabel.font = style.price.font.resolved
     }
 
     private func applyButtonShape() {

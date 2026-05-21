@@ -53,7 +53,6 @@ public class RowNativeAdView: NativeAdView {
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 1
         label.lineBreakMode = .byTruncatingTail
-        label.font = .preferredFont(forTextStyle: .subheadline).withWeight(.semibold)
         return label
     }()
 
@@ -63,7 +62,6 @@ public class RowNativeAdView: NativeAdView {
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 1
         label.lineBreakMode = .byTruncatingTail
-        label.font = .preferredFont(forTextStyle: .caption1)
         return label
     }()
 
@@ -76,7 +74,6 @@ public class RowNativeAdView: NativeAdView {
         // Slight rounding to read as a chip; matches the 2pt vertical padding.
         label.layer.cornerRadius = 4
         label.layer.masksToBounds = true
-        label.font = .preferredFont(forTextStyle: .caption2).withWeight(.semibold)
         label.setContentHuggingPriority(.required, for: .horizontal)
         return label
     }()
@@ -87,7 +84,6 @@ public class RowNativeAdView: NativeAdView {
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 0
         label.lineBreakMode = .byTruncatingTail
-        label.font = .preferredFont(forTextStyle: .footnote)
         return label
     }()
 
@@ -101,7 +97,6 @@ public class RowNativeAdView: NativeAdView {
         button.accessibilityIdentifier = "Row Native CTA"
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setTitle("Install", for: .normal)
-        button.titleLabel?.font = .preferredFont(forTextStyle: .subheadline).withWeight(.semibold)
         // Corner radius is driven by `style.actionButton.shape` via `applyButtonShape()`.
         button.layer.masksToBounds = true
         // CTA is not user-interactive at the UIKit level — GoogleMobileAds'
@@ -260,14 +255,19 @@ extension RowNativeAdView {
         applyBackgroundFill(style.backgrounds.card)
 
         adHeadlineLabel.textColor = style.text.headline
+        adHeadlineLabel.font = style.text.headlineFont.resolved
         adAdvertiserLabel.textColor = style.text.sponsor
+        adAdvertiserLabel.font = style.text.sponsorFont.resolved
         adBodyLabel.textColor = style.text.body
+        adBodyLabel.font = style.text.bodyFont.resolved
 
         adAttributionLabel.backgroundColor = style.attribution.background
         adAttributionLabel.textColor = style.attribution.text
+        adAttributionLabel.font = style.attribution.font.resolved
 
         actionButton.backgroundColor = style.actionButton.background
         actionButton.setTitleColor(style.actionButton.title, for: .normal)
+        actionButton.titleLabel?.font = style.actionButton.font.resolved
         applyButtonShape()
     }
 
@@ -372,14 +372,4 @@ extension RowNativeAdView {
     }
 }
 
-// MARK: - Helpers
-
-private extension UIFont {
-    func withWeight(_ weight: UIFont.Weight) -> UIFont {
-        let descriptor = fontDescriptor.addingAttributes([
-            .traits: [UIFontDescriptor.TraitKey.weight: weight]
-        ])
-        return UIFont(descriptor: descriptor, size: pointSize)
-    }
-}
 #endif

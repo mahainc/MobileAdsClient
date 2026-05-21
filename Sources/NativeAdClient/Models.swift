@@ -210,6 +210,48 @@ extension NativeAdClient {
 			}
 		}
 
+		public struct AdFont: Sendable, Equatable, Hashable {
+			public enum Mode: Sendable, Equatable, Hashable {
+				case textStyle(UIFont.TextStyle, weight: UIFont.Weight?)
+				case system(size: CGFloat, weight: UIFont.Weight, scaledFor: UIFont.TextStyle?)
+				case custom(name: String, size: CGFloat, scaledFor: UIFont.TextStyle?)
+				case fixed(UIFont)
+			}
+
+			public var mode: Mode
+
+			public init(mode: Mode) {
+				self.mode = mode
+			}
+
+			public static func textStyle(
+				_ style: UIFont.TextStyle,
+				weight: UIFont.Weight? = nil
+			) -> AdFont {
+				AdFont(mode: .textStyle(style, weight: weight))
+			}
+
+			public static func system(
+				size: CGFloat,
+				weight: UIFont.Weight = .regular,
+				scaledFor: UIFont.TextStyle? = nil
+			) -> AdFont {
+				AdFont(mode: .system(size: size, weight: weight, scaledFor: scaledFor))
+			}
+
+			public static func custom(
+				name: String,
+				size: CGFloat,
+				scaledFor: UIFont.TextStyle? = nil
+			) -> AdFont {
+				AdFont(mode: .custom(name: name, size: size, scaledFor: scaledFor))
+			}
+
+			public static func fixed(_ font: UIFont) -> AdFont {
+				AdFont(mode: .fixed(font))
+			}
+		}
+
 		public struct Style: Sendable, Equatable, Hashable {
 			public struct ButtonShape: Sendable, Equatable, Hashable {
 				public enum Mode: Sendable, Equatable, Hashable {
@@ -251,15 +293,24 @@ extension NativeAdClient {
 				public var headline: UIColor
 				public var body: UIColor
 				public var sponsor: UIColor
+				public var headlineFont: AdFont
+				public var bodyFont: AdFont
+				public var sponsorFont: AdFont
 
 				public init(
 					headline: UIColor = .label,
 					body: UIColor = .secondaryLabel,
-					sponsor: UIColor = .secondaryLabel
+					sponsor: UIColor = .secondaryLabel,
+					headlineFont: AdFont = .textStyle(.headline),
+					bodyFont: AdFont = .textStyle(.callout),
+					sponsorFont: AdFont = .textStyle(.subheadline)
 				) {
 					self.headline = headline
 					self.body = body
 					self.sponsor = sponsor
+					self.headlineFont = headlineFont
+					self.bodyFont = bodyFont
+					self.sponsorFont = sponsorFont
 				}
 			}
 
@@ -267,25 +318,34 @@ extension NativeAdClient {
 				public var background: UIColor
 				public var title: UIColor
 				public var shape: ButtonShape
+				public var font: AdFont
 
 				public init(
 					background: UIColor = .systemBlue,
 					title: UIColor = .white,
-					shape: ButtonShape = .rect(cornerRadius: 8)
+					shape: ButtonShape = .rect(cornerRadius: 8),
+					font: AdFont = .textStyle(.headline)
 				) {
 					self.background = background
 					self.title = title
 					self.shape = shape
+					self.font = font
 				}
 			}
 
 			public struct ChipColors: Sendable, Equatable, Hashable {
 				public var background: UIColor
 				public var text: UIColor
+				public var font: AdFont
 
-				public init(background: UIColor, text: UIColor) {
+				public init(
+					background: UIColor,
+					text: UIColor,
+					font: AdFont = .textStyle(.caption2)
+				) {
 					self.background = background
 					self.text = text
+					self.font = font
 				}
 			}
 
@@ -318,14 +378,47 @@ extension NativeAdClient {
 				self.closeButton = closeButton
 			}
 
-			public static let compact: Style = .init()
+			public static let compact: Style = .init(
+				text: .init(
+					headlineFont: .textStyle(.subheadline),
+					bodyFont: .textStyle(.footnote),
+					sponsorFont: .system(size: 13, weight: .regular, scaledFor: .subheadline)
+				),
+				actionButton: .init(font: .textStyle(.headline)),
+				attribution: .init(
+					background: .systemBlue,
+					text: .white,
+					font: .textStyle(.caption2)
+				),
+				store: .init(
+					background: .systemGreen,
+					text: .white,
+					font: .system(size: 11, weight: .semibold, scaledFor: .caption2)
+				),
+				price: .init(
+					background: .systemGreen,
+					text: .white,
+					font: .system(size: 11, weight: .semibold, scaledFor: .caption2)
+				)
+			)
 
 			public static let fullScreen: Style = .init(
 				backgrounds: .init(card: .systemBackground, content: .clear),
+				text: .init(
+					headlineFont: .textStyle(.title3, weight: .bold),
+					bodyFont: .textStyle(.callout),
+					sponsorFont: .textStyle(.footnote)
+				),
 				actionButton: .init(
 					background: .systemBlue,
 					title: .white,
-					shape: .capsule
+					shape: .capsule,
+					font: .textStyle(.headline)
+				),
+				attribution: .init(
+					background: .systemBlue,
+					text: .white,
+					font: .textStyle(.caption2, weight: .semibold)
 				)
 			)
 
@@ -337,21 +430,31 @@ extension NativeAdClient {
 				text: .init(
 					headline: UIColor(red: 66 / 255, green: 66 / 255, blue: 66 / 255, alpha: 1),
 					body: .secondaryLabel,
-					sponsor: .secondaryLabel
+					sponsor: .secondaryLabel,
+					headlineFont: .system(size: 16, weight: .bold),
+					bodyFont: .system(size: 13, weight: .regular),
+					sponsorFont: .system(size: 14, weight: .medium)
 				),
 				actionButton: .init(
 					background: .systemBlue.withAlphaComponent(0.15),
 					title: .systemBlue,
-					shape: .rect(cornerRadius: 5)
+					shape: .rect(cornerRadius: 5),
+					font: .system(size: 15, weight: .bold)
 				),
-				attribution: .init(background: .clear, text: .systemBlue),
+				attribution: .init(
+					background: .clear,
+					text: .systemBlue,
+					font: .system(size: 13, weight: .semibold)
+				),
 				store: .init(
 					background: .systemGreen.withAlphaComponent(0.15),
-					text: .systemGreen
+					text: .systemGreen,
+					font: .system(size: 15, weight: .bold)
 				),
 				price: .init(
 					background: .systemGreen.withAlphaComponent(0.15),
-					text: .systemGreen
+					text: .systemGreen,
+					font: .system(size: 15, weight: .bold)
 				)
 			)
 
@@ -368,18 +471,44 @@ extension NativeAdClient {
 				actionButton: .init(
 					background: .systemBlue,
 					title: .white,
-					shape: .rect(cornerRadius: 5)
+					shape: .rect(cornerRadius: 5),
+					font: .textStyle(.title3)
+				),
+				attribution: .init(
+					background: .systemBlue,
+					text: .white,
+					font: .textStyle(.footnote)
+				),
+				store: .init(
+					background: .systemGreen,
+					text: .white,
+					font: .textStyle(.subheadline)
+				),
+				price: .init(
+					background: .systemGreen,
+					text: .white,
+					font: .textStyle(.subheadline)
 				)
 			)
 
 			public static let row: Style = .init(
 				backgrounds: .init(card: .secondarySystemBackground, content: .clear),
+				text: .init(
+					headlineFont: .textStyle(.subheadline, weight: .semibold),
+					bodyFont: .textStyle(.footnote),
+					sponsorFont: .textStyle(.caption1)
+				),
 				actionButton: .init(
 					background: .systemBlue,
 					title: .white,
-					shape: .capsule
+					shape: .capsule,
+					font: .textStyle(.subheadline, weight: .semibold)
 				),
-				attribution: .init(background: .systemGray5, text: .secondaryLabel)
+				attribution: .init(
+					background: .systemGray5,
+					text: .secondaryLabel,
+					font: .textStyle(.caption2, weight: .semibold)
+				)
 			)
 		}
 

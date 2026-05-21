@@ -74,7 +74,6 @@ public class FullScreenNativeAdView: NativeAdView {
         label.accessibilityIdentifier = "Full Screen Native Headline"
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 2
-        label.font = .preferredFont(forTextStyle: .title3).withWeight(.bold)
         return label
     }()
 
@@ -83,7 +82,6 @@ public class FullScreenNativeAdView: NativeAdView {
         label.accessibilityIdentifier = "Full Screen Native Sponsor"
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 1
-        label.font = .preferredFont(forTextStyle: .footnote)
         return label
     }()
 
@@ -93,7 +91,6 @@ public class FullScreenNativeAdView: NativeAdView {
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 4
         label.lineBreakMode = .byTruncatingTail
-        label.font = .preferredFont(forTextStyle: .callout)
         return label
     }()
 
@@ -105,7 +102,6 @@ public class FullScreenNativeAdView: NativeAdView {
         label.textAlignment = .center
         label.layer.cornerRadius = 4
         label.layer.masksToBounds = true
-        label.font = .preferredFont(forTextStyle: .caption2).withWeight(.semibold)
         return label
     }()
 
@@ -114,7 +110,6 @@ public class FullScreenNativeAdView: NativeAdView {
         button.accessibilityIdentifier = "Full Screen Native CTA"
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setTitle("Install Now", for: .normal)
-        button.titleLabel?.font = .preferredFont(forTextStyle: .headline)
         button.layer.masksToBounds = true
         // CTA is not user-interactive at the UIKit level — GoogleMobileAds'
         // NativeAdView proxies taps through `callToActionView` binding.
@@ -224,12 +219,17 @@ extension FullScreenNativeAdView {
     private func applyStyle() {
         applyBackgroundFill(style.backgrounds.card)
         adHeadlineLabel.textColor = style.text.headline
+        adHeadlineLabel.font = style.text.headlineFont.resolved
         adBodyLabel.textColor = style.text.body
+        adBodyLabel.font = style.text.bodyFont.resolved
         adSponsorLabel.textColor = style.text.sponsor
+        adSponsorLabel.font = style.text.sponsorFont.resolved
         adAttributionLabel.backgroundColor = style.attribution.background
         adAttributionLabel.textColor = style.attribution.text
+        adAttributionLabel.font = style.attribution.font.resolved
         actionButton.backgroundColor = style.actionButton.background
         actionButton.setTitleColor(style.actionButton.title, for: .normal)
+        actionButton.titleLabel?.font = style.actionButton.font.resolved
         // `closeButton.text` doubles as the icon tint color for the close button.
         closeButton.tintColor = style.closeButton.text
         closeButton.backgroundColor = style.closeButton.background
@@ -294,14 +294,4 @@ extension FullScreenNativeAdView {
     }
 }
 
-// MARK: - Helpers
-
-private extension UIFont {
-    func withWeight(_ weight: UIFont.Weight) -> UIFont {
-        let descriptor = fontDescriptor.addingAttributes([
-            .traits: [UIFontDescriptor.TraitKey.weight: weight]
-        ])
-        return UIFont(descriptor: descriptor, size: pointSize)
-    }
-}
 #endif
