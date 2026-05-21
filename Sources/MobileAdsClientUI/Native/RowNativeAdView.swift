@@ -61,12 +61,13 @@ public class RowNativeAdView: NativeAdView {
     }()
 
     private lazy var adAttributionLabel: PaddedLabel = {
-        let label = PaddedLabel(padding: UIEdgeInsets(top: 2, left: 5, bottom: 2, right: 5))
+        let label = PaddedLabel(padding: UIEdgeInsets(top: 2, left: 6, bottom: 2, right: 6))
         label.accessibilityIdentifier = "Row Native Attribution"
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = "Sponsored"
         label.textAlignment = .center
-        label.layer.cornerRadius = 3
+        // Slight rounding to read as a chip; matches the 2pt vertical padding.
+        label.layer.cornerRadius = 4
         label.layer.masksToBounds = true
         label.font = .preferredFont(forTextStyle: .caption2).withWeight(.semibold)
         label.setContentHuggingPriority(.required, for: .horizontal)

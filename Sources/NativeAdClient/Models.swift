@@ -240,13 +240,13 @@ extension NativeAdClient {
 			buttonShape: .rect(cornerRadius: 5)
 		)
 
-		/// Preset for `RowNativeAdView` — secondary canvas, capsule CTA, subtle "Sponsored" attribution that fits in-feed rows without shouting.
+		/// Preset for `RowNativeAdView` — secondary canvas, capsule CTA, and a subtle gray "Sponsored" chip that reads as an ad without shouting.
 		public static let row: AdStyle = .init(
 			backgroundColor: .secondarySystemBackground,
 			actionButtonBackgroundColor: .systemBlue,
 			actionButtonTitleColor: .white,
 			buttonShape: .capsule,
-			attributionBackgroundColor: .clear,
+			attributionBackgroundColor: .systemGray5,
 			attributionTextColor: .secondaryLabel
 		)
 	}

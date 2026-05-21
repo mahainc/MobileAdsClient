@@ -38,11 +38,19 @@ public struct RowAdsList: Sendable {
                     NativeAdClient.AnyAdLoaderOption(NativeAdClient.AdChoicesPositionOption(corner: .topRight)),
                 ]
 
+                // Variant of `.row` that uses a rounded-rectangle CTA instead
+                // of the default capsule — used by the second half of the
+                // list so both shapes render side by side.
+                var rectRow = NativeAdClient.AdStyle.row
+                rectRow.buttonShape = .rect(cornerRadius: 10)
+
+                // First half rect, second half capsule so both shapes are
+                // visible in the initial viewport.
                 let ads = (0..<6).map { index in
                     Native.State(
                         adUnitID: "ca-app-pub-3940256099942544/3986624511",
                         options: options,
-                        adStyle: .row,
+                        adStyle: index < 3 ? rectRow : .row,
                         rowLayout: index.isMultiple(of: 2) ? .inline : .stacked
                     )
                 }
