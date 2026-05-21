@@ -27,9 +27,9 @@ struct NativeAdsPlaygroundApp: App {
 }
 
 private struct RootTabView: View {
-    // Default to the "Rows" tab so the in-feed row template is visible on
-    // first launch — useful while iterating on `RowNativeAdView`.
-    @State private var selection: Int = 2
+    // Default to the "Row+Media" tab so the new row-with-media template is
+    // visible on first launch — useful while iterating on `RowMediaNativeAdView`.
+    @State private var selection: Int = 3
 
     var body: some View {
         TabView(selection: $selection) {
@@ -62,6 +62,16 @@ private struct RootTabView: View {
                 Label("Rows", systemImage: "list.bullet.rectangle")
             }
             .tag(2)
+
+            RowMediaAdsListView(
+                store: Store(initialState: RowMediaAdsList.State()) {
+                    RowMediaAdsList()
+                }
+            )
+            .tabItem {
+                Label("Row+Media", systemImage: "play.rectangle")
+            }
+            .tag(3)
         }
     }
 }
