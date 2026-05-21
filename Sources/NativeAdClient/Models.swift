@@ -153,7 +153,7 @@ extension NativeAdClient {
 
 		// MARK: - Shared building blocks
 
-		public struct Style: Sendable, Equatable {
+		public struct Style: Sendable, Equatable, Hashable {
 			public struct ButtonShape: Sendable, Equatable, Hashable {
 				public enum Mode: Sendable, Equatable, Hashable {
 					case rect(cornerRadius: CGFloat)
@@ -173,95 +173,152 @@ extension NativeAdClient {
 				public static let capsule = ButtonShape(mode: .capsule)
 			}
 
-			public var backgroundColor: UIColor
-			public var containerBackgroundColor: UIColor
-			public var headlineTextColor: UIColor
-			public var bodyTextColor: UIColor
-			public var sponsorTextColor: UIColor
-			public var actionButtonBackgroundColor: UIColor
-			public var actionButtonTitleColor: UIColor
-			public var buttonShape: ButtonShape
-			public var attributionBackgroundColor: UIColor
-			public var attributionTextColor: UIColor
-			public var storeBackgroundColor: UIColor
-			public var storeTextColor: UIColor
-			public var priceBackgroundColor: UIColor
-			public var priceTextColor: UIColor
-			public var closeButtonTintColor: UIColor
-			public var closeButtonBackgroundColor: UIColor
+			public struct Backgrounds: Sendable, Equatable, Hashable {
+				public var card: UIColor
+				public var content: UIColor
+
+				public init(
+					card: UIColor = .secondarySystemBackground,
+					content: UIColor = .clear
+				) {
+					self.card = card
+					self.content = content
+				}
+			}
+
+			public struct TextColors: Sendable, Equatable, Hashable {
+				public var headline: UIColor
+				public var body: UIColor
+				public var sponsor: UIColor
+
+				public init(
+					headline: UIColor = .label,
+					body: UIColor = .secondaryLabel,
+					sponsor: UIColor = .secondaryLabel
+				) {
+					self.headline = headline
+					self.body = body
+					self.sponsor = sponsor
+				}
+			}
+
+			public struct ButtonStyle: Sendable, Equatable, Hashable {
+				public var background: UIColor
+				public var title: UIColor
+				public var shape: ButtonShape
+
+				public init(
+					background: UIColor = .systemBlue,
+					title: UIColor = .white,
+					shape: ButtonShape = .rect(cornerRadius: 8)
+				) {
+					self.background = background
+					self.title = title
+					self.shape = shape
+				}
+			}
+
+			public struct ChipColors: Sendable, Equatable, Hashable {
+				public var background: UIColor
+				public var text: UIColor
+
+				public init(background: UIColor, text: UIColor) {
+					self.background = background
+					self.text = text
+				}
+			}
+
+			public var backgrounds: Backgrounds
+			public var text: TextColors
+			public var actionButton: ButtonStyle
+			public var attribution: ChipColors
+			public var store: ChipColors
+			public var price: ChipColors
+			public var closeButton: ChipColors
 
 			public init(
-				backgroundColor: UIColor = .secondarySystemBackground,
-				containerBackgroundColor: UIColor = .clear,
-				headlineTextColor: UIColor = .label,
-				bodyTextColor: UIColor = .secondaryLabel,
-				sponsorTextColor: UIColor = .secondaryLabel,
-				actionButtonBackgroundColor: UIColor = .systemBlue,
-				actionButtonTitleColor: UIColor = .white,
-				buttonShape: ButtonShape = .rect(cornerRadius: 8),
-				attributionBackgroundColor: UIColor = .systemBlue,
-				attributionTextColor: UIColor = .white,
-				storeBackgroundColor: UIColor = .systemGreen,
-				storeTextColor: UIColor = .white,
-				priceBackgroundColor: UIColor = .systemGreen,
-				priceTextColor: UIColor = .white,
-				closeButtonTintColor: UIColor = .label,
-				closeButtonBackgroundColor: UIColor = UIColor.label.withAlphaComponent(0.08)
+				backgrounds: Backgrounds = Backgrounds(),
+				text: TextColors = TextColors(),
+				actionButton: ButtonStyle = ButtonStyle(),
+				attribution: ChipColors = ChipColors(background: .systemBlue, text: .white),
+				store: ChipColors = ChipColors(background: .systemGreen, text: .white),
+				price: ChipColors = ChipColors(background: .systemGreen, text: .white),
+				closeButton: ChipColors = ChipColors(
+					background: UIColor.label.withAlphaComponent(0.08),
+					text: .label
+				)
 			) {
-				self.backgroundColor = backgroundColor
-				self.containerBackgroundColor = containerBackgroundColor
-				self.headlineTextColor = headlineTextColor
-				self.bodyTextColor = bodyTextColor
-				self.sponsorTextColor = sponsorTextColor
-				self.actionButtonBackgroundColor = actionButtonBackgroundColor
-				self.actionButtonTitleColor = actionButtonTitleColor
-				self.buttonShape = buttonShape
-				self.attributionBackgroundColor = attributionBackgroundColor
-				self.attributionTextColor = attributionTextColor
-				self.storeBackgroundColor = storeBackgroundColor
-				self.storeTextColor = storeTextColor
-				self.priceBackgroundColor = priceBackgroundColor
-				self.priceTextColor = priceTextColor
-				self.closeButtonTintColor = closeButtonTintColor
-				self.closeButtonBackgroundColor = closeButtonBackgroundColor
+				self.backgrounds = backgrounds
+				self.text = text
+				self.actionButton = actionButton
+				self.attribution = attribution
+				self.store = store
+				self.price = price
+				self.closeButton = closeButton
 			}
 
 			public static let compact: Style = .init()
 
 			public static let fullScreen: Style = .init(
-				backgroundColor: .systemBackground,
-				buttonShape: .capsule
+				backgrounds: .init(card: .systemBackground, content: .clear),
+				actionButton: .init(
+					background: .systemBlue,
+					title: .white,
+					shape: .capsule
+				)
 			)
 
 			public static let advanced: Style = .init(
-				backgroundColor: .clear,
-				containerBackgroundColor: UIColor(red: 234 / 255, green: 240 / 255, blue: 253 / 255, alpha: 1),
-				headlineTextColor: UIColor(red: 66 / 255, green: 66 / 255, blue: 66 / 255, alpha: 1),
-				actionButtonBackgroundColor: .systemBlue.withAlphaComponent(0.15),
-				actionButtonTitleColor: .systemBlue,
-				buttonShape: .rect(cornerRadius: 5),
-				attributionBackgroundColor: .clear,
-				attributionTextColor: .systemBlue,
-				storeBackgroundColor: .systemGreen.withAlphaComponent(0.15),
-				storeTextColor: .systemGreen,
-				priceBackgroundColor: .systemGreen.withAlphaComponent(0.15),
-				priceTextColor: .systemGreen
+				backgrounds: .init(
+					card: .clear,
+					content: UIColor(red: 234 / 255, green: 240 / 255, blue: 253 / 255, alpha: 1)
+				),
+				text: .init(
+					headline: UIColor(red: 66 / 255, green: 66 / 255, blue: 66 / 255, alpha: 1),
+					body: .secondaryLabel,
+					sponsor: .secondaryLabel
+				),
+				actionButton: .init(
+					background: .systemBlue.withAlphaComponent(0.15),
+					title: .systemBlue,
+					shape: .rect(cornerRadius: 5)
+				),
+				attribution: .init(background: .clear, text: .systemBlue),
+				store: .init(
+					background: .systemGreen.withAlphaComponent(0.15),
+					text: .systemGreen
+				),
+				price: .init(
+					background: .systemGreen.withAlphaComponent(0.15),
+					text: .systemGreen
+				)
 			)
 
 			public static let custom: Style = .init(
-				backgroundColor: .clear,
-				containerBackgroundColor: UIColor(red: 122 / 255, green: 159 / 255, blue: 126 / 255, alpha: 1),
-				headlineTextColor: UIColor(red: 66 / 255, green: 66 / 255, blue: 66 / 255, alpha: 1),
-				buttonShape: .rect(cornerRadius: 5)
+				backgrounds: .init(
+					card: .clear,
+					content: UIColor(red: 122 / 255, green: 159 / 255, blue: 126 / 255, alpha: 1)
+				),
+				text: .init(
+					headline: UIColor(red: 66 / 255, green: 66 / 255, blue: 66 / 255, alpha: 1),
+					body: .secondaryLabel,
+					sponsor: .secondaryLabel
+				),
+				actionButton: .init(
+					background: .systemBlue,
+					title: .white,
+					shape: .rect(cornerRadius: 5)
+				)
 			)
 
 			public static let row: Style = .init(
-				backgroundColor: .secondarySystemBackground,
-				actionButtonBackgroundColor: .systemBlue,
-				actionButtonTitleColor: .white,
-				buttonShape: .capsule,
-				attributionBackgroundColor: .systemGray5,
-				attributionTextColor: .secondaryLabel
+				backgrounds: .init(card: .secondarySystemBackground, content: .clear),
+				actionButton: .init(
+					background: .systemBlue,
+					title: .white,
+					shape: .capsule
+				),
+				attribution: .init(background: .systemGray5, text: .secondaryLabel)
 			)
 		}
 
@@ -288,6 +345,7 @@ extension NativeAdClient {
 		public struct Metrics: Sendable, Equatable, Hashable {
 			public var iconSize: CGSize
 			public var iconCornerRadius: CGFloat
+			public var containerCornerRadius: CGFloat
 			public var ctaMinHeight: CGFloat
 			public var horizontalSpacing: CGFloat
 			public var verticalSpacing: CGFloat
@@ -295,12 +353,14 @@ extension NativeAdClient {
 			public init(
 				iconSize: CGSize = CGSize(width: 56, height: 56),
 				iconCornerRadius: CGFloat = 10,
+				containerCornerRadius: CGFloat = 12,
 				ctaMinHeight: CGFloat = 36,
 				horizontalSpacing: CGFloat = 12,
 				verticalSpacing: CGFloat = 4
 			) {
 				self.iconSize = iconSize
 				self.iconCornerRadius = iconCornerRadius
+				self.containerCornerRadius = containerCornerRadius
 				self.ctaMinHeight = ctaMinHeight
 				self.horizontalSpacing = horizontalSpacing
 				self.verticalSpacing = verticalSpacing
@@ -322,6 +382,7 @@ extension NativeAdClient {
 			public static let custom = Metrics(
 				iconSize: CGSize(width: 80, height: 80),
 				iconCornerRadius: 5,
+				containerCornerRadius: 0,
 				ctaMinHeight: 44,
 				horizontalSpacing: 12,
 				verticalSpacing: 8
@@ -329,6 +390,7 @@ extension NativeAdClient {
 			public static let fullScreen = Metrics(
 				iconSize: CGSize(width: 56, height: 56),
 				iconCornerRadius: 12,
+				containerCornerRadius: 0,
 				ctaMinHeight: 56,
 				horizontalSpacing: 12,
 				verticalSpacing: 2
@@ -336,6 +398,7 @@ extension NativeAdClient {
 			public static let advanced = Metrics(
 				iconSize: CGSize(width: 50, height: 50),
 				iconCornerRadius: 5,
+				containerCornerRadius: 5,
 				ctaMinHeight: 40,
 				horizontalSpacing: 8,
 				verticalSpacing: 8

@@ -96,7 +96,7 @@ public class RowNativeAdView: NativeAdView {
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setTitle("Install", for: .normal)
         button.titleLabel?.font = .preferredFont(forTextStyle: .subheadline).withWeight(.semibold)
-        // Corner radius is driven by `style.buttonShape` via `applyButtonShape()`.
+        // Corner radius is driven by `style.actionButton.shape` via `applyButtonShape()`.
         button.layer.masksToBounds = true
         // CTA is not user-interactive at the UIKit level — GoogleMobileAds'
         // NativeAdView proxies taps through `callToActionView` binding.
@@ -129,7 +129,7 @@ public class RowNativeAdView: NativeAdView {
 
     public override func layoutSubviews() {
         super.layoutSubviews()
-        if case .capsule = style.buttonShape.mode {
+        if case .capsule = style.actionButton.shape.mode {
             applyButtonShape()
         }
     }
@@ -148,7 +148,7 @@ public class RowNativeAdView: NativeAdView {
 
 extension RowNativeAdView {
     private func setupViews() {
-        layer.cornerRadius = 12
+        layer.cornerRadius = configuration.metrics.containerCornerRadius
         layer.masksToBounds = true
 
         adIconImageView.layer.cornerRadius = configuration.metrics.iconCornerRadius
@@ -248,22 +248,22 @@ extension RowNativeAdView {
 
 extension RowNativeAdView {
     private func applyStyle() {
-        backgroundColor = style.backgroundColor
+        backgroundColor = style.backgrounds.card
 
-        adHeadlineLabel.textColor = style.headlineTextColor
-        adAdvertiserLabel.textColor = style.sponsorTextColor
-        adBodyLabel.textColor = style.bodyTextColor
+        adHeadlineLabel.textColor = style.text.headline
+        adAdvertiserLabel.textColor = style.text.sponsor
+        adBodyLabel.textColor = style.text.body
 
-        adAttributionLabel.backgroundColor = style.attributionBackgroundColor
-        adAttributionLabel.textColor = style.attributionTextColor
+        adAttributionLabel.backgroundColor = style.attribution.background
+        adAttributionLabel.textColor = style.attribution.text
 
-        actionButton.backgroundColor = style.actionButtonBackgroundColor
-        actionButton.setTitleColor(style.actionButtonTitleColor, for: .normal)
+        actionButton.backgroundColor = style.actionButton.background
+        actionButton.setTitleColor(style.actionButton.title, for: .normal)
         applyButtonShape()
     }
 
     private func applyButtonShape() {
-        switch style.buttonShape.mode {
+        switch style.actionButton.shape.mode {
         case let .rect(cornerRadius):
             actionButton.layer.cornerRadius = cornerRadius
         case .capsule:

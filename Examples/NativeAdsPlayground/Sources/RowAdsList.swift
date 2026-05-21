@@ -43,7 +43,7 @@ public struct RowAdsList: Sendable {
                 // of the default capsule — used by the second half of the
                 // list so both shapes render side by side.
                 var rectRowStyle = NativeAdClient.Configuration.Style.row
-                rectRowStyle.buttonShape = .rect(cornerRadius: 10)
+                rectRowStyle.actionButton.shape = .rect(cornerRadius: 10)
 
                 // Rotate body display across all three modes so each renders
                 // at least twice in the 6-ad fixture.
@@ -70,15 +70,40 @@ public struct RowAdsList: Sendable {
                     verticalSpacing: 6
                 )
 
+                // Themed override at index 5 — exercises nested Style colors
+                // (backgrounds / text / actionButton / attribution) AND the
+                // new `containerCornerRadius` together so the wirings are
+                // visibly proven in one ad.
+                let themedStyle = NativeAdClient.Configuration.Style(
+                    backgrounds: .init(
+                        card: UIColor.systemPurple.withAlphaComponent(0.15),
+                        content: .clear
+                    ),
+                    text: .init(
+                        headline: .systemPurple,
+                        body: .label,
+                        sponsor: .systemPurple.withAlphaComponent(0.7)
+                    ),
+                    actionButton: .init(
+                        background: .systemPurple,
+                        title: .white,
+                        shape: .rect(cornerRadius: 5)
+                    ),
+                    attribution: .init(background: .systemYellow, text: .black)
+                )
+                let themedMetrics = NativeAdClient.Configuration.Metrics(
+                    containerCornerRadius: 5
+                )
+
                 // First half rect, second half capsule so both shapes are
                 // visible in the initial viewport.
                 let ads = (0..<6).map { index -> Native.State in
                     let row = NativeAdClient.Configuration.Row(
-                        style: index < 3 ? rectRowStyle : .row,
+                        style: index == 5 ? themedStyle : (index < 3 ? rectRowStyle : .row),
                         bodyDisplay: bodyDisplays[index % bodyDisplays.count],
                         layout: index.isMultiple(of: 2) ? .inline : .stacked,
                         insets: index == 2 ? tightInsets : defaultInsets,
-                        metrics: index == 4 ? oversizedIcon : nil
+                        metrics: index == 4 ? oversizedIcon : (index == 5 ? themedMetrics : nil)
                     )
                     return Native.State(
                         adUnitID: "ca-app-pub-3940256099942544/3986624511",

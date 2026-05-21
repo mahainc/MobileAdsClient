@@ -40,7 +40,7 @@ public class NativeAdvancedView: NativeAdView {
 
 	public override func layoutSubviews() {
 		super.layoutSubviews()
-		if case .capsule = style.buttonShape.mode {
+		if case .capsule = style.actionButton.shape.mode {
 			applyButtonShape()
 		}
 	}
@@ -51,7 +51,7 @@ public class NativeAdvancedView: NativeAdView {
 		let view = UIView()
 		view.translatesAutoresizingMaskIntoConstraints = false
 		view.accessibilityIdentifier = "Ad Content View"
-		view.layer.cornerRadius = 5
+		// Corner radius is driven by `metrics.containerCornerRadius` and applied in `setupViews()`.
 		view.layer.masksToBounds = true
 		return view
 	}()
@@ -98,7 +98,7 @@ public class NativeAdvancedView: NativeAdView {
 		label.textAlignment = .center
 		label.layer.cornerRadius = 4
 		label.layer.masksToBounds = true
-		// Border width is structural; color tracks `style.attributionTextColor`
+		// Border width is structural; color tracks `style.attribution.text`
 		// via `applyStyle()` so outlined-chip presets (e.g. `.advanced`) work.
 		label.layer.borderWidth = 1.4
 		label.font = .systemFont(ofSize: 13, weight: .semibold)
@@ -133,7 +133,7 @@ public class NativeAdvancedView: NativeAdView {
 		button.translatesAutoresizingMaskIntoConstraints = false
 		button.setTitle("Install Now", for: .normal)
 		button.titleLabel?.font = .boldSystemFont(ofSize: 15)
-		// Corner radius is driven by `style.buttonShape` via `applyButtonShape()`.
+		// Corner radius is driven by `style.actionButton.shape` via `applyButtonShape()`.
 		button.layer.masksToBounds = true
 		button.isUserInteractionEnabled = false
 
@@ -198,6 +198,7 @@ extension NativeAdvancedView {
 	private func setupViews() {
 		addBlur(style: .dark)
 
+		contentView.layer.cornerRadius = metrics.containerCornerRadius
 		iconImageView.layer.cornerRadius = metrics.iconCornerRadius
 
 		let storeStack = AutoHidingStackView(arrangedSubviews: [actionButton, storeLabel, priceLabel])
@@ -417,31 +418,31 @@ extension NativeAdvancedView {
 extension NativeAdvancedView {
 
 	private func applyStyle() {
-		backgroundColor = style.backgroundColor
-		contentView.backgroundColor = style.containerBackgroundColor
-		containerView.backgroundColor = style.containerBackgroundColor
+		backgroundColor = style.backgrounds.card
+		contentView.backgroundColor = style.backgrounds.content
+		containerView.backgroundColor = style.backgrounds.content
 
-		headlineLabel.textColor = style.headlineTextColor
-		sponsorLabel.textColor = style.sponsorTextColor
-		bodyLabel.textColor = style.bodyTextColor
+		headlineLabel.textColor = style.text.headline
+		sponsorLabel.textColor = style.text.sponsor
+		bodyLabel.textColor = style.text.body
 
-		attributionLabel.textColor = style.attributionTextColor
-		attributionLabel.backgroundColor = style.attributionBackgroundColor
-		attributionLabel.layer.borderColor = style.attributionTextColor.cgColor
+		attributionLabel.textColor = style.attribution.text
+		attributionLabel.backgroundColor = style.attribution.background
+		attributionLabel.layer.borderColor = style.attribution.text.cgColor
 
-		actionButton.backgroundColor = style.actionButtonBackgroundColor
-		actionButton.setTitleColor(style.actionButtonTitleColor, for: .normal)
+		actionButton.backgroundColor = style.actionButton.background
+		actionButton.setTitleColor(style.actionButton.title, for: .normal)
 		applyButtonShape()
 
-		storeLabel.backgroundColor = style.storeBackgroundColor
-		storeLabel.textColor = style.storeTextColor
+		storeLabel.backgroundColor = style.store.background
+		storeLabel.textColor = style.store.text
 
-		priceLabel.backgroundColor = style.priceBackgroundColor
-		priceLabel.textColor = style.priceTextColor
+		priceLabel.backgroundColor = style.price.background
+		priceLabel.textColor = style.price.text
 	}
 
 	private func applyButtonShape() {
-		switch style.buttonShape.mode {
+		switch style.actionButton.shape.mode {
 		case let .rect(cornerRadius):
 			actionButton.layer.cornerRadius = cornerRadius
 		case .capsule:

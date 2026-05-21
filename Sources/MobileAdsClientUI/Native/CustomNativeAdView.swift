@@ -95,7 +95,7 @@ public class CustomNativeAdView: NativeAdView {
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setTitle("Install Now", for: .normal)
 		button.titleLabel?.font = .preferredFont(forTextStyle: .title3)
-        // Corner radius is driven by `style.buttonShape` via `applyButtonShape()`.
+        // Corner radius is driven by `style.actionButton.shape` via `applyButtonShape()`.
         button.layer.masksToBounds = true
         button.isUserInteractionEnabled = false
 
@@ -185,7 +185,7 @@ public class CustomNativeAdView: NativeAdView {
 
     public override func layoutSubviews() {
         super.layoutSubviews()
-        if case .capsule = style.buttonShape.mode {
+        if case .capsule = style.actionButton.shape.mode {
             applyButtonShape()
         }
     }
@@ -196,7 +196,7 @@ public class CustomNativeAdView: NativeAdView {
 extension CustomNativeAdView {
     private func setupViews() {
         addBlur(style: .dark)
-        layer.cornerRadius = 0
+        layer.cornerRadius = metrics.containerCornerRadius
         layer.masksToBounds = true
 
         adIconImageView.layer.cornerRadius = metrics.iconCornerRadius
@@ -289,29 +289,29 @@ extension CustomNativeAdView {
 extension CustomNativeAdView {
 
     private func applyStyle() {
-        backgroundColor = style.backgroundColor
-        adContainerView.backgroundColor = style.containerBackgroundColor
+        backgroundColor = style.backgrounds.card
+        adContainerView.backgroundColor = style.backgrounds.content
 
-        adHeadlineLabel.textColor = style.headlineTextColor
-        adSponsorLabel.textColor = style.sponsorTextColor
-        adBodyLabel.textColor = style.bodyTextColor
+        adHeadlineLabel.textColor = style.text.headline
+        adSponsorLabel.textColor = style.text.sponsor
+        adBodyLabel.textColor = style.text.body
 
-        adAttributionLabel.textColor = style.attributionTextColor
-        adAttributionLabel.backgroundColor = style.attributionBackgroundColor
+        adAttributionLabel.textColor = style.attribution.text
+        adAttributionLabel.backgroundColor = style.attribution.background
 
-        actionButton.backgroundColor = style.actionButtonBackgroundColor
-        actionButton.setTitleColor(style.actionButtonTitleColor, for: .normal)
+        actionButton.backgroundColor = style.actionButton.background
+        actionButton.setTitleColor(style.actionButton.title, for: .normal)
         applyButtonShape()
 
-        adStoreLabel.backgroundColor = style.storeBackgroundColor
-        adStoreLabel.textColor = style.storeTextColor
+        adStoreLabel.backgroundColor = style.store.background
+        adStoreLabel.textColor = style.store.text
 
-        adPriceLabel.backgroundColor = style.priceBackgroundColor
-        adPriceLabel.textColor = style.priceTextColor
+        adPriceLabel.backgroundColor = style.price.background
+        adPriceLabel.textColor = style.price.text
     }
 
     private func applyButtonShape() {
-        switch style.buttonShape.mode {
+        switch style.actionButton.shape.mode {
         case let .rect(cornerRadius):
             actionButton.layer.cornerRadius = cornerRadius
         case .capsule:

@@ -151,6 +151,9 @@ public class FullScreenNativeAdView: NativeAdView {
 
 extension FullScreenNativeAdView {
     private func setupViews() {
+        layer.cornerRadius = metrics.containerCornerRadius
+        layer.masksToBounds = metrics.containerCornerRadius > 0
+
         adIconImageView.layer.cornerRadius = metrics.iconCornerRadius
 
         let textStack = UIStackView(arrangedSubviews: [adHeadlineLabel, adSponsorLabel])
@@ -218,21 +221,22 @@ extension FullScreenNativeAdView {
     }
 
     private func applyStyle() {
-        self.backgroundColor = style.backgroundColor
-        adHeadlineLabel.textColor = style.headlineTextColor
-        adBodyLabel.textColor = style.bodyTextColor
-        adSponsorLabel.textColor = style.sponsorTextColor
-        adAttributionLabel.backgroundColor = style.attributionBackgroundColor
-        adAttributionLabel.textColor = style.attributionTextColor
-        actionButton.backgroundColor = style.actionButtonBackgroundColor
-        actionButton.setTitleColor(style.actionButtonTitleColor, for: .normal)
-        closeButton.tintColor = style.closeButtonTintColor
-        closeButton.backgroundColor = style.closeButtonBackgroundColor
+        self.backgroundColor = style.backgrounds.card
+        adHeadlineLabel.textColor = style.text.headline
+        adBodyLabel.textColor = style.text.body
+        adSponsorLabel.textColor = style.text.sponsor
+        adAttributionLabel.backgroundColor = style.attribution.background
+        adAttributionLabel.textColor = style.attribution.text
+        actionButton.backgroundColor = style.actionButton.background
+        actionButton.setTitleColor(style.actionButton.title, for: .normal)
+        // `closeButton.text` doubles as the icon tint color for the close button.
+        closeButton.tintColor = style.closeButton.text
+        closeButton.backgroundColor = style.closeButton.background
         applyButtonShape()
     }
 
     private func applyButtonShape() {
-        switch style.buttonShape.mode {
+        switch style.actionButton.shape.mode {
         case let .rect(cornerRadius):
             actionButton.layer.cornerRadius = cornerRadius
         case .capsule:

@@ -66,7 +66,7 @@ enum FullScreenNativePresenter {
 
                 let host = UIHostingController(rootView: content)
                 host.modalPresentationStyle = .fullScreen
-                host.view.backgroundColor = style.backgroundColor
+                host.view.backgroundColor = style.backgrounds.card
                 hostVC.present(host, animated: true)
             }
         }
