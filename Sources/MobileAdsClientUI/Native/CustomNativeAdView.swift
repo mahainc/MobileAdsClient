@@ -12,7 +12,7 @@ import UIKit
 
 public class CustomNativeAdView: NativeAdView {
 
-    public typealias Style = NativeAdClient.AdStyle
+    public typealias Style = NativeAdClient.Configuration.Style
 
     public var style: Style {
         didSet { applyStyle() }
@@ -178,7 +178,7 @@ public class CustomNativeAdView: NativeAdView {
 
     public override func layoutSubviews() {
         super.layoutSubviews()
-        if case .capsule = style.buttonShape {
+        if case .capsule = style.buttonShape.mode {
             applyButtonShape()
         }
     }
@@ -302,7 +302,7 @@ extension CustomNativeAdView {
     }
 
     private func applyButtonShape() {
-        switch style.buttonShape {
+        switch style.buttonShape.mode {
         case let .rect(cornerRadius):
             actionButton.layer.cornerRadius = cornerRadius
         case .capsule:

@@ -27,7 +27,7 @@ import UIKit
 
 public class FullScreenNativeAdView: NativeAdView {
 
-    public typealias Style = NativeAdClient.AdStyle
+    public typealias Style = NativeAdClient.Configuration.Style
 
     public var style: Style {
         didSet { applyStyle() }
@@ -223,7 +223,7 @@ extension FullScreenNativeAdView {
     }
 
     private func applyButtonShape() {
-        switch style.buttonShape {
+        switch style.buttonShape.mode {
         case let .rect(cornerRadius):
             actionButton.layer.cornerRadius = cornerRadius
         case .capsule:

@@ -11,6 +11,7 @@ import ComposableArchitecture
 import Foundation
 import MobileAdsClientUI
 import NativeAdClient
+import UIKit
 
 @Reducer
 public struct RowAdsList: Sendable {
@@ -41,17 +42,35 @@ public struct RowAdsList: Sendable {
                 // Variant of `.row` that uses a rounded-rectangle CTA instead
                 // of the default capsule — used by the second half of the
                 // list so both shapes render side by side.
-                var rectRow = NativeAdClient.AdStyle.row
-                rectRow.buttonShape = .rect(cornerRadius: 10)
+                var rectRowStyle = NativeAdClient.Configuration.Style.row
+                rectRowStyle.buttonShape = .rect(cornerRadius: 10)
+
+                // Rotate body display across all three modes so each renders
+                // at least twice in the 6-ad fixture.
+                let bodyDisplays: [NativeAdClient.Configuration.BodyDisplay] = [
+                    .full,
+                    .truncated(lines: 1),
+                    .hidden,
+                ]
+
+                // Tighter insets to demonstrate the inset override at index 2
+                // alongside default-padded neighbors.
+                let tightInsets = UIEdgeInsets(top: 8, left: 10, bottom: 8, right: 10)
+                let defaultInsets = UIEdgeInsets(top: 12, left: 14, bottom: 12, right: 14)
 
                 // First half rect, second half capsule so both shapes are
                 // visible in the initial viewport.
-                let ads = (0..<6).map { index in
-                    Native.State(
+                let ads = (0..<6).map { index -> Native.State in
+                    let row = NativeAdClient.Configuration.Row(
+                        style: index < 3 ? rectRowStyle : .row,
+                        bodyDisplay: bodyDisplays[index % bodyDisplays.count],
+                        layout: index.isMultiple(of: 2) ? .inline : .stacked,
+                        insets: index == 2 ? tightInsets : defaultInsets
+                    )
+                    return Native.State(
                         adUnitID: "ca-app-pub-3940256099942544/3986624511",
                         options: options,
-                        adStyle: index < 3 ? rectRow : .row,
-                        rowLayout: index.isMultiple(of: 2) ? .inline : .stacked
+                        configuration: .init(row)
                     )
                 }
                 state.ads = IdentifiedArrayOf(uniqueElements: ads)

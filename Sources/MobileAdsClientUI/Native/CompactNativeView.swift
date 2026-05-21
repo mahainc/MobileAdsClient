@@ -5,6 +5,7 @@
 
 #if canImport(UIKit)
 import ComposableArchitecture
+import NativeAdClient
 import SwiftUI
 
 public struct CompactNativeView: View {
@@ -15,22 +16,31 @@ public struct CompactNativeView: View {
         self.store = store
     }
 
+    private var compactConfig: NativeAdClient.Configuration.Compact {
+        if let c = store.configuration.base as? NativeAdClient.Configuration.Compact {
+            return c
+        }
+        assertionFailure("CompactNativeView requires Configuration.Compact, got \(type(of: store.configuration.base))")
+        return .default
+    }
+
     public var body: some View {
-        _CompactNativeRepresentable(store: store)
+        _CompactNativeRepresentable(store: store, configuration: compactConfig)
             .frame(height: 320)
     }
 }
 
 private struct _CompactNativeRepresentable: UIViewRepresentable {
     let store: StoreOf<Native>
+    let configuration: NativeAdClient.Configuration.Compact
 
     func makeUIView(context: Context) -> CompactNativeAdView {
-        CompactNativeAdView(style: store.adStyle)
+        CompactNativeAdView(style: configuration.style)
     }
 
     func updateUIView(_ uiView: CompactNativeAdView, context: Context) {
-        if uiView.style != store.adStyle {
-            uiView.style = store.adStyle
+        if uiView.style != configuration.style {
+            uiView.style = configuration.style
         }
         guard let nativeAd = store.nativeAd else { return }
         uiView.configure(with: nativeAd)

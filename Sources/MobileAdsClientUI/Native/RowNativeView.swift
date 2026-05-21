@@ -2,13 +2,15 @@
 //  RowNativeView.swift
 //  MobileAdsClient
 //
-//  SwiftUI wrapper around `RowNativeAdView`. Reads `store.rowLayout` and uses
-//  `.id` to recreate the UIKit view when the layout flips (constraints are
+//  SwiftUI wrapper around `RowNativeAdView`. Extracts a `Configuration.Row`
+//  from the store's type-erased `AnyConfiguration` and uses `.id` to recreate
+//  the UIKit view when any layout-affecting field flips (constraints are
 //  built once in `setupViews()` and are not re-flowable at runtime).
 //
 
 #if canImport(UIKit)
 import ComposableArchitecture
+import NativeAdClient
 import SwiftUI
 
 public struct RowNativeView: View {
@@ -19,9 +21,17 @@ public struct RowNativeView: View {
         self.store = store
     }
 
+    private var rowConfig: NativeAdClient.Configuration.Row {
+        if let c = store.configuration.base as? NativeAdClient.Configuration.Row {
+            return c
+        }
+        assertionFailure("RowNativeView requires Configuration.Row, got \(type(of: store.configuration.base))")
+        return .default
+    }
+
     public var body: some View {
-        _RowNativeRepresentable(store: store, layout: store.rowLayout)
-            .id(store.rowLayout)
+        _RowNativeRepresentable(store: store, configuration: rowConfig)
+            .id(rowConfig)
             // Bind the row's height to the measured `store.adHeight`. Without
             // this, SwiftUI containers (`List`, `LazyVStack`, …) fall back to
             // the representable's intrinsic size — which is small/zero for a
@@ -32,15 +42,15 @@ public struct RowNativeView: View {
 
 private struct _RowNativeRepresentable: UIViewRepresentable {
     let store: StoreOf<Native>
-    let layout: RowNativeAdView.Layout
+    let configuration: NativeAdClient.Configuration.Row
 
     func makeUIView(context: Context) -> RowNativeAdView {
-        RowNativeAdView(style: store.adStyle, layout: layout)
+        RowNativeAdView(configuration: configuration)
     }
 
     func updateUIView(_ uiView: RowNativeAdView, context: Context) {
-        if uiView.style != store.adStyle {
-            uiView.style = store.adStyle
+        if uiView.style != configuration.style {
+            uiView.style = configuration.style
         }
         guard let nativeAd = store.nativeAd else { return }
         uiView.configure(with: nativeAd)

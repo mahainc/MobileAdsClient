@@ -9,6 +9,7 @@
 
 import ComposableArchitecture
 import MobileAdsClientUI
+import NativeAdClient
 import SwiftUI
 
 struct RowAdsListView: View {
@@ -19,7 +20,7 @@ struct RowAdsListView: View {
             NavigationStack {
                 List {
                     ForEach(store.scope(state: \.ads, action: \.ads)) { adStore in
-                        Section(layoutTitle(for: adStore.rowLayout)) {
+                        Section(layoutTitle(for: adStore.configuration)) {
                             RowNativeView(store: adStore)
                                 .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                                 .listRowSeparator(.hidden)
@@ -46,8 +47,11 @@ struct RowAdsListView: View {
         }
     }
 
-    private func layoutTitle(for layout: RowNativeAdView.Layout) -> String {
-        switch layout {
+    private func layoutTitle(for configuration: NativeAdClient.AnyConfiguration) -> String {
+        guard let row = configuration.base as? NativeAdClient.Configuration.Row else {
+            return ""
+        }
+        switch row.layout.mode {
         case .inline:  return "Inline (CTA on the right)"
         case .stacked: return "Stacked (CTA below)"
         }

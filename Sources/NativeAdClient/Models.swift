@@ -145,110 +145,235 @@ extension NativeAd: @retroactive @unchecked Sendable {
 
 }
 
-// MARK: - AdStyle
+// MARK: - Configuration
 
 extension NativeAdClient {
-	public struct AdStyle: Sendable, Equatable {
-		public enum ButtonShape: Sendable, Equatable {
-			case rect(cornerRadius: CGFloat)
-			case capsule
+	public enum Configuration {
+		public protocol Kind: Sendable, Equatable { }
+
+		// MARK: - Shared building blocks
+
+		public struct Style: Sendable, Equatable {
+			public struct ButtonShape: Sendable, Equatable, Hashable {
+				public enum Mode: Sendable, Equatable, Hashable {
+					case rect(cornerRadius: CGFloat)
+					case capsule
+				}
+
+				public var mode: Mode
+
+				public init(mode: Mode) {
+					self.mode = mode
+				}
+
+				public static func rect(cornerRadius: CGFloat) -> ButtonShape {
+					ButtonShape(mode: .rect(cornerRadius: cornerRadius))
+				}
+
+				public static let capsule = ButtonShape(mode: .capsule)
+			}
+
+			public var backgroundColor: UIColor
+			public var containerBackgroundColor: UIColor
+			public var headlineTextColor: UIColor
+			public var bodyTextColor: UIColor
+			public var sponsorTextColor: UIColor
+			public var actionButtonBackgroundColor: UIColor
+			public var actionButtonTitleColor: UIColor
+			public var buttonShape: ButtonShape
+			public var attributionBackgroundColor: UIColor
+			public var attributionTextColor: UIColor
+			public var storeBackgroundColor: UIColor
+			public var storeTextColor: UIColor
+			public var priceBackgroundColor: UIColor
+			public var priceTextColor: UIColor
+			public var closeButtonTintColor: UIColor
+			public var closeButtonBackgroundColor: UIColor
+
+			public init(
+				backgroundColor: UIColor = .secondarySystemBackground,
+				containerBackgroundColor: UIColor = .clear,
+				headlineTextColor: UIColor = .label,
+				bodyTextColor: UIColor = .secondaryLabel,
+				sponsorTextColor: UIColor = .secondaryLabel,
+				actionButtonBackgroundColor: UIColor = .systemBlue,
+				actionButtonTitleColor: UIColor = .white,
+				buttonShape: ButtonShape = .rect(cornerRadius: 8),
+				attributionBackgroundColor: UIColor = .systemBlue,
+				attributionTextColor: UIColor = .white,
+				storeBackgroundColor: UIColor = .systemGreen,
+				storeTextColor: UIColor = .white,
+				priceBackgroundColor: UIColor = .systemGreen,
+				priceTextColor: UIColor = .white,
+				closeButtonTintColor: UIColor = .label,
+				closeButtonBackgroundColor: UIColor = UIColor.label.withAlphaComponent(0.08)
+			) {
+				self.backgroundColor = backgroundColor
+				self.containerBackgroundColor = containerBackgroundColor
+				self.headlineTextColor = headlineTextColor
+				self.bodyTextColor = bodyTextColor
+				self.sponsorTextColor = sponsorTextColor
+				self.actionButtonBackgroundColor = actionButtonBackgroundColor
+				self.actionButtonTitleColor = actionButtonTitleColor
+				self.buttonShape = buttonShape
+				self.attributionBackgroundColor = attributionBackgroundColor
+				self.attributionTextColor = attributionTextColor
+				self.storeBackgroundColor = storeBackgroundColor
+				self.storeTextColor = storeTextColor
+				self.priceBackgroundColor = priceBackgroundColor
+				self.priceTextColor = priceTextColor
+				self.closeButtonTintColor = closeButtonTintColor
+				self.closeButtonBackgroundColor = closeButtonBackgroundColor
+			}
+
+			public static let compact: Style = .init()
+
+			public static let fullScreen: Style = .init(
+				backgroundColor: .systemBackground,
+				buttonShape: .capsule
+			)
+
+			public static let advanced: Style = .init(
+				backgroundColor: .clear,
+				containerBackgroundColor: UIColor(red: 234 / 255, green: 240 / 255, blue: 253 / 255, alpha: 1),
+				headlineTextColor: UIColor(red: 66 / 255, green: 66 / 255, blue: 66 / 255, alpha: 1),
+				actionButtonBackgroundColor: .systemBlue.withAlphaComponent(0.15),
+				actionButtonTitleColor: .systemBlue,
+				buttonShape: .rect(cornerRadius: 5),
+				attributionBackgroundColor: .clear,
+				attributionTextColor: .systemBlue,
+				storeBackgroundColor: .systemGreen.withAlphaComponent(0.15),
+				storeTextColor: .systemGreen,
+				priceBackgroundColor: .systemGreen.withAlphaComponent(0.15),
+				priceTextColor: .systemGreen
+			)
+
+			public static let custom: Style = .init(
+				backgroundColor: .clear,
+				containerBackgroundColor: UIColor(red: 122 / 255, green: 159 / 255, blue: 126 / 255, alpha: 1),
+				headlineTextColor: UIColor(red: 66 / 255, green: 66 / 255, blue: 66 / 255, alpha: 1),
+				buttonShape: .rect(cornerRadius: 5)
+			)
+
+			public static let row: Style = .init(
+				backgroundColor: .secondarySystemBackground,
+				actionButtonBackgroundColor: .systemBlue,
+				actionButtonTitleColor: .white,
+				buttonShape: .capsule,
+				attributionBackgroundColor: .systemGray5,
+				attributionTextColor: .secondaryLabel
+			)
 		}
 
-		public var backgroundColor: UIColor
-		public var containerBackgroundColor: UIColor
-		public var headlineTextColor: UIColor
-		public var bodyTextColor: UIColor
-		public var sponsorTextColor: UIColor
-		public var actionButtonBackgroundColor: UIColor
-		public var actionButtonTitleColor: UIColor
-		public var buttonShape: ButtonShape
-		public var attributionBackgroundColor: UIColor
-		public var attributionTextColor: UIColor
-		public var storeBackgroundColor: UIColor
-		public var storeTextColor: UIColor
-		public var priceBackgroundColor: UIColor
-		public var priceTextColor: UIColor
-		public var closeButtonTintColor: UIColor
-		public var closeButtonBackgroundColor: UIColor
+		public struct BodyDisplay: Sendable, Equatable, Hashable {
+			public enum Mode: Sendable, Equatable, Hashable {
+				case hidden
+				case full
+				case truncated(lines: Int)
+			}
 
-		public init(
-			backgroundColor: UIColor = .secondarySystemBackground,
-			containerBackgroundColor: UIColor = .clear,
-			headlineTextColor: UIColor = .label,
-			bodyTextColor: UIColor = .secondaryLabel,
-			sponsorTextColor: UIColor = .secondaryLabel,
-			actionButtonBackgroundColor: UIColor = .systemBlue,
-			actionButtonTitleColor: UIColor = .white,
-			buttonShape: ButtonShape = .rect(cornerRadius: 8),
-			attributionBackgroundColor: UIColor = .systemBlue,
-			attributionTextColor: UIColor = .white,
-			storeBackgroundColor: UIColor = .systemGreen,
-			storeTextColor: UIColor = .white,
-			priceBackgroundColor: UIColor = .systemGreen,
-			priceTextColor: UIColor = .white,
-			closeButtonTintColor: UIColor = .label,
-			closeButtonBackgroundColor: UIColor = UIColor.label.withAlphaComponent(0.08)
-		) {
-			self.backgroundColor = backgroundColor
-			self.containerBackgroundColor = containerBackgroundColor
-			self.headlineTextColor = headlineTextColor
-			self.bodyTextColor = bodyTextColor
-			self.sponsorTextColor = sponsorTextColor
-			self.actionButtonBackgroundColor = actionButtonBackgroundColor
-			self.actionButtonTitleColor = actionButtonTitleColor
-			self.buttonShape = buttonShape
-			self.attributionBackgroundColor = attributionBackgroundColor
-			self.attributionTextColor = attributionTextColor
-			self.storeBackgroundColor = storeBackgroundColor
-			self.storeTextColor = storeTextColor
-			self.priceBackgroundColor = priceBackgroundColor
-			self.priceTextColor = priceTextColor
-			self.closeButtonTintColor = closeButtonTintColor
-			self.closeButtonBackgroundColor = closeButtonBackgroundColor
+			public var mode: Mode
+
+			public init(mode: Mode = .full) {
+				self.mode = mode
+			}
+
+			public static let hidden = BodyDisplay(mode: .hidden)
+			public static let full = BodyDisplay(mode: .full)
+			public static func truncated(lines: Int) -> BodyDisplay {
+				BodyDisplay(mode: .truncated(lines: lines))
+			}
 		}
 
-		/// Preset matching `CompactNativeAdView`'s historical defaults.
-		public static let compact: AdStyle = .init()
+		// MARK: - Per-template configurations
 
-		/// Preset matching `FullScreenNativeAdView`'s historical defaults — capsule CTA, system-background canvas.
-		public static let fullScreen: AdStyle = .init(
-			backgroundColor: .systemBackground,
-			buttonShape: .capsule
-		)
+		public struct Row: Kind, Hashable {
+			public struct Layout: Sendable, Equatable, Hashable {
+				public enum Mode: Sendable, Equatable, Hashable {
+					case inline
+					case stacked
+				}
 
-		/// Preset matching `NativeAdvancedView`'s historical look — light-blue container, outlined attribution chip, soft-tinted CTA + store/price chips.
-		public static let advanced: AdStyle = .init(
-			backgroundColor: .clear,
-			containerBackgroundColor: UIColor(red: 234 / 255, green: 240 / 255, blue: 253 / 255, alpha: 1),
-			headlineTextColor: UIColor(red: 66 / 255, green: 66 / 255, blue: 66 / 255, alpha: 1),
-			actionButtonBackgroundColor: .systemBlue.withAlphaComponent(0.15),
-			actionButtonTitleColor: .systemBlue,
-			buttonShape: .rect(cornerRadius: 5),
-			attributionBackgroundColor: .clear,
-			attributionTextColor: .systemBlue,
-			storeBackgroundColor: .systemGreen.withAlphaComponent(0.15),
-			storeTextColor: .systemGreen,
-			priceBackgroundColor: .systemGreen.withAlphaComponent(0.15),
-			priceTextColor: .systemGreen
-		)
+				public var mode: Mode
 
-		/// Preset matching `CustomNativeAdView`'s historical look — green container, solid attribution chip, solid CTA.
-		public static let custom: AdStyle = .init(
-			backgroundColor: .clear,
-			containerBackgroundColor: UIColor(red: 122 / 255, green: 159 / 255, blue: 126 / 255, alpha: 1),
-			headlineTextColor: UIColor(red: 66 / 255, green: 66 / 255, blue: 66 / 255, alpha: 1),
-			buttonShape: .rect(cornerRadius: 5)
-		)
+				public init(mode: Mode = .inline) {
+					self.mode = mode
+				}
 
-		/// Preset for `RowNativeAdView` — secondary canvas, capsule CTA, and a subtle gray "Sponsored" chip that reads as an ad without shouting.
-		public static let row: AdStyle = .init(
-			backgroundColor: .secondarySystemBackground,
-			actionButtonBackgroundColor: .systemBlue,
-			actionButtonTitleColor: .white,
-			buttonShape: .capsule,
-			attributionBackgroundColor: .systemGray5,
-			attributionTextColor: .secondaryLabel
-		)
+				public static let inline = Layout(mode: .inline)
+				public static let stacked = Layout(mode: .stacked)
+			}
+
+			public var style: Style
+			public var bodyDisplay: BodyDisplay
+			public var layout: Layout
+			public var insets: UIEdgeInsets
+
+			public init(
+				style: Style = .row,
+				bodyDisplay: BodyDisplay = .full,
+				layout: Layout = .inline,
+				insets: UIEdgeInsets = .init(top: 12, left: 14, bottom: 12, right: 14)
+			) {
+				self.style = style
+				self.bodyDisplay = bodyDisplay
+				self.layout = layout
+				self.insets = insets
+			}
+
+			public static let `default` = Row()
+			public static let inline = Row(layout: .inline)
+			public static let stacked = Row(layout: .stacked)
+
+			public func hash(into hasher: inout Hasher) {
+				hasher.combine(bodyDisplay)
+				hasher.combine(layout)
+				hasher.combine(insets.top)
+				hasher.combine(insets.left)
+				hasher.combine(insets.bottom)
+				hasher.combine(insets.right)
+			}
+		}
+
+		public struct Compact: Kind {
+			public var style: Style
+			public var bodyDisplay: BodyDisplay
+
+			public init(style: Style = .compact, bodyDisplay: BodyDisplay = .full) {
+				self.style = style
+				self.bodyDisplay = bodyDisplay
+			}
+
+			public static let `default` = Compact()
+		}
+
+		public struct Custom: Kind {
+			public var style: Style
+			public var bodyDisplay: BodyDisplay
+
+			public init(style: Style = .custom, bodyDisplay: BodyDisplay = .full) {
+				self.style = style
+				self.bodyDisplay = bodyDisplay
+			}
+
+			public static let `default` = Custom()
+		}
+	}
+
+	// MARK: - Type-erased wrapper
+
+	public struct AnyConfiguration: Sendable, Equatable {
+		public let base: any Configuration.Kind
+		private let equals: @Sendable (any Configuration.Kind) -> Bool
+
+		public init<C: Configuration.Kind>(_ base: C) {
+			self.base = base
+			self.equals = { ($0 as? C) == base }
+		}
+
+		public static func == (lhs: AnyConfiguration, rhs: AnyConfiguration) -> Bool {
+			lhs.equals(rhs.base)
+		}
 	}
 }
 #endif

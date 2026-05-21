@@ -10,7 +10,7 @@ import UIKit
 
 public class CompactNativeAdView: NativeAdView {
 
-    public typealias Style = NativeAdClient.AdStyle
+    public typealias Style = NativeAdClient.Configuration.Style
 
     public var style: Style {
         didSet { applyStyle() }
@@ -189,7 +189,7 @@ public class CompactNativeAdView: NativeAdView {
         super.layoutSubviews()
         // Capsule shape depends on the button's laid-out height, which is only
         // known after Auto Layout resolves. Re-apply every pass; no-op for rect.
-        if case .capsule = style.buttonShape {
+        if case .capsule = style.buttonShape.mode {
             applyButtonShape()
         }
     }
@@ -322,7 +322,7 @@ extension CompactNativeAdView {
     }
 
     private func applyButtonShape() {
-        switch style.buttonShape {
+        switch style.buttonShape.mode {
         case let .rect(cornerRadius):
             actionButton.layer.cornerRadius = cornerRadius
         case .capsule:

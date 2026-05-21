@@ -14,17 +14,17 @@ import UIKit
 
 public class RowNativeAdView: NativeAdView {
 
-    public enum Layout: Sendable, Equatable {
-        case inline
-        case stacked
-    }
+    public typealias Style = NativeAdClient.Configuration.Style
 
-    public typealias Style = NativeAdClient.AdStyle
-
-    public let layout: Layout
+    public let configuration: NativeAdClient.Configuration.Row
     public var style: Style {
         didSet { applyStyle() }
     }
+
+    // Convenience accessors so the `setup*` / `updateVisibility` methods stay readable.
+    private var layout: NativeAdClient.Configuration.Row.Layout { configuration.layout }
+    private var bodyDisplay: NativeAdClient.Configuration.BodyDisplay { configuration.bodyDisplay }
+    private var insets: UIEdgeInsets { configuration.insets }
 
     // MARK: - Subviews
 
@@ -107,9 +107,12 @@ public class RowNativeAdView: NativeAdView {
 
     // MARK: - Init
 
-    public init(frame: CGRect = .zero, style: Style = .row, layout: Layout = .inline) {
-        self.layout = layout
-        self.style = style
+    public init(
+        frame: CGRect = .zero,
+        configuration: NativeAdClient.Configuration.Row = .default
+    ) {
+        self.configuration = configuration
+        self.style = configuration.style
         super.init(frame: frame)
         setupViews()
         updateViewBindings()
@@ -122,7 +125,7 @@ public class RowNativeAdView: NativeAdView {
 
     public override func layoutSubviews() {
         super.layoutSubviews()
-        if case .capsule = style.buttonShape {
+        if case .capsule = style.buttonShape.mode {
             applyButtonShape()
         }
     }
@@ -144,6 +147,13 @@ extension RowNativeAdView {
         layer.cornerRadius = 12
         layer.masksToBounds = true
 
+        switch bodyDisplay.mode {
+        case .hidden, .full:
+            adBodyLabel.numberOfLines = 0
+        case .truncated(let lines):
+            adBodyLabel.numberOfLines = max(1, lines)
+        }
+
         let advertiserRow = UIStackView(arrangedSubviews: [adAdvertiserLabel, adAttributionLabel])
         advertiserRow.axis = .horizontal
         advertiserRow.spacing = 6
@@ -164,7 +174,7 @@ extension RowNativeAdView {
         textStack.setContentHuggingPriority(.defaultLow, for: .horizontal)
         textStack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        switch layout {
+        switch layout.mode {
         case .inline:
             setupInlineLayout(textStack: textStack)
         case .stacked:
@@ -181,10 +191,10 @@ extension RowNativeAdView {
         addSubview(row)
 
         NSLayoutConstraint.activate([
-            row.topAnchor.constraint(equalTo: topAnchor, constant: 10),
-            row.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
-            row.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
-            row.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
+            row.topAnchor.constraint(equalTo: topAnchor, constant: insets.top),
+            row.leadingAnchor.constraint(equalTo: leadingAnchor, constant: insets.left),
+            row.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -insets.right),
+            row.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -insets.bottom),
 
             adIconImageView.widthAnchor.constraint(equalToConstant: 56),
             adIconImageView.heightAnchor.constraint(equalToConstant: 56),
@@ -215,10 +225,10 @@ extension RowNativeAdView {
         addSubview(outer)
 
         NSLayoutConstraint.activate([
-            outer.topAnchor.constraint(equalTo: topAnchor, constant: 12),
-            outer.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
-            outer.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
-            outer.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -12),
+            outer.topAnchor.constraint(equalTo: topAnchor, constant: insets.top),
+            outer.leadingAnchor.constraint(equalTo: leadingAnchor, constant: insets.left),
+            outer.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -insets.right),
+            outer.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -insets.bottom),
 
             adIconImageView.widthAnchor.constraint(equalToConstant: 64),
             adIconImageView.heightAnchor.constraint(equalToConstant: 64),
@@ -247,13 +257,13 @@ extension RowNativeAdView {
     }
 
     private func applyButtonShape() {
-        switch style.buttonShape {
+        switch style.buttonShape.mode {
         case let .rect(cornerRadius):
             actionButton.layer.cornerRadius = cornerRadius
         case .capsule:
             // Height is 0 during first applyStyle() (pre-layout); `layoutSubviews`
             // re-applies once the frame settles.
-            let fallback: CGFloat = layout == .stacked ? 44 : 36
+            let fallback: CGFloat = layout.mode == .stacked ? 44 : 36
             let h = actionButton.bounds.height > 0 ? actionButton.bounds.height : fallback
             actionButton.layer.cornerRadius = h / 2
         }
@@ -304,7 +314,14 @@ extension RowNativeAdView {
         adIconImageView.isHidden = nativeAd.icon == nil
         adHeadlineLabel.isHidden = nativeAd.headline == nil
         adAdvertiserLabel.isHidden = (nativeAd.advertiser ?? nativeAd.store) == nil
-        adBodyLabel.isHidden = nativeAd.body == nil
+        let bodyHidden: Bool
+        switch bodyDisplay.mode {
+        case .hidden:
+            bodyHidden = true
+        case .full, .truncated:
+            bodyHidden = nativeAd.body == nil
+        }
+        adBodyLabel.isHidden = bodyHidden
         actionButton.isHidden = nativeAd.callToAction == nil
     }
 }
