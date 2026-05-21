@@ -16,8 +16,9 @@ public class CompactNativeAdView: NativeAdView {
         didSet { applyStyle() }
     }
 
+    private let metrics: NativeAdClient.Configuration.Metrics
+
     private let fixedHeight: CGFloat = 300
-    private let defaultSpacing: CGFloat = 8
     private let containerPadding: CGFloat = 10
 
     private lazy var adContainerView: UIView = {
@@ -43,7 +44,7 @@ public class CompactNativeAdView: NativeAdView {
         imageView.accessibilityIdentifier = "Ad Icon Image View"
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.contentMode = .scaleAspectFill
-        imageView.layer.cornerRadius = 8
+        // Corner radius is driven by `metrics.iconCornerRadius` and applied in `setupViews()`.
         imageView.layer.masksToBounds = true
         return imageView
     }()
@@ -170,8 +171,13 @@ public class CompactNativeAdView: NativeAdView {
         return button
     }()
 
-    public init(frame: CGRect = .zero, style: Style = .compact) {
+    public init(
+        frame: CGRect = .zero,
+        style: Style = .compact,
+        metrics: NativeAdClient.Configuration.Metrics = .compact
+    ) {
         self.style = style
+        self.metrics = metrics
         super.init(frame: frame)
         setupViews()
         applyStyle()
@@ -203,6 +209,8 @@ extension CompactNativeAdView {
         layer.masksToBounds = true
         clipsToBounds = true
 
+        adIconImageView.layer.cornerRadius = metrics.iconCornerRadius
+
         let attributionRow = UIStackView()
         attributionRow.axis = .horizontal
         attributionRow.spacing = 8
@@ -215,7 +223,7 @@ extension CompactNativeAdView {
         let headlineTextStack = AutoHidingStackView()
         headlineTextStack.accessibilityIdentifier = "Headline Text Stack"
         headlineTextStack.axis = .vertical
-        headlineTextStack.spacing = 4
+        headlineTextStack.spacing = metrics.verticalSpacing
         headlineTextStack.alignment = .leading
         headlineTextStack.distribution = .fill
         headlineTextStack.translatesAutoresizingMaskIntoConstraints = false
@@ -226,7 +234,7 @@ extension CompactNativeAdView {
         let headlineStack = AutoHidingStackView()
         headlineStack.accessibilityIdentifier = "Headline Stack"
         headlineStack.axis = .horizontal
-        headlineStack.spacing = 12
+        headlineStack.spacing = metrics.horizontalSpacing
         headlineStack.alignment = .center
         headlineStack.distribution = .fill
         headlineStack.translatesAutoresizingMaskIntoConstraints = false
@@ -257,7 +265,7 @@ extension CompactNativeAdView {
         let middleStack = AutoHidingStackView()
         middleStack.accessibilityIdentifier = "Middle Stack"
         middleStack.axis = .horizontal
-        middleStack.spacing = 12
+        middleStack.spacing = metrics.horizontalSpacing
         middleStack.alignment = .center
         middleStack.distribution = .fill
         middleStack.translatesAutoresizingMaskIntoConstraints = false
@@ -285,22 +293,22 @@ extension CompactNativeAdView {
             adMediaView.trailingAnchor.constraint(equalTo: adContainerView.trailingAnchor),
             mediaHeightConstraint,
 
-            headlineStack.topAnchor.constraint(equalTo: adMediaView.bottomAnchor, constant: defaultSpacing),
+            headlineStack.topAnchor.constraint(equalTo: adMediaView.bottomAnchor, constant: metrics.verticalSpacing),
             headlineStack.leadingAnchor.constraint(equalTo: adContainerView.leadingAnchor),
             headlineStack.trailingAnchor.constraint(equalTo: adContainerView.trailingAnchor),
 
-            middleStack.topAnchor.constraint(equalTo: headlineStack.bottomAnchor, constant: defaultSpacing),
+            middleStack.topAnchor.constraint(equalTo: headlineStack.bottomAnchor, constant: metrics.verticalSpacing),
             middleStack.leadingAnchor.constraint(equalTo: adContainerView.leadingAnchor),
             middleStack.trailingAnchor.constraint(equalTo: adContainerView.trailingAnchor),
-            middleStack.bottomAnchor.constraint(lessThanOrEqualTo: actionButton.topAnchor, constant: -defaultSpacing),
+            middleStack.bottomAnchor.constraint(lessThanOrEqualTo: actionButton.topAnchor, constant: -metrics.verticalSpacing),
 
             actionButton.leadingAnchor.constraint(equalTo: adContainerView.leadingAnchor),
             actionButton.trailingAnchor.constraint(equalTo: adContainerView.trailingAnchor),
             actionButton.bottomAnchor.constraint(equalTo: adContainerView.bottomAnchor),
-            actionButton.heightAnchor.constraint(equalToConstant: 40),
+            actionButton.heightAnchor.constraint(greaterThanOrEqualToConstant: metrics.ctaMinHeight),
 
-            adIconImageView.widthAnchor.constraint(equalToConstant: 36),
-            adIconImageView.heightAnchor.constraint(equalToConstant: 36),
+            adIconImageView.widthAnchor.constraint(equalToConstant: metrics.iconSize.width),
+            adIconImageView.heightAnchor.constraint(equalToConstant: metrics.iconSize.height),
         ])
     }
 
@@ -327,9 +335,9 @@ extension CompactNativeAdView {
             actionButton.layer.cornerRadius = cornerRadius
         case .capsule:
             // Height is 0 during first applyStyle() (pre-layout); `layoutSubviews`
-            // re-applies once the frame settles. Fall back to half the constraint
-            // height (40) so the first layout pass is already round.
-            let h = actionButton.bounds.height > 0 ? actionButton.bounds.height : 40
+            // re-applies once the frame settles. Fall back to `metrics.ctaMinHeight`
+            // so the first layout pass is already round.
+            let h = actionButton.bounds.height > 0 ? actionButton.bounds.height : metrics.ctaMinHeight
             actionButton.layer.cornerRadius = h / 2
         }
     }

@@ -58,6 +58,18 @@ public struct RowAdsList: Sendable {
                 let tightInsets = UIEdgeInsets(top: 8, left: 10, bottom: 8, right: 10)
                 let defaultInsets = UIEdgeInsets(top: 12, left: 14, bottom: 12, right: 14)
 
+                // Oversized icon + taller CTA + roomier spacing to demonstrate
+                // the `metrics` override at index 4. Other ads pass `nil` so
+                // `Row.init` auto-resolves the layout-matched preset
+                // (`Metrics.row` for inline, `Metrics.rowStacked` for stacked).
+                let oversizedIcon = NativeAdClient.Configuration.Metrics(
+                    iconSize: CGSize(width: 72, height: 72),
+                    iconCornerRadius: 16,
+                    ctaMinHeight: 48,
+                    horizontalSpacing: 16,
+                    verticalSpacing: 6
+                )
+
                 // First half rect, second half capsule so both shapes are
                 // visible in the initial viewport.
                 let ads = (0..<6).map { index -> Native.State in
@@ -65,7 +77,8 @@ public struct RowAdsList: Sendable {
                         style: index < 3 ? rectRowStyle : .row,
                         bodyDisplay: bodyDisplays[index % bodyDisplays.count],
                         layout: index.isMultiple(of: 2) ? .inline : .stacked,
-                        insets: index == 2 ? tightInsets : defaultInsets
+                        insets: index == 2 ? tightInsets : defaultInsets,
+                        metrics: index == 4 ? oversizedIcon : nil
                     )
                     return Native.State(
                         adUnitID: "ca-app-pub-3940256099942544/3986624511",

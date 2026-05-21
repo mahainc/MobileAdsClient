@@ -18,6 +18,8 @@ public class CustomNativeAdView: NativeAdView {
         didSet { applyStyle() }
     }
 
+    private let metrics: NativeAdClient.Configuration.Metrics
+
     private var heightConstraint: NSLayoutConstraint!
     private var currentMultiplier: CGFloat = 9.0 / 16.0
     private let defaultSpacing: CGFloat = 16
@@ -72,9 +74,9 @@ public class CustomNativeAdView: NativeAdView {
         imageView.accessibilityIdentifier = "Ad Icon Image View"
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.contentMode = .scaleAspectFill
-        imageView.layer.cornerRadius = 5
+        // Corner radius is driven by `metrics.iconCornerRadius` and applied in `setupViews()`.
         imageView.layer.masksToBounds = true
-        
+
         return imageView
     }()
     
@@ -151,11 +153,11 @@ public class CustomNativeAdView: NativeAdView {
         let stack = AutoHidingStackView()
         stack.accessibilityIdentifier = "Headline Stack"
         stack.axis = .horizontal
-        stack.spacing = 12
+        stack.spacing = metrics.horizontalSpacing
         stack.alignment = .center
         stack.distribution = .fill
         stack.translatesAutoresizingMaskIntoConstraints = false
-        
+
         return stack
     }()
 	
@@ -165,8 +167,13 @@ public class CustomNativeAdView: NativeAdView {
 		return view
 	}()
     
-    public init(frame: CGRect = .zero, style: Style = .custom) {
+    public init(
+        frame: CGRect = .zero,
+        style: Style = .custom,
+        metrics: NativeAdClient.Configuration.Metrics = .custom
+    ) {
         self.style = style
+        self.metrics = metrics
         super.init(frame: frame)
         setupViews()
         applyStyle()
@@ -191,7 +198,9 @@ extension CustomNativeAdView {
         addBlur(style: .dark)
         layer.cornerRadius = 0
         layer.masksToBounds = true
-        
+
+        adIconImageView.layer.cornerRadius = metrics.iconCornerRadius
+
         let storeStack = AutoHidingStackView()
         storeStack.accessibilityIdentifier = "Store Stack"
         storeStack.axis = .horizontal
@@ -215,7 +224,7 @@ extension CustomNativeAdView {
         let labelStack = AutoHidingStackView()
         labelStack.accessibilityIdentifier = "Label Stack"
         labelStack.axis = .vertical
-        labelStack.spacing = 8
+        labelStack.spacing = metrics.verticalSpacing
         labelStack.alignment = .leading
         labelStack.distribution = .fill
         labelStack.translatesAutoresizingMaskIntoConstraints = false
@@ -267,10 +276,10 @@ extension CustomNativeAdView {
 
             actionButton.leadingAnchor.constraint(equalTo: bodyStack.leadingAnchor),
             actionButton.trailingAnchor.constraint(equalTo: bodyStack.trailingAnchor),
-            actionButton.heightAnchor.constraint(equalToConstant: 44),
+            actionButton.heightAnchor.constraint(greaterThanOrEqualToConstant: metrics.ctaMinHeight),
 
-            adIconImageView.widthAnchor.constraint(equalToConstant: 80),
-            adIconImageView.heightAnchor.constraint(equalToConstant: 80),
+            adIconImageView.widthAnchor.constraint(equalToConstant: metrics.iconSize.width),
+            adIconImageView.heightAnchor.constraint(equalToConstant: metrics.iconSize.height),
         ])
     }
 }
@@ -306,7 +315,7 @@ extension CustomNativeAdView {
         case let .rect(cornerRadius):
             actionButton.layer.cornerRadius = cornerRadius
         case .capsule:
-            let h = actionButton.bounds.height > 0 ? actionButton.bounds.height : 44
+            let h = actionButton.bounds.height > 0 ? actionButton.bounds.height : metrics.ctaMinHeight
             actionButton.layer.cornerRadius = h / 2
         }
     }

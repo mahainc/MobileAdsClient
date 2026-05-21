@@ -18,8 +18,15 @@ public class NativeAdvancedView: NativeAdView {
 		didSet { applyStyle() }
 	}
 
-	public init(frame: CGRect = .zero, style: Style = .advanced) {
+	private let metrics: NativeAdClient.Configuration.Metrics
+
+	public init(
+		frame: CGRect = .zero,
+		style: Style = .advanced,
+		metrics: NativeAdClient.Configuration.Metrics = .advanced
+	) {
 		self.style = style
+		self.metrics = metrics
 		super.init(frame: frame)
 
 		setupViews()
@@ -105,9 +112,9 @@ public class NativeAdvancedView: NativeAdView {
 		imageView.image = UIImage.fromSPM(named: "placeholder_image")
 		imageView.translatesAutoresizingMaskIntoConstraints = false
 		imageView.contentMode = .scaleAspectFill
-		imageView.layer.cornerRadius = 5
+		// Corner radius is driven by `metrics.iconCornerRadius` and applied in `setupViews()`.
 		imageView.layer.masksToBounds = true
-		
+
 		return imageView
 	}()
 	
@@ -190,11 +197,13 @@ extension NativeAdvancedView {
 	
 	private func setupViews() {
 		addBlur(style: .dark)
-		
+
+		iconImageView.layer.cornerRadius = metrics.iconCornerRadius
+
 		let storeStack = AutoHidingStackView(arrangedSubviews: [actionButton, storeLabel, priceLabel])
 		storeStack.accessibilityIdentifier = "Store Stack"
 		storeStack.axis = .horizontal
-		storeStack.spacing = 8
+		storeStack.spacing = metrics.horizontalSpacing
 		storeStack.alignment = .fill
 		storeStack.distribution = .fillEqually
 		storeStack.translatesAutoresizingMaskIntoConstraints = false
@@ -211,7 +220,7 @@ extension NativeAdvancedView {
 		labelStack.translatesAutoresizingMaskIntoConstraints = false
 		labelStack.accessibilityIdentifier = "Label Stack"
 		labelStack.axis = .vertical
-		labelStack.spacing = 5
+		labelStack.spacing = metrics.verticalSpacing
 		labelStack.alignment = .leading
 		labelStack.distribution = .fillProportionally
 		
@@ -219,7 +228,7 @@ extension NativeAdvancedView {
 		headerStack.translatesAutoresizingMaskIntoConstraints = false
 		headerStack.accessibilityIdentifier = "Header Stack"
 		headerStack.axis = .horizontal
-		headerStack.spacing = 8
+		headerStack.spacing = metrics.horizontalSpacing
 		headerStack.alignment = .center
 		headerStack.distribution = .fill
 		
@@ -227,7 +236,7 @@ extension NativeAdvancedView {
 		stackView.translatesAutoresizingMaskIntoConstraints = false
 		stackView.accessibilityIdentifier = "Main Stack"
 		stackView.axis = .vertical
-		stackView.spacing = 8
+		stackView.spacing = metrics.verticalSpacing
 		stackView.alignment = .fill
 		stackView.distribution = .fill
 		
@@ -269,10 +278,10 @@ extension NativeAdvancedView {
 			mediaContentView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
 			mediaContentView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
 			
-			storeStack.heightAnchor.constraint(equalToConstant: 40),
-			
-			iconImageView.widthAnchor.constraint(equalToConstant: 50),
-			iconImageView.heightAnchor.constraint(equalToConstant: 50),
+			storeStack.heightAnchor.constraint(equalToConstant: metrics.ctaMinHeight),
+
+			iconImageView.widthAnchor.constraint(equalToConstant: metrics.iconSize.width),
+			iconImageView.heightAnchor.constraint(equalToConstant: metrics.iconSize.height),
 		])
 	}
 	
@@ -436,7 +445,7 @@ extension NativeAdvancedView {
 		case let .rect(cornerRadius):
 			actionButton.layer.cornerRadius = cornerRadius
 		case .capsule:
-			let h = actionButton.bounds.height > 0 ? actionButton.bounds.height : 40
+			let h = actionButton.bounds.height > 0 ? actionButton.bounds.height : metrics.ctaMinHeight
 			actionButton.layer.cornerRadius = h / 2
 		}
 	}

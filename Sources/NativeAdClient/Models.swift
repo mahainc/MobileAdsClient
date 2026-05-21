@@ -285,6 +285,63 @@ extension NativeAdClient {
 			}
 		}
 
+		public struct Metrics: Sendable, Equatable, Hashable {
+			public var iconSize: CGSize
+			public var iconCornerRadius: CGFloat
+			public var ctaMinHeight: CGFloat
+			public var horizontalSpacing: CGFloat
+			public var verticalSpacing: CGFloat
+
+			public init(
+				iconSize: CGSize = CGSize(width: 56, height: 56),
+				iconCornerRadius: CGFloat = 10,
+				ctaMinHeight: CGFloat = 36,
+				horizontalSpacing: CGFloat = 12,
+				verticalSpacing: CGFloat = 4
+			) {
+				self.iconSize = iconSize
+				self.iconCornerRadius = iconCornerRadius
+				self.ctaMinHeight = ctaMinHeight
+				self.horizontalSpacing = horizontalSpacing
+				self.verticalSpacing = verticalSpacing
+			}
+
+			public static let `default` = Metrics()
+			public static let row = Metrics()
+			public static let rowStacked = Metrics(
+				iconSize: CGSize(width: 64, height: 64),
+				ctaMinHeight: 44
+			)
+			public static let compact = Metrics(
+				iconSize: CGSize(width: 36, height: 36),
+				iconCornerRadius: 8,
+				ctaMinHeight: 40,
+				horizontalSpacing: 12,
+				verticalSpacing: 8
+			)
+			public static let custom = Metrics(
+				iconSize: CGSize(width: 80, height: 80),
+				iconCornerRadius: 5,
+				ctaMinHeight: 44,
+				horizontalSpacing: 12,
+				verticalSpacing: 8
+			)
+			public static let fullScreen = Metrics(
+				iconSize: CGSize(width: 56, height: 56),
+				iconCornerRadius: 12,
+				ctaMinHeight: 56,
+				horizontalSpacing: 12,
+				verticalSpacing: 2
+			)
+			public static let advanced = Metrics(
+				iconSize: CGSize(width: 50, height: 50),
+				iconCornerRadius: 5,
+				ctaMinHeight: 40,
+				horizontalSpacing: 8,
+				verticalSpacing: 8
+			)
+		}
+
 		// MARK: - Per-template configurations
 
 		public struct Row: Kind, Hashable {
@@ -308,17 +365,22 @@ extension NativeAdClient {
 			public var bodyDisplay: BodyDisplay
 			public var layout: Layout
 			public var insets: UIEdgeInsets
+			public var metrics: Metrics
 
 			public init(
 				style: Style = .row,
 				bodyDisplay: BodyDisplay = .full,
 				layout: Layout = .inline,
-				insets: UIEdgeInsets = .init(top: 12, left: 14, bottom: 12, right: 14)
+				insets: UIEdgeInsets = .init(top: 12, left: 14, bottom: 12, right: 14),
+				metrics: Metrics? = nil
 			) {
 				self.style = style
 				self.bodyDisplay = bodyDisplay
 				self.layout = layout
 				self.insets = insets
+				// nil → layout-matched default so existing call sites that pass `.stacked`
+				// without an explicit `metrics:` still get the bigger icon / taller CTA.
+				self.metrics = metrics ?? (layout.mode == .stacked ? .rowStacked : .row)
 			}
 
 			public static let `default` = Row()
@@ -332,31 +394,54 @@ extension NativeAdClient {
 				hasher.combine(insets.left)
 				hasher.combine(insets.bottom)
 				hasher.combine(insets.right)
+				hasher.combine(metrics)
 			}
 		}
 
-		public struct Compact: Kind {
+		public struct Compact: Kind, Hashable {
 			public var style: Style
 			public var bodyDisplay: BodyDisplay
+			public var metrics: Metrics
 
-			public init(style: Style = .compact, bodyDisplay: BodyDisplay = .full) {
+			public init(
+				style: Style = .compact,
+				bodyDisplay: BodyDisplay = .full,
+				metrics: Metrics = .compact
+			) {
 				self.style = style
 				self.bodyDisplay = bodyDisplay
+				self.metrics = metrics
 			}
 
 			public static let `default` = Compact()
+
+			public func hash(into hasher: inout Hasher) {
+				hasher.combine(bodyDisplay)
+				hasher.combine(metrics)
+			}
 		}
 
-		public struct Custom: Kind {
+		public struct Custom: Kind, Hashable {
 			public var style: Style
 			public var bodyDisplay: BodyDisplay
+			public var metrics: Metrics
 
-			public init(style: Style = .custom, bodyDisplay: BodyDisplay = .full) {
+			public init(
+				style: Style = .custom,
+				bodyDisplay: BodyDisplay = .full,
+				metrics: Metrics = .custom
+			) {
 				self.style = style
 				self.bodyDisplay = bodyDisplay
+				self.metrics = metrics
 			}
 
 			public static let `default` = Custom()
+
+			public func hash(into hasher: inout Hasher) {
+				hasher.combine(bodyDisplay)
+				hasher.combine(metrics)
+			}
 		}
 	}
 

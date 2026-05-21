@@ -26,6 +26,7 @@ public struct CompactNativeView: View {
 
     public var body: some View {
         _CompactNativeRepresentable(store: store, configuration: compactConfig)
+            .id(compactConfig)
             .frame(height: 320)
     }
 }
@@ -35,7 +36,7 @@ private struct _CompactNativeRepresentable: UIViewRepresentable {
     let configuration: NativeAdClient.Configuration.Compact
 
     func makeUIView(context: Context) -> CompactNativeAdView {
-        CompactNativeAdView(style: configuration.style)
+        CompactNativeAdView(style: configuration.style, metrics: configuration.metrics)
     }
 
     func updateUIView(_ uiView: CompactNativeAdView, context: Context) {

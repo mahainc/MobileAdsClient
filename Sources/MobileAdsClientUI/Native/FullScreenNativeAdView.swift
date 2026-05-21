@@ -33,6 +33,8 @@ public class FullScreenNativeAdView: NativeAdView {
         didSet { applyStyle() }
     }
 
+    private let metrics: NativeAdClient.Configuration.Metrics
+
     /// Exposed so the SwiftUI wrapper / hosting controller can hook its
     /// `addTarget` to an `onClose` callback.
     public let closeButton: UIButton = {
@@ -62,7 +64,7 @@ public class FullScreenNativeAdView: NativeAdView {
         imageView.accessibilityIdentifier = "Full Screen Native Icon"
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.contentMode = .scaleAspectFill
-        imageView.layer.cornerRadius = 12
+        // Corner radius is driven by `metrics.iconCornerRadius` and applied in `setupViews()`.
         imageView.layer.masksToBounds = true
         return imageView
     }()
@@ -122,8 +124,13 @@ public class FullScreenNativeAdView: NativeAdView {
 
     // MARK: - Init
 
-    public init(frame: CGRect = .zero, style: Style = .fullScreen) {
+    public init(
+        frame: CGRect = .zero,
+        style: Style = .fullScreen,
+        metrics: NativeAdClient.Configuration.Metrics = .fullScreen
+    ) {
         self.style = style
+        self.metrics = metrics
         super.init(frame: frame)
         setupViews()
         applyStyle()
@@ -144,6 +151,8 @@ public class FullScreenNativeAdView: NativeAdView {
 
 extension FullScreenNativeAdView {
     private func setupViews() {
+        adIconImageView.layer.cornerRadius = metrics.iconCornerRadius
+
         let textStack = UIStackView(arrangedSubviews: [adHeadlineLabel, adSponsorLabel])
         textStack.axis = .vertical
         textStack.spacing = 2
@@ -153,7 +162,7 @@ extension FullScreenNativeAdView {
 
         let headerStack = UIStackView(arrangedSubviews: [adIconImageView, textStack])
         headerStack.axis = .horizontal
-        headerStack.spacing = 12
+        headerStack.spacing = metrics.horizontalSpacing
         headerStack.alignment = .center
         headerStack.translatesAutoresizingMaskIntoConstraints = false
 
@@ -193,8 +202,8 @@ extension FullScreenNativeAdView {
             headerStack.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 24),
             headerStack.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -24),
 
-            adIconImageView.widthAnchor.constraint(equalToConstant: 56),
-            adIconImageView.heightAnchor.constraint(equalToConstant: 56),
+            adIconImageView.widthAnchor.constraint(equalToConstant: metrics.iconSize.width),
+            adIconImageView.heightAnchor.constraint(equalToConstant: metrics.iconSize.height),
 
             adBodyLabel.topAnchor.constraint(equalTo: headerStack.bottomAnchor, constant: 12),
             adBodyLabel.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 24),
@@ -204,7 +213,7 @@ extension FullScreenNativeAdView {
             actionButton.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 24),
             actionButton.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -24),
             actionButton.bottomAnchor.constraint(equalTo: guide.bottomAnchor, constant: -20),
-            actionButton.heightAnchor.constraint(equalToConstant: 56),
+            actionButton.heightAnchor.constraint(greaterThanOrEqualToConstant: metrics.ctaMinHeight),
         ])
     }
 
@@ -227,7 +236,7 @@ extension FullScreenNativeAdView {
         case let .rect(cornerRadius):
             actionButton.layer.cornerRadius = cornerRadius
         case .capsule:
-            let h = actionButton.bounds.height > 0 ? actionButton.bounds.height : 56
+            let h = actionButton.bounds.height > 0 ? actionButton.bounds.height : metrics.ctaMinHeight
             actionButton.layer.cornerRadius = h / 2
         }
     }

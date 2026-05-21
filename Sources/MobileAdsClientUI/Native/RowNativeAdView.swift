@@ -33,7 +33,8 @@ public class RowNativeAdView: NativeAdView {
         imageView.accessibilityIdentifier = "Row Native Icon"
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.contentMode = .scaleAspectFill
-        imageView.layer.cornerRadius = 10
+        // Corner radius is driven by `configuration.metrics.iconCornerRadius`
+        // and applied in `setupViews()`.
         imageView.layer.masksToBounds = true
         imageView.setContentHuggingPriority(.required, for: .horizontal)
         imageView.setContentCompressionResistancePriority(.required, for: .horizontal)
@@ -147,6 +148,8 @@ extension RowNativeAdView {
         layer.cornerRadius = 12
         layer.masksToBounds = true
 
+        adIconImageView.layer.cornerRadius = configuration.metrics.iconCornerRadius
+
         switch bodyDisplay.mode {
         case .hidden, .full:
             adBodyLabel.numberOfLines = 0
@@ -166,7 +169,7 @@ extension RowNativeAdView {
 
         let textStack = UIStackView(arrangedSubviews: [adHeadlineLabel, advertiserRow, bodyContainer])
         textStack.axis = .vertical
-        textStack.spacing = 4
+        textStack.spacing = configuration.metrics.verticalSpacing
         // `.fill` (vs `.leading`) lets multi-line `adBodyLabel` wrap to the
         // stack's full width and, in `.stacked`, lets the appended CTA stretch.
         textStack.alignment = .fill
@@ -185,7 +188,7 @@ extension RowNativeAdView {
     private func setupInlineLayout(textStack: UIStackView) {
         let row = UIStackView(arrangedSubviews: [adIconImageView, textStack, actionButton])
         row.axis = .horizontal
-        row.spacing = 12
+        row.spacing = configuration.metrics.horizontalSpacing
         row.alignment = .center
         row.translatesAutoresizingMaskIntoConstraints = false
         addSubview(row)
@@ -196,10 +199,10 @@ extension RowNativeAdView {
             row.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -insets.right),
             row.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -insets.bottom),
 
-            adIconImageView.widthAnchor.constraint(equalToConstant: 56),
-            adIconImageView.heightAnchor.constraint(equalToConstant: 56),
+            adIconImageView.widthAnchor.constraint(equalToConstant: configuration.metrics.iconSize.width),
+            adIconImageView.heightAnchor.constraint(equalToConstant: configuration.metrics.iconSize.height),
 
-            actionButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 36),
+            actionButton.heightAnchor.constraint(greaterThanOrEqualToConstant: configuration.metrics.ctaMinHeight),
         ])
     }
 
@@ -219,7 +222,7 @@ extension RowNativeAdView {
 
         let outer = UIStackView(arrangedSubviews: [adIconImageView, textStack])
         outer.axis = .horizontal
-        outer.spacing = 12
+        outer.spacing = configuration.metrics.horizontalSpacing
         outer.alignment = .top
         outer.translatesAutoresizingMaskIntoConstraints = false
         addSubview(outer)
@@ -230,10 +233,10 @@ extension RowNativeAdView {
             outer.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -insets.right),
             outer.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -insets.bottom),
 
-            adIconImageView.widthAnchor.constraint(equalToConstant: 64),
-            adIconImageView.heightAnchor.constraint(equalToConstant: 64),
+            adIconImageView.widthAnchor.constraint(equalToConstant: configuration.metrics.iconSize.width),
+            adIconImageView.heightAnchor.constraint(equalToConstant: configuration.metrics.iconSize.height),
 
-            actionButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 44),
+            actionButton.heightAnchor.constraint(greaterThanOrEqualToConstant: configuration.metrics.ctaMinHeight),
         ])
     }
 }
@@ -263,8 +266,7 @@ extension RowNativeAdView {
         case .capsule:
             // Height is 0 during first applyStyle() (pre-layout); `layoutSubviews`
             // re-applies once the frame settles.
-            let fallback: CGFloat = layout.mode == .stacked ? 44 : 36
-            let h = actionButton.bounds.height > 0 ? actionButton.bounds.height : fallback
+            let h = actionButton.bounds.height > 0 ? actionButton.bounds.height : configuration.metrics.ctaMinHeight
             actionButton.layer.cornerRadius = h / 2
         }
     }

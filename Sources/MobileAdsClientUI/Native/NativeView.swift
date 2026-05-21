@@ -10,7 +10,7 @@ import ComposableArchitecture
 import NativeAdClient
 import SwiftUI
 
-public struct NativeView: UIViewRepresentable {
+public struct NativeView: View {
 
     private let store: StoreOf<Native>
 
@@ -26,13 +26,23 @@ public struct NativeView: UIViewRepresentable {
         return .default
     }
 
-    public func makeUIView(context: Context) -> CustomNativeAdView {
-        return CustomNativeAdView(style: customConfig.style)
+    public var body: some View {
+        _CustomNativeRepresentable(store: store, configuration: customConfig)
+            .id(customConfig)
+    }
+}
+
+private struct _CustomNativeRepresentable: UIViewRepresentable {
+    let store: StoreOf<Native>
+    let configuration: NativeAdClient.Configuration.Custom
+
+    func makeUIView(context: Context) -> CustomNativeAdView {
+        CustomNativeAdView(style: configuration.style, metrics: configuration.metrics)
     }
 
-    public func updateUIView(_ nativeAdView: CustomNativeAdView, context: Context) {
-        if nativeAdView.style != customConfig.style {
-            nativeAdView.style = customConfig.style
+    func updateUIView(_ nativeAdView: CustomNativeAdView, context: Context) {
+        if nativeAdView.style != configuration.style {
+            nativeAdView.style = configuration.style
         }
         guard let nativeAd = store.nativeAd else {
             return
