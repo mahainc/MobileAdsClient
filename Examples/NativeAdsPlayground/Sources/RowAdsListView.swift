@@ -52,8 +52,9 @@ struct RowAdsListView: View {
             return ""
         }
         switch row.layout.mode {
-        case .inline:  return "Inline (CTA on the right)"
-        case .stacked: return "Stacked (CTA below)"
+        case .inline:         return "Inline (CTA on the right)"
+        case .stacked:        return "Stacked (CTA below)"
+        case .stackedFullCTA: return "Stacked (full-width CTA)"
         }
     }
 }

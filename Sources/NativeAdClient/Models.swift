@@ -602,6 +602,7 @@ extension NativeAdClient {
 				public enum Mode: Sendable, Equatable, Hashable {
 					case inline
 					case stacked
+					case stackedFullCTA
 				}
 
 				public var mode: Mode
@@ -612,6 +613,7 @@ extension NativeAdClient {
 
 				public static let inline = Layout(mode: .inline)
 				public static let stacked = Layout(mode: .stacked)
+				public static let stackedFullCTA = Layout(mode: .stackedFullCTA)
 			}
 
 			public var style: Style
@@ -633,7 +635,8 @@ extension NativeAdClient {
 				self.insets = insets
 				// nil → layout-matched default so existing call sites that pass `.stacked`
 				// without an explicit `metrics:` still get the bigger icon / taller CTA.
-				self.metrics = metrics ?? (layout.mode == .stacked ? .rowStacked : .row)
+				let stackedLike = layout.mode == .stacked || layout.mode == .stackedFullCTA
+				self.metrics = metrics ?? (stackedLike ? .rowStacked : .row)
 			}
 
 			public static let `default` = Row()

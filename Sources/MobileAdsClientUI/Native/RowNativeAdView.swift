@@ -190,6 +190,8 @@ extension RowNativeAdView {
             setupInlineLayout(textStack: textStack)
         case .stacked:
             setupStackedLayout(textStack: textStack)
+        case .stackedFullCTA:
+            setupStackedFullCTALayout(textStack: textStack)
         }
     }
 
@@ -233,6 +235,45 @@ extension RowNativeAdView {
         outer.alignment = .top
         outer.translatesAutoresizingMaskIntoConstraints = false
         addSubview(outer)
+
+        NSLayoutConstraint.activate([
+            outer.topAnchor.constraint(equalTo: topAnchor, constant: insets.top),
+            outer.leadingAnchor.constraint(equalTo: leadingAnchor, constant: insets.left),
+            outer.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -insets.right),
+            outer.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -insets.bottom),
+
+            adIconImageView.widthAnchor.constraint(equalToConstant: configuration.metrics.iconSize.width),
+            adIconImageView.heightAnchor.constraint(equalToConstant: configuration.metrics.iconSize.height),
+
+            actionButton.heightAnchor.constraint(greaterThanOrEqualToConstant: configuration.metrics.ctaMinHeight),
+        ])
+    }
+
+    private func setupStackedFullCTALayout(textStack: UIStackView) {
+        // CTA stretches to the outer V-stack's full width (icon column +
+        // horizontal spacing + text column), so lower its horizontal hugging.
+        actionButton.setContentHuggingPriority(.defaultLow, for: .horizontal)
+
+        // Inner row: [icon | text column]. CTA is NOT inside textStack here —
+        // it lives in the outer V-stack below this row.
+        let row = UIStackView(arrangedSubviews: [adIconImageView, textStack])
+        row.axis = .horizontal
+        row.spacing = configuration.metrics.horizontalSpacing
+        row.alignment = .top
+        row.translatesAutoresizingMaskIntoConstraints = false
+
+        // Outer column: [icon+text row] above, [CTA] below. The CTA spans the
+        // full container width including the area below the icon.
+        let outer = UIStackView(arrangedSubviews: [row, actionButton])
+        outer.axis = .vertical
+        outer.spacing = 10
+        outer.alignment = .fill
+        outer.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(outer)
+
+        // `stackedTextStack` intentionally stays nil — the predecessor-aware
+        // `updateCTASpacing()` doesn't apply when the CTA lives in the outer
+        // V-stack; its fixed 10pt spacing handles the gap.
 
         NSLayoutConstraint.activate([
             outer.topAnchor.constraint(equalTo: topAnchor, constant: insets.top),

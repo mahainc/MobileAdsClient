@@ -110,12 +110,15 @@ public struct RowAdsList: Sendable {
                 )
 
                 // First half rect, second half capsule so both shapes are
-                // visible in the initial viewport.
-                let ads = (0..<6).map { index -> Native.State in
+                // visible in the initial viewport. Index 6 demos `.stackedFullCTA`
+                // — same as `.stacked` but the CTA spans the full container width.
+                let ads = (0..<7).map { index -> Native.State in
                     let row = NativeAdClient.Configuration.Row(
                         style: index == 5 ? themedStyle : (index < 3 ? rectRowStyle : .row),
                         bodyDisplay: bodyDisplays[index % bodyDisplays.count],
-                        layout: index.isMultiple(of: 2) ? .inline : .stacked,
+                        layout: index == 6
+                            ? .stackedFullCTA
+                            : (index.isMultiple(of: 2) ? .inline : .stacked),
                         insets: index == 2 ? tightInsets : defaultInsets,
                         metrics: index == 4 ? oversizedIcon : (index == 5 ? themedMetrics : nil)
                     )
