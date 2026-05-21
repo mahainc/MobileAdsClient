@@ -77,8 +77,7 @@ public class RowNativeAdView: NativeAdView {
         let label = UILabel()
         label.accessibilityIdentifier = "Row Native Body"
         label.translatesAutoresizingMaskIntoConstraints = false
-        // `.stacked` has more vertical room; `.inline` keeps the row tight.
-        label.numberOfLines = layout == .stacked ? 2 : 1
+        label.numberOfLines = 0
         label.lineBreakMode = .byTruncatingTail
         label.font = .preferredFont(forTextStyle: .footnote)
         return label
@@ -86,6 +85,11 @@ public class RowNativeAdView: NativeAdView {
 
     private lazy var actionButton: UIButton = {
         let button = UIButton(type: .system)
+        // On iOS 15+, `UIButton(type: .system)` ships with a default
+        // `UIButton.Configuration`, which makes the legacy `contentEdgeInsets`
+        // a no-op and collapses the button to text-only height. Clear it so
+        // the legacy padding API below takes effect.
+        button.configuration = nil
         button.accessibilityIdentifier = "Row Native CTA"
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setTitle("Install", for: .normal)
@@ -121,6 +125,15 @@ public class RowNativeAdView: NativeAdView {
             applyButtonShape()
         }
     }
+
+    public override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        // Dynamic Type changes invalidate the intrinsic content; force a re-layout
+        // so the next `updateUIView` pass measures and dispatches a fresh height.
+        if traitCollection.preferredContentSizeCategory != previousTraitCollection?.preferredContentSizeCategory {
+            setNeedsLayout()
+        }
+    }
 }
 
 // MARK: - Setup
@@ -142,8 +155,10 @@ extension RowNativeAdView {
 
         let textStack = UIStackView(arrangedSubviews: [adHeadlineLabel, advertiserRow, bodyContainer])
         textStack.axis = .vertical
-        textStack.spacing = 2
-        textStack.alignment = .leading
+        textStack.spacing = 4
+        // `.fill` (vs `.leading`) lets multi-line `adBodyLabel` wrap to the
+        // stack's full width and, in `.stacked`, lets the appended CTA stretch.
+        textStack.alignment = .fill
         textStack.translatesAutoresizingMaskIntoConstraints = false
         textStack.setContentHuggingPriority(.defaultLow, for: .horizontal)
         textStack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -178,16 +193,23 @@ extension RowNativeAdView {
     }
 
     private func setupStackedLayout(textStack: UIStackView) {
-        let topRow = UIStackView(arrangedSubviews: [adIconImageView, textStack])
-        topRow.axis = .horizontal
-        topRow.spacing = 12
-        topRow.alignment = .center
-        topRow.translatesAutoresizingMaskIntoConstraints = false
+        // CTA lives inside the inner text column and must stretch to its full
+        // width — lower the button's horizontal hugging so `.fill` alignment wins.
+        actionButton.setContentHuggingPriority(.defaultLow, for: .horizontal)
 
-        let outer = UIStackView(arrangedSubviews: [topRow, actionButton])
-        outer.axis = .vertical
+        // Append CTA below body inside the inner VStack and give it a little
+        // breathing room. When `bodyContainer` is hidden (no body), UIStackView
+        // ignores this custom spacing and falls back to the stack's default.
+        let tailBeforeCTA = textStack.arrangedSubviews.last
+        textStack.addArrangedSubview(actionButton)
+        if let tail = tailBeforeCTA {
+            textStack.setCustomSpacing(10, after: tail)
+        }
+
+        let outer = UIStackView(arrangedSubviews: [adIconImageView, textStack])
+        outer.axis = .horizontal
         outer.spacing = 12
-        outer.alignment = .fill
+        outer.alignment = .top
         outer.translatesAutoresizingMaskIntoConstraints = false
         addSubview(outer)
 
@@ -200,7 +222,7 @@ extension RowNativeAdView {
             adIconImageView.widthAnchor.constraint(equalToConstant: 64),
             adIconImageView.heightAnchor.constraint(equalToConstant: 64),
 
-            actionButton.heightAnchor.constraint(equalToConstant: 44),
+            actionButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 44),
         ])
     }
 }
@@ -246,6 +268,15 @@ extension RowNativeAdView {
         self.nativeAd = nativeAd
         setNeedsLayout()
         layoutIfNeeded()
+    }
+
+    public func calculateTotalHeight(fittingWidth: CGFloat) -> CGFloat {
+        let target = CGSize(width: fittingWidth, height: UIView.layoutFittingCompressedSize.height)
+        return systemLayoutSizeFitting(
+            target,
+            withHorizontalFittingPriority: .required,
+            verticalFittingPriority: .fittingSizeLevel
+        ).height
     }
 }
 

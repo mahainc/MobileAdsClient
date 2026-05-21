@@ -31,8 +31,10 @@ public struct RowAdsList: Sendable {
             case .onTask:
                 guard state.ads.isEmpty else { return .none }
 
+                // Row template is icon-only — do NOT pass media-related
+                // options (e.g. `MediaAspectRatioOption`) or AdMob's debug
+                // validator will flag the unbound mediaView.
                 let options: [NativeAdClient.AnyAdLoaderOption] = [
-                    NativeAdClient.AnyAdLoaderOption(NativeAdClient.MediaAspectRatioOption(ratio: .square)),
                     NativeAdClient.AnyAdLoaderOption(NativeAdClient.AdChoicesPositionOption(corner: .topRight)),
                 ]
 
