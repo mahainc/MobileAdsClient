@@ -103,6 +103,9 @@ public class RowNativeAdView: NativeAdView {
         button.isUserInteractionEnabled = false
         button.contentEdgeInsets = UIEdgeInsets(top: 8, left: 14, bottom: 8, right: 14)
         button.setContentHuggingPriority(.required, for: .horizontal)
+        // Pair with hugging-required: the CTA must always show its full title
+        // even when an `oversizedIcon` metrics override squeezes the inline row.
+        button.setContentCompressionResistancePriority(.required, for: .horizontal)
         return button
     }()
 
