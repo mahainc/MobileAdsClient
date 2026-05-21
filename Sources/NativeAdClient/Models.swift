@@ -654,6 +654,46 @@ extension NativeAdClient {
 			}
 		}
 
+		public struct RowMedia: Kind, Hashable {
+			public typealias Layout = Row.Layout
+
+			public var style: Style
+			public var bodyDisplay: BodyDisplay
+			public var layout: Layout
+			public var insets: UIEdgeInsets
+			public var metrics: Metrics
+
+			public init(
+				style: Style = .row,
+				bodyDisplay: BodyDisplay = .full,
+				layout: Layout = .inline,
+				insets: UIEdgeInsets = .init(top: 12, left: 14, bottom: 12, right: 14),
+				metrics: Metrics? = nil
+			) {
+				self.style = style
+				self.bodyDisplay = bodyDisplay
+				self.layout = layout
+				self.insets = insets
+				let stackedLike = layout.mode == .stacked || layout.mode == .stackedFullCTA
+				self.metrics = metrics ?? (stackedLike ? .rowStacked : .row)
+			}
+
+			public static let `default` = RowMedia()
+			public static let inline = RowMedia(layout: .inline)
+			public static let stacked = RowMedia(layout: .stacked)
+			public static let stackedFullCTA = RowMedia(layout: .stackedFullCTA)
+
+			public func hash(into hasher: inout Hasher) {
+				hasher.combine(bodyDisplay)
+				hasher.combine(layout)
+				hasher.combine(insets.top)
+				hasher.combine(insets.left)
+				hasher.combine(insets.bottom)
+				hasher.combine(insets.right)
+				hasher.combine(metrics)
+			}
+		}
+
 		public struct Compact: Kind, Hashable {
 			public var style: Style
 			public var bodyDisplay: BodyDisplay
