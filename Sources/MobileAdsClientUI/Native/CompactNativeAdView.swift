@@ -193,6 +193,7 @@ public class CompactNativeAdView: NativeAdView {
 
     public override func layoutSubviews() {
         super.layoutSubviews()
+        layoutNativeAdGradient()
         // Capsule shape depends on the button's laid-out height, which is only
         // known after Auto Layout resolves. Re-apply every pass; no-op for rect.
         if case .capsule = style.actionButton.shape.mode {
@@ -313,7 +314,7 @@ extension CompactNativeAdView {
     }
 
     private func applyStyle() {
-        self.backgroundColor = style.backgrounds.card
+        applyBackgroundFill(style.backgrounds.card)
 
         actionButton.backgroundColor = style.actionButton.background
         actionButton.setTitleColor(style.actionButton.title, for: .normal)

@@ -40,6 +40,9 @@ public class NativeAdvancedView: NativeAdView {
 
 	public override func layoutSubviews() {
 		super.layoutSubviews()
+		layoutNativeAdGradient()
+		contentView.layoutNativeAdGradient()
+		containerView.layoutNativeAdGradient()
 		if case .capsule = style.actionButton.shape.mode {
 			applyButtonShape()
 		}
@@ -418,9 +421,9 @@ extension NativeAdvancedView {
 extension NativeAdvancedView {
 
 	private func applyStyle() {
-		backgroundColor = style.backgrounds.card
-		contentView.backgroundColor = style.backgrounds.content
-		containerView.backgroundColor = style.backgrounds.content
+		applyBackgroundFill(style.backgrounds.card)
+		contentView.applyBackgroundFill(style.backgrounds.content)
+		containerView.applyBackgroundFill(style.backgrounds.content)
 
 		headlineLabel.textColor = style.text.headline
 		sponsorLabel.textColor = style.text.sponsor

@@ -153,6 +153,63 @@ extension NativeAdClient {
 
 		// MARK: - Shared building blocks
 
+		public struct Gradient: Sendable, Equatable, Hashable {
+			public enum Direction: Sendable, Equatable, Hashable {
+				case vertical
+				case horizontal
+				case diagonalDown
+				case diagonalUp
+				case custom(start: CGPoint, end: CGPoint)
+			}
+
+			public var colors: [UIColor]
+			public var locations: [NSNumber]?
+			public var direction: Direction
+
+			public init(
+				colors: [UIColor],
+				locations: [NSNumber]? = nil,
+				direction: Direction = .vertical
+			) {
+				self.colors = colors
+				self.locations = locations
+				self.direction = direction
+			}
+		}
+
+		public struct BackgroundFill: Sendable, Equatable, Hashable {
+			public enum Mode: Sendable, Equatable, Hashable {
+				case solid(UIColor)
+				case gradient(Gradient)
+			}
+
+			public var mode: Mode
+
+			public init(mode: Mode) {
+				self.mode = mode
+			}
+
+			public static func solid(_ color: UIColor) -> BackgroundFill {
+				BackgroundFill(mode: .solid(color))
+			}
+
+			public static func gradient(_ gradient: Gradient) -> BackgroundFill {
+				BackgroundFill(mode: .gradient(gradient))
+			}
+
+			public static func gradient(
+				colors: [UIColor],
+				locations: [NSNumber]? = nil,
+				direction: Gradient.Direction = .vertical
+			) -> BackgroundFill {
+				BackgroundFill(
+					mode: .gradient(
+						Gradient(colors: colors, locations: locations, direction: direction)
+					)
+				)
+			}
+		}
+
 		public struct Style: Sendable, Equatable, Hashable {
 			public struct ButtonShape: Sendable, Equatable, Hashable {
 				public enum Mode: Sendable, Equatable, Hashable {
@@ -174,15 +231,19 @@ extension NativeAdClient {
 			}
 
 			public struct Backgrounds: Sendable, Equatable, Hashable {
-				public var card: UIColor
-				public var content: UIColor
+				public var card: BackgroundFill
+				public var content: BackgroundFill
 
 				public init(
-					card: UIColor = .secondarySystemBackground,
-					content: UIColor = .clear
+					card: BackgroundFill = .solid(.secondarySystemBackground),
+					content: BackgroundFill = .solid(.clear)
 				) {
 					self.card = card
 					self.content = content
+				}
+
+				public init(card: UIColor, content: UIColor = .clear) {
+					self.init(card: .solid(card), content: .solid(content))
 				}
 			}
 

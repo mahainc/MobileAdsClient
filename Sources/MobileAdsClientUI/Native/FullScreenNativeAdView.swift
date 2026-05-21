@@ -142,6 +142,7 @@ public class FullScreenNativeAdView: NativeAdView {
 
     public override func layoutSubviews() {
         super.layoutSubviews()
+        layoutNativeAdGradient()
         applyButtonShape()
         closeButton.layer.cornerRadius = closeButton.bounds.height / 2
     }
@@ -221,7 +222,7 @@ extension FullScreenNativeAdView {
     }
 
     private func applyStyle() {
-        self.backgroundColor = style.backgrounds.card
+        applyBackgroundFill(style.backgrounds.card)
         adHeadlineLabel.textColor = style.text.headline
         adBodyLabel.textColor = style.text.body
         adSponsorLabel.textColor = style.text.sponsor

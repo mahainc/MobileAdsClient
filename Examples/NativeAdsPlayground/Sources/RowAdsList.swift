@@ -76,8 +76,14 @@ public struct RowAdsList: Sendable {
                 // visibly proven in one ad.
                 let themedStyle = NativeAdClient.Configuration.Style(
                     backgrounds: .init(
-                        card: UIColor.systemPurple.withAlphaComponent(0.15),
-                        content: .clear
+                        card: .gradient(
+                            colors: [
+                                UIColor.systemPurple.withAlphaComponent(0.30),
+                                UIColor.systemPurple.withAlphaComponent(0.05)
+                            ],
+                            direction: .vertical
+                        ),
+                        content: .solid(.clear)
                     ),
                     text: .init(
                         headline: .systemPurple,

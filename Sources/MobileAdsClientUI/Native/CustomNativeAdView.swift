@@ -185,6 +185,8 @@ public class CustomNativeAdView: NativeAdView {
 
     public override func layoutSubviews() {
         super.layoutSubviews()
+        layoutNativeAdGradient()
+        adContainerView.layoutNativeAdGradient()
         if case .capsule = style.actionButton.shape.mode {
             applyButtonShape()
         }
@@ -289,8 +291,8 @@ extension CustomNativeAdView {
 extension CustomNativeAdView {
 
     private func applyStyle() {
-        backgroundColor = style.backgrounds.card
-        adContainerView.backgroundColor = style.backgrounds.content
+        applyBackgroundFill(style.backgrounds.card)
+        adContainerView.applyBackgroundFill(style.backgrounds.content)
 
         adHeadlineLabel.textColor = style.text.headline
         adSponsorLabel.textColor = style.text.sponsor

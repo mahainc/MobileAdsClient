@@ -135,6 +135,7 @@ public class RowNativeAdView: NativeAdView {
 
     public override func layoutSubviews() {
         super.layoutSubviews()
+        layoutNativeAdGradient()
         if case .capsule = style.actionButton.shape.mode {
             applyButtonShape()
         }
@@ -256,7 +257,7 @@ extension RowNativeAdView {
 
 extension RowNativeAdView {
     private func applyStyle() {
-        backgroundColor = style.backgrounds.card
+        applyBackgroundFill(style.backgrounds.card)
 
         adHeadlineLabel.textColor = style.text.headline
         adAdvertiserLabel.textColor = style.text.sponsor
