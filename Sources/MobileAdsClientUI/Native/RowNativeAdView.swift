@@ -26,6 +26,12 @@ public class RowNativeAdView: NativeAdView {
     private var bodyDisplay: NativeAdClient.Configuration.BodyDisplay { configuration.bodyDisplay }
     private var insets: UIEdgeInsets { configuration.insets }
 
+    // Stacked-layout refs retained so `updateCTASpacing()` can re-apply the
+    // 10pt breathing-room gap to whichever CTA predecessor is actually visible.
+    private var stackedTextStack: UIStackView?
+    private var advertiserRow: UIStackView?
+    private var bodyContainer: AutoHidingStackView?
+
     // MARK: - Subviews
 
     private lazy var adIconImageView: UIImageView = {
@@ -170,6 +176,9 @@ extension RowNativeAdView {
         bodyContainer.axis = .vertical
         bodyContainer.translatesAutoresizingMaskIntoConstraints = false
 
+        self.advertiserRow = advertiserRow
+        self.bodyContainer = bodyContainer
+
         let textStack = UIStackView(arrangedSubviews: [adHeadlineLabel, advertiserRow, bodyContainer])
         textStack.axis = .vertical
         textStack.spacing = configuration.metrics.verticalSpacing
@@ -214,14 +223,13 @@ extension RowNativeAdView {
         // width — lower the button's horizontal hugging so `.fill` alignment wins.
         actionButton.setContentHuggingPriority(.defaultLow, for: .horizontal)
 
-        // Append CTA below body inside the inner VStack and give it a little
-        // breathing room. When `bodyContainer` is hidden (no body), UIStackView
-        // ignores this custom spacing and falls back to the stack's default.
-        let tailBeforeCTA = textStack.arrangedSubviews.last
+        // The 10pt breathing room above the CTA is applied dynamically by
+        // `updateCTASpacing()` after every visibility pass, so it tracks the
+        // actual visible-last predecessor (headline / advertiserRow / bodyContainer)
+        // rather than getting swallowed when `bodyContainer` hides.
         textStack.addArrangedSubview(actionButton)
-        if let tail = tailBeforeCTA {
-            textStack.setCustomSpacing(10, after: tail)
-        }
+        self.stackedTextStack = textStack
+        updateCTASpacing()
 
         let outer = UIStackView(arrangedSubviews: [adIconImageView, textStack])
         outer.axis = .horizontal
@@ -328,6 +336,38 @@ extension RowNativeAdView {
         }
         adBodyLabel.isHidden = bodyHidden
         actionButton.isHidden = nativeAd.callToAction == nil
+        updateCTASpacing()
+    }
+
+    private func updateCTASpacing() {
+        // Only relevant for stacked layout — inline keeps the CTA outside `textStack`.
+        guard layout.mode == .stacked,
+              let textStack = stackedTextStack,
+              let advertiserRow,
+              let bodyContainer
+        else { return }
+
+        // Reset all predecessor spacings so a previous "last visible" doesn't
+        // keep its 10pt after a later visibility change moves the tail elsewhere.
+        let predecessors: [UIView] = [adHeadlineLabel, advertiserRow, bodyContainer]
+        for view in predecessors {
+            textStack.setCustomSpacing(UIStackView.spacingUseDefault, after: view)
+        }
+
+        // Find the actually-visible last item before the CTA. We use
+        // `adBodyLabel.isHidden` as the sync proxy for `bodyContainer`'s
+        // eventual hidden state — `AutoHidingStackView` updates its own
+        // `isHidden` on the next runloop tick, so reading `bodyContainer.isHidden`
+        // immediately after assignment can return a stale value.
+        let visibilityChain: [(view: UIView, isVisible: Bool)] = [
+            (adHeadlineLabel, !adHeadlineLabel.isHidden),
+            (advertiserRow, true),                  // Sponsored chip is fixed text
+            (bodyContainer, !adBodyLabel.isHidden), // sync proxy for bodyContainer
+        ]
+
+        if let lastVisible = visibilityChain.reversed().first(where: { $0.isVisible }) {
+            textStack.setCustomSpacing(10, after: lastVisible.view)
+        }
     }
 }
 
