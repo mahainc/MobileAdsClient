@@ -20,7 +20,7 @@ import UIKit
 enum FullScreenNativePresenter {
     static func present(
         adUnitID: String,
-        style: NativeAdClient.AdStyle = .fullScreen
+        style: FullScreenNativeAdView.Style = .fullScreen
     ) async {
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             Task { @MainActor in
