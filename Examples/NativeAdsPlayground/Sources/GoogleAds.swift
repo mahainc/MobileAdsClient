@@ -16,14 +16,14 @@ public struct GoogleAds: Sendable {
     public struct State: Equatable {
         public var banners: IdentifiedArrayOf<Banner.State> = []
         public var anchoredBanner: Banner.State?
-        public var items: IdentifiedArrayOf<ItemWithAdReducer<Article, Banner>.State> = []
+        public var items: IdentifiedArrayOf<Either<Article, Banner>.State> = []
         public var native: Native.State?
     }
 
     public enum Action: BindableAction, Equatable {
         case binding(BindingAction<State>)
         case banners(IdentifiedActionOf<Banner>)
-        case items(IdentifiedActionOf<ItemWithAdReducer<Article, Banner>>)
+        case items(IdentifiedActionOf<Either<Article, Banner>>)
         case anchoredBanner(Banner.Action)
         case native(Native.Action)
         case onTask
@@ -55,12 +55,12 @@ public struct GoogleAds: Sendable {
                 let anchoredBanner = Banner.State(adUnitID: "ca-app-pub-3940256099942544/2435281174", type: anchoredType, layer: .thick)
                 state.anchoredBanner = anchoredBanner
 
-                var items: [ItemWithAdReducer<Article, Banner>.State] = []
+                var items: [Either<Article, Banner>.State] = []
                 for index in 0..<15 {
-                    let article: ItemWithAdReducer<Article, Banner>.State = .content(Article.State())
+                    let article: Either<Article, Banner>.State = .content(Article.State())
                     items.append(article)
                     if index.isMultiple(of: 3) {
-                        let banner: ItemWithAdReducer<Article, Banner>.State = .ad(Banner.State(adUnitID: "ca-app-pub-3940256099942544/2435281174", type: inlineType, layer: .thick))
+                        let banner: Either<Article, Banner>.State = .ad(Banner.State(adUnitID: "ca-app-pub-3940256099942544/2435281174", type: inlineType, layer: .thick))
                         items.append(banner)
                     }
                 }
@@ -91,7 +91,7 @@ public struct GoogleAds: Sendable {
             Banner()
         }
         .forEach(\.items, action: \.items) {
-            ItemWithAdReducer()
+            Either()
         }
         .ifLet(\.anchoredBanner, action: \.anchoredBanner) {
             Banner()

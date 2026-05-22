@@ -30,6 +30,9 @@ extension NativeAdManager {
 		options: [NativeAdClient.AnyAdLoaderOption]?,
 		timeout: TimeInterval = 10
 	) async throws -> NativeAd {
+		#if DEBUG
+		print("📤 NativeAdManager loadAd START unit=\(adUnitID)")
+		#endif
 		return try await withCheckedThrowingContinuation { continuation in
 			let requestID = UUID()
 			let request = Request()
@@ -156,6 +159,9 @@ extension NativeAdManager: NativeAdLoaderDelegate {
 	}
 	
 	public func adLoader(_ adLoader: AdLoader, didFailToReceiveAdWithError error: Error) {
+		#if DEBUG
+		print("⛔️ NativeAdManager didFailToReceive unit=\(adLoader.adUnitID) error=\(error.localizedDescription)")
+		#endif
 		queue.async {
 			let matchingRequest = self.pendingRequests.first { $0.value.adLoader === adLoader }
 			if let (id, _) = matchingRequest {

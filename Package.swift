@@ -21,7 +21,6 @@ let package = Package(
         .package(url: "https://github.com/pointfreeco/swift-composable-architecture.git", branch: "main"),
         .package(url: "https://github.com/googleads/swift-package-manager-google-mobile-ads.git", branch: "main"),
         .package(url: "https://github.com/ThanhHaiKhong/TCAInitializableReducer.git", branch: "master"),
-        .package(url: "https://github.com/mahainc/RemoteConfigClient.git", branch: "master"),
         .package(url: "https://github.com/mahainc/AdRevenueClient.git", branch: "master"),
     ],
     targets: [
@@ -38,7 +37,6 @@ let package = Package(
             dependencies: [
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
                 .product(name: "GoogleMobileAds", package: "swift-package-manager-google-mobile-ads"),
-                .product(name: "RemoteConfigClient", package: "RemoteConfigClient"),
                 .product(name: "AdRevenueClient", package: "AdRevenueClient"),
                 "MobileAdsClient",
                 "MobileAdsClientUI",
@@ -51,7 +49,6 @@ let package = Package(
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
                 .product(name: "GoogleMobileAds", package: "swift-package-manager-google-mobile-ads"),
 				.product(name: "TCAInitializableReducer", package: "TCAInitializableReducer"),
-                .product(name: "RemoteConfigClient", package: "RemoteConfigClient"),
                 "NativeAdClient",
                 "MobileAdsClient",
             ],

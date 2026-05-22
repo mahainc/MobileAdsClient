@@ -14,21 +14,16 @@ public struct MobileAdsClient: Sendable {
 	public var shouldShowAd: @Sendable (_ adType: MobileAdsClient.AdType, _ rules: [MobileAdsClient.AdRule]) async -> Bool = { _, _ in false }
     public var showAd: @Sendable (_ adType: MobileAdsClient.AdType) async throws -> Void
 
-    // Placement-aware APIs — resolve the underlying ad unit ID from Remote Config and
-    // include fallback logic (e.g. `.interRecorder` → `.interAll` when `extraKeys` allow it).
-    public var preloadAd:          @Sendable (_ adType: MobileAdsClient.AdType) async -> Void
-    public var showPlacement:      @Sendable (_ placement: MobileAdsClient.AdPlacement, _ rules: [MobileAdsClient.AdRule]) async throws -> Void
-    public var preloadPlacement:   @Sendable (_ placement: MobileAdsClient.AdPlacement) async -> Void
-    public var showRewardPlacement: @Sendable (_ placement: MobileAdsClient.RewardPlacement) async -> Bool = { _ in false }
-    /// `true` when the `NativeAllPlacement` is enabled in Remote Config AND the global `nativeAll` ad unit is enabled.
-    public var isNativeAllPlacementEnabled: @Sendable (_ placement: MobileAdsClient.NativeAllPlacement) async -> Bool = { _ in false }
-    /// The current Remote-Config-resolved native-ad unit ID (empty string when unavailable or disabled).
-    public var nativeAllAdUnitID: @Sendable () async -> String = { "" }
-    /// Resolves the ad unit for a v2 native placement, honouring
-    /// `global.adsEnabled` + `global.native.enabled` + the placement's own
-    /// `.enabled` flag. Returns `""` when any gate is off or the placement is
-    /// missing from Remote Config.
-    public var nativeAdUnitID: @Sendable (_ placement: MobileAdsClient.NativeAdPlacement) async -> String = { _ in "" }
+    /// Warms the SDK cache for `adType` so a subsequent `showAd(adType)` can
+    /// present without a load delay. Callers resolve the ad unit ID upstream
+    /// (typically from their own Remote Config decode) and pass it in.
+    public var preloadAd: @Sendable (_ adType: MobileAdsClient.AdType) async -> Void
+
+    /// Presents a rewarded ad for the given unit ID and resumes with `true` if
+    /// the user earned the reward, `false` if they dismissed without earning
+    /// or the show failed. Caller decides whether to grant the reward when ads
+    /// are off or the load fails.
+    public var showRewardedAd: @Sendable (_ unitID: String) async -> Bool = { _ in false }
 
     /// Historically registered a paid-event bridge for the legacy ads_swift
     /// `AdRevenueDelegate`. Now a no-op: every ad format attaches its own
@@ -37,16 +32,7 @@ public struct MobileAdsClient: Sendable {
     /// `AdRevenueClient` → `AdRevenueSyncer`. Kept on the interface so
     /// `AdsBootstrap.installingRevenueBridge` still calls through.
     public var installRevenueBridge: @Sendable () async -> Void
-    /// Installs a MainActor observer on `UIScene.didEnterBackgroundNotification`
-    /// and `.willEnterForegroundNotification`, then runs the full
-    /// `appOpens.resume` policy internally — `global.adsEnabled` +
-    /// `global.appOpen.*` + `appOpens.resume.*`, `minBackgroundSeconds`,
-    /// `postAdSuppressionSeconds`, `maxPerSession`, and the caller-supplied
-    /// `isPremium` predicate. Idempotent — safe to call once at app startup.
-    ///
-    /// `isPremium` is passed in (instead of read from `@Shared(.isPremium)`
-    /// directly) so `MobileAdsClient` stays independent of `AppSchemas`.
-    public var installResumeAdHandler: @Sendable (_ isPremium: @escaping @Sendable () -> Bool) async -> Void = { _ in }
+
     /// Presents a native ad as a full-screen modal via an in-house renderer
     /// (`FullScreenNativeAdView` in `MobileAdsClientUI`). Loads via
     /// `NativeAdClient`, publishes paid events through `AdRevenueClient`
@@ -104,64 +90,15 @@ extension Effect {
     }
 }
 
-// MARK: - Effect.showPlacement
+// MARK: - Effect.reward
 
 extension Effect {
-    /// Shows a placement-aware interstitial, then runs `operation`. Silently no-ops if
-    /// Remote Config has the placement disabled or `enableAllAds` is false — callers always
-    /// get their operation invoked.
-    ///
-    /// Parallel to `runWithAdCheck` but routes through `MobileAdsClient.showPlacement` so
-    /// the ad unit ID + `interAll` fallback resolve from Remote Config.
-    public static func showPlacement(
-        _ placement: MobileAdsClient.AdPlacement,
-        rules: [MobileAdsClient.AdRule] = [],
-        priority: TaskPriority? = nil,
-        then operation: @escaping @Sendable (_ send: Send<Action>) async throws -> Void = { _ in },
-        catch handler: (@Sendable (_ error: any Error, _ send: Send<Action>) async -> Void)? = nil,
-        fileID: StaticString = #fileID,
-        filePath: StaticString = #filePath,
-        line: UInt = #line,
-        column: UInt = #column
-    ) -> Self {
-        withEscapedDependencies { escaped in
-            .run(priority: priority) { send in
-                await escaped.yield {
-                    do {
-                        let adManager = DependencyValues._current.mobileAdsClient
-                        await adManager.requestTrackingAuthorizationIfNeeded()
-                        try await adManager.showPlacement(placement, rules)
-                        try await operation(send)
-                    } catch is CancellationError {
-                        return
-                    } catch {
-                        guard let handler else {
-                            reportIssue(
-                                """
-                                An "Effect.showPlacement" returned from "\(fileID):\(line)" threw an unhandled error. …
-
-                                All non-cancellation errors must be explicitly handled via the "catch" parameter \
-                                on "Effect.showPlacement", or via a "do" block.
-                                """,
-                                fileID: fileID,
-                                filePath: filePath,
-                                line: line,
-                                column: column
-                            )
-                            return
-                        }
-                        await handler(error, send)
-                    }
-                }
-            }
-        }
-    }
-
-    /// Shows a rewarded-ad placement and dispatches to `onReward` when the user completes
-    /// the ad (or ads are disabled — reward is granted). Dispatches to
-    /// `onDismissWithoutReward` (if supplied) when the user dismissed without earning it.
+    /// Presents a rewarded ad for `unitID` and dispatches to `onReward` when the
+    /// user earns the reward. Dispatches to `onDismissWithoutReward` (if
+    /// supplied) when they dismiss without earning. Caller resolves the unit ID
+    /// upstream from its own config.
     public static func reward(
-        _ placement: MobileAdsClient.RewardPlacement,
+        unitID: String,
         priority: TaskPriority? = nil,
         onReward: @escaping @Sendable (_ send: Send<Action>) async -> Void,
         onDismissWithoutReward: (@Sendable (_ send: Send<Action>) async -> Void)? = nil
@@ -171,7 +108,7 @@ extension Effect {
                 await escaped.yield {
                     let adManager = DependencyValues._current.mobileAdsClient
                     await adManager.requestTrackingAuthorizationIfNeeded()
-                    let rewarded = await adManager.showRewardPlacement(placement)
+                    let rewarded = await adManager.showRewardedAd(unitID)
                     if rewarded {
                         await onReward(send)
                     } else {
@@ -183,10 +120,10 @@ extension Effect {
     }
 }
 
-// MARK: - ItemWithAdReducer
+// MARK: - Either
 
 @Reducer
-public struct ItemWithAdReducer<Content: TCAInitializableReducer & Sendable, Ad: TCAInitializableReducer & Sendable>
+public struct Either<Content: TCAInitializableReducer & Sendable, Ad: TCAInitializableReducer & Sendable>
 where Content.State: Identifiable, Content.State: Sendable,
 	  Ad.State: Identifiable, Ad.State: Sendable,
 	  Content.Action: Sendable, Ad.Action: Sendable {
@@ -227,7 +164,7 @@ where Content.State: Identifiable, Content.State: Sendable,
 
 // MARK: - Equatable
 
-extension ItemWithAdReducer.State: Equatable where Content.State: Equatable, Ad.State: Equatable {
+extension Either.State: Equatable where Content.State: Equatable, Ad.State: Equatable {
     public static func == (lhs: Self, rhs: Self) -> Bool {
         switch (lhs, rhs) {
         case (.content(let lhsContent), .content(let rhsContent)):
@@ -240,7 +177,7 @@ extension ItemWithAdReducer.State: Equatable where Content.State: Equatable, Ad.
     }
 }
 
-extension ItemWithAdReducer.Action: Equatable where Content.Action: Equatable, Ad.Action: Equatable {
+extension Either.Action: Equatable where Content.Action: Equatable, Ad.Action: Equatable {
     public static func == (lhs: Self, rhs: Self) -> Bool {
         switch (lhs, rhs) {
         case (.content(let lhsContent), .content(let rhsContent)):
@@ -255,7 +192,7 @@ extension ItemWithAdReducer.Action: Equatable where Content.Action: Equatable, A
 
 // MARK: - Sendable
 
-extension ItemWithAdReducer: Sendable where Content: Sendable, Ad: Sendable { }
+extension Either: Sendable where Content: Sendable, Ad: Sendable { }
 
 // MARK: - UI Helpers
 

@@ -383,6 +383,7 @@ extension RowMediaNativeAdView {
 
 extension RowMediaNativeAdView {
     private func updateUI(with nativeAd: NativeAd) {
+        adMediaView.mediaContent = nativeAd.mediaContent
         adIconImageView.image = nativeAd.icon?.image
         adHeadlineLabel.text = nativeAd.headline
         adAdvertiserLabel.text = nativeAd.advertiser ?? nativeAd.store
@@ -412,9 +413,12 @@ extension RowMediaNativeAdView {
         }
         adBodyLabel.isHidden = bodyHidden
         actionButton.isHidden = nativeAd.callToAction == nil
-        // Collapse the media block when the creative has no media content;
-        // the outer V-stack's spacing drops with the hidden arranged subview.
-        adMediaView.isHidden = nativeAd.mediaContent.aspectRatio <= 0
+        // Collapse the media block when the creative has neither a video nor
+        // a meaningful aspect ratio. Video creatives can report `aspectRatio
+        // == 0` until playback metadata arrives, so checking `hasVideoContent`
+        // separately keeps the slot visible for them.
+        let mediaContent = nativeAd.mediaContent
+        adMediaView.isHidden = !(mediaContent.hasVideoContent || mediaContent.aspectRatio > 0)
         updateCTASpacing()
     }
 

@@ -19,7 +19,7 @@ public struct Native: TCAInitializableReducer, Sendable {
         public let adUnitID: String
 		public let adLoaderOptions: [NativeAdClient.AnyAdLoaderOption]
         public var nativeAd: NativeAd?
-        public var adHeight: CGFloat = 300.0
+        public var adHeight: CGFloat = 60.0
         public var configuration: NativeAdClient.AnyConfiguration = .init(NativeAdClient.Configuration.Compact.default)
 
 		public init(
@@ -49,11 +49,21 @@ public struct Native: TCAInitializableReducer, Sendable {
         Reduce { state, action in
             switch action {
             case .onAppear:
+                // LazyVStack re-fires .onAppear every time a row scrolls back
+                // into view. Skip the load when a creative is already bound —
+                // re-loading would waste a `GADAdLoader.load()` call (which
+                // counts toward AdMob's per-unitID concurrency throttle and
+                // can starve sibling rows that haven't filled yet).
+                guard state.nativeAd == nil else { return .none }
+                #if DEBUG
+                print("➡️ NATIVE onAppear reduced unit=\(state.adUnitID) stateId=\(state.id)")
+                #endif
                 return .run(priority: .background) {
                     [
                         adUnitID = state.adUnitID,
                         configuration = state.configuration,
-                        adLoaderOptions = state.adLoaderOptions
+                        adLoaderOptions = state.adLoaderOptions,
+                        stateId = state.id
                     ] send in
                     var rootViewController: UIViewController? = nil
                     if let scene = await UIApplication.shared.connectedScenes.first as? UIWindowScene, let rootVC = await scene.windows.first?.rootViewController {
@@ -61,14 +71,20 @@ public struct Native: TCAInitializableReducer, Sendable {
                     }
                     let options = Native.sanitizedOptions(for: configuration, options: adLoaderOptions)
                     let nativeAd = try await nativeAdClient.loadAd(adUnitID, rootViewController, options)
+                    #if DEBUG
+                    print("✅ NATIVE awaited ad unit=\(adUnitID) stateId=\(stateId)")
+                    #endif
                     await send(.receivedNativeAd(nativeAd), animation: .default)
                 } catch: { error, send in
 					#if DEBUG
-                    print("Error LOADING native ad: \(error.localizedDescription)")
+                    print("❌ NATIVE Error LOADING: \(error.localizedDescription)")
 					#endif
                 }
 
             case let .receivedNativeAd(nativeAd):
+                #if DEBUG
+                print("🎯 NATIVE receivedNativeAd reduced unit=\(state.adUnitID) stateId=\(state.id)")
+                #endif
                 state.nativeAd = nativeAd
                 return .none
 

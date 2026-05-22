@@ -21,14 +21,8 @@ extension MobileAdsClient: TestDependencyKey {
             shouldShowAd: { _, _ in true },
             showAd: { _ in },
             preloadAd: { _ in },
-            showPlacement: { _, _ in },
-            preloadPlacement: { _ in },
-            showRewardPlacement: { _ in true },
-            isNativeAllPlacementEnabled: { _ in true },
-            nativeAllAdUnitID: { "test-native-unit" },
-            nativeAdUnitID: { _ in "test-native-unit" },
+            showRewardedAd: { _ in true },
             installRevenueBridge: { },
-            installResumeAdHandler: { _ in },
             showNativeFullScreen: { _ in }
         )
     }()
@@ -42,16 +36,8 @@ extension MobileAdsClient: TestDependencyKey {
                 try await Task.sleep(nanoseconds: 1_000_000_000)
             },
             preloadAd: { _ in },
-            showPlacement: { _, _ in
-                try await Task.sleep(nanoseconds: 1_000_000_000)
-            },
-            preloadPlacement: { _ in },
-            showRewardPlacement: { _ in true },
-            isNativeAllPlacementEnabled: { _ in true },
-            nativeAllAdUnitID: { "preview-native-unit" },
-            nativeAdUnitID: { _ in "preview-native-unit" },
+            showRewardedAd: { _ in true },
             installRevenueBridge: { },
-            installResumeAdHandler: { _ in },
             showNativeFullScreen: { _ in
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
             }
@@ -66,14 +52,8 @@ extension MobileAdsClient {
         shouldShowAd: { _, _ in false },
         showAd: { _ in },
         preloadAd: { _ in },
-        showPlacement: { _, _ in },
-        preloadPlacement: { _ in },
-        showRewardPlacement: { _ in true }, // user still gets the reward
-        isNativeAllPlacementEnabled: { _ in false },
-        nativeAllAdUnitID: { "" },
-        nativeAdUnitID: { _ in "" },
+        showRewardedAd: { _ in true }, // user still gets the reward
         installRevenueBridge: { },
-        installResumeAdHandler: { _ in },
         showNativeFullScreen: { _ in }
     )
 }
