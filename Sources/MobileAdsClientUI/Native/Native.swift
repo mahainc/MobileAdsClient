@@ -74,9 +74,6 @@ public struct Native: TCAInitializableReducer, Sendable {
                         adLoaderOptions = state.adLoaderOptions,
                         stateId = state.id
                     ] send in
-                    #if DEBUG
-                    print("⏳ NATIVE load task ENTERED unit=\(adUnitID) stateId=\(stateId)")
-                    #endif
                     var rootViewController: UIViewController? = nil
                     if let scene = await UIApplication.shared.connectedScenes.first as? UIWindowScene, let rootVC = await scene.windows.first?.rootViewController {
                         rootViewController = rootVC
@@ -94,7 +91,6 @@ public struct Native: TCAInitializableReducer, Sendable {
                 } catch: { error, send in
 					#if DEBUG
                     print("❌ NATIVE Error LOADING: \(error.localizedDescription)")
-                    print("📣 NATIVE delegate(.loadFailed) about to send")
 					#endif
                     await send(.delegate(.loadFailed))
                 }
@@ -128,12 +124,6 @@ public struct Native: TCAInitializableReducer, Sendable {
                     print("Error REFRESH native ad: \(error.localizedDescription)")
 					#endif
                 }
-
-            case let .delegate(action):
-                #if DEBUG
-                print("🪧 NATIVE delegate handled stateId=\(state.id) action=\(action)")
-                #endif
-                return .none
 
                 default:
                     return .none
