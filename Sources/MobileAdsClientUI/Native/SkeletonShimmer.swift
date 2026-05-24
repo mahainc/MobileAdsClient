@@ -31,10 +31,7 @@ public struct SkeletonShimmer: View {
     }
 
     public var body: some View {
-        #if DEBUG
-        let _ = { print("⚪ SK body eval") }()
-        #endif
-        return RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             .fill(
                 LinearGradient(
                     colors: [baseColor, highlightColor, baseColor],
