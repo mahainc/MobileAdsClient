@@ -44,6 +44,10 @@ private struct _CompactNativeRepresentable: UIViewRepresentable {
             uiView.style = configuration.style
         }
         guard let nativeAd = store.nativeAd else { return }
+        // Skip re-bind when the same creative is already attached. SwiftUI
+        // re-invokes updateUIView on every store change; without this guard,
+        // every state mutation kicks NativeAdView back into asset re-registration.
+        guard uiView.nativeAd !== nativeAd else { return }
         uiView.configure(with: nativeAd)
     }
 }

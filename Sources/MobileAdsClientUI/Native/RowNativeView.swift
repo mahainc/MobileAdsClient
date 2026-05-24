@@ -53,6 +53,11 @@ private struct _RowNativeRepresentable: UIViewRepresentable {
             uiView.style = configuration.style
         }
         guard let nativeAd = store.nativeAd else { return }
+        // Skip re-bind when the same creative is already attached. SwiftUI
+        // re-invokes updateUIView on every store change (including the
+        // adHeight update we send from this very block), and an unguarded
+        // `configure` re-triggers layout/measure in a feedback loop.
+        guard uiView.nativeAd !== nativeAd else { return }
         uiView.configure(with: nativeAd)
 
         DispatchQueue.main.async {

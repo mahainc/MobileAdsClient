@@ -19,7 +19,7 @@ public struct Native: TCAInitializableReducer, Sendable {
         public let adUnitID: String
 		public let adLoaderOptions: [NativeAdClient.AnyAdLoaderOption]
         public var nativeAd: NativeAd?
-        public var adHeight: CGFloat = 60.0
+        public var adHeight: CGFloat = 320.0
         public var configuration: NativeAdClient.AnyConfiguration = .init(NativeAdClient.Configuration.Compact.default)
 
 		public init(
@@ -39,6 +39,15 @@ public struct Native: TCAInitializableReducer, Sendable {
         case receivedNativeAd(NativeAd)
         case updateAdHeight(CGFloat)
         case refreshAd(String)
+        case delegate(Delegate)
+
+        @CasePathable
+        public enum Delegate: Equatable, Sendable {
+            /// The initial `.onAppear` load attempt failed. Parents typically
+            /// react by removing this slot from their interleaved list state
+            /// so the layout collapses instead of holding a reserved-empty row.
+            case loadFailed
+        }
     }
     
     @Dependency(\.nativeAdClient) var nativeAdClient
@@ -65,6 +74,9 @@ public struct Native: TCAInitializableReducer, Sendable {
                         adLoaderOptions = state.adLoaderOptions,
                         stateId = state.id
                     ] send in
+                    #if DEBUG
+                    print("⏳ NATIVE load task ENTERED unit=\(adUnitID) stateId=\(stateId)")
+                    #endif
                     var rootViewController: UIViewController? = nil
                     if let scene = await UIApplication.shared.connectedScenes.first as? UIWindowScene, let rootVC = await scene.windows.first?.rootViewController {
                         rootViewController = rootVC
@@ -74,11 +86,17 @@ public struct Native: TCAInitializableReducer, Sendable {
                     #if DEBUG
                     print("✅ NATIVE awaited ad unit=\(adUnitID) stateId=\(stateId)")
                     #endif
-                    await send(.receivedNativeAd(nativeAd), animation: .default)
+                    // First bind happens during scroll/feed render. Animating
+                    // .frame(height:) here forces extra layout passes on
+                    // neighbouring LazyVStack cells. `refreshAd` keeps its
+                    // animation because that's a deliberate user action.
+                    await send(.receivedNativeAd(nativeAd))
                 } catch: { error, send in
 					#if DEBUG
                     print("❌ NATIVE Error LOADING: \(error.localizedDescription)")
+                    print("📣 NATIVE delegate(.loadFailed) about to send")
 					#endif
+                    await send(.delegate(.loadFailed))
                 }
 
             case let .receivedNativeAd(nativeAd):
@@ -110,7 +128,13 @@ public struct Native: TCAInitializableReducer, Sendable {
                     print("Error REFRESH native ad: \(error.localizedDescription)")
 					#endif
                 }
-                
+
+            case let .delegate(action):
+                #if DEBUG
+                print("🪧 NATIVE delegate handled stateId=\(state.id) action=\(action)")
+                #endif
+                return .none
+
                 default:
                     return .none
             }

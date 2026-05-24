@@ -6,7 +6,6 @@
 //
 
 import ComposableArchitecture
-import GoogleMobileAds
 import NativeAdClient
 import NativeAdClientLive
 import SwiftUI
@@ -14,9 +13,7 @@ import SwiftUI
 @main
 struct NativeAdsPlaygroundApp: App {
     init() {
-        // Start the Google Mobile Ads SDK once at launch — required before
-        // any ad load. Test ad units don't require an AdMob account.
-        MobileAds.shared.start()
+        Task { await MobileAdsBootstrap.start() }
     }
 
     var body: some Scene {

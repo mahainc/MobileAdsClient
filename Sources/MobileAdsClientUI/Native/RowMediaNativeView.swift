@@ -50,10 +50,21 @@ private struct _RowMediaNativeRepresentable: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: RowMediaNativeAdView, context: Context) {
+        #if DEBUG
+        print("🖼️ ROWMEDIA updateUIView storeId=\(store.id) hasAd=\(store.nativeAd != nil) adHeight=\(store.adHeight)")
+        #endif
         if uiView.style != configuration.style {
             uiView.style = configuration.style
         }
         guard let nativeAd = store.nativeAd else { return }
+        #if DEBUG
+        print("🖼️ ROWMEDIA bind-attempt storeId=\(store.id) sameAsCurrent=\(uiView.nativeAd === nativeAd)")
+        #endif
+        // Skip re-bind when the same creative is already attached. SwiftUI
+        // re-invokes updateUIView on every store change (including the
+        // adHeight update we send from this very block), and an unguarded
+        // `configure` re-triggers layout/measure in a feedback loop.
+        guard uiView.nativeAd !== nativeAd else { return }
         uiView.configure(with: nativeAd)
 
         DispatchQueue.main.async {
@@ -61,6 +72,10 @@ private struct _RowMediaNativeRepresentable: UIViewRepresentable {
             let width = uiView.bounds.width
             guard width > 0 else { return }
             let height = uiView.calculateTotalHeight(fittingWidth: width)
+            #if DEBUG
+            let willUpdate = abs(height - store.adHeight) > 0.5
+            print("📐 ROWMEDIA measured storeId=\(store.id) width=\(width) height=\(height) prev=\(store.adHeight) update=\(willUpdate)")
+            #endif
             // Epsilon guards against an infinite update loop caused by tiny float
             // drift between the measured value and the value already in state.
             if abs(height - store.adHeight) > 0.5 {

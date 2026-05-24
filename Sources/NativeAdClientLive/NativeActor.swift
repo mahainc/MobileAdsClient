@@ -10,12 +10,10 @@
 import NativeAdClient
 
 final internal actor NativeActor {
-    
+
     private let manager = NativeAdManager()
-    
-    public init() {
-        MobileAds.shared.start(completionHandler: nil)
-    }
+
+    public init() { }
 }
 
 // MARK: - Public Methods

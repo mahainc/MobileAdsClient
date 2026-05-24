@@ -17,7 +17,11 @@ final internal actor AdsManager {
     private let rewardedAdManager = RewardedAdManager()
 
     private init() {
-        MobileAds.shared.start(completionHandler: nil)
+        #if DEBUG
+        MobileAds.shared.requestConfiguration.testDeviceIdentifiers = [
+            "74A6AE8F-C95C-44AF-8DF6-0F6918E7360D"
+        ]
+        #endif
     }
 }
 

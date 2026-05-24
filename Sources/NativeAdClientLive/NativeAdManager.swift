@@ -36,20 +36,8 @@ extension NativeAdManager {
 		return try await withCheckedThrowingContinuation { continuation in
 			let requestID = UUID()
 			let request = Request()
-			
-			var loaderOptions: [GADAdLoaderOptions] = []
-			if let options = options {
-				loaderOptions = options.map { $0.unwrapped.toGADAdLoaderOptions() }
-			}
-			
-			let adLoader = AdLoader(
-				adUnitID: adUnitID,
-				rootViewController: viewController,
-				adTypes: [.native],
-				options: loaderOptions
-			)
-			adLoader.delegate = self
-			
+			let loaderOptions: [GADAdLoaderOptions] = options?.map { $0.unwrapped.toGADAdLoaderOptions() } ?? []
+
 			let timeoutTask = DispatchWorkItem { [weak self] in
 				guard let self = self else { return }
 				self.queue.async(flags: .barrier) {
@@ -61,22 +49,42 @@ extension NativeAdManager {
 					))
 				}
 			}
-			
-			DispatchQueue.global().asyncAfter(deadline: .now() + timeout, execute: timeoutTask)
-			
-			let context = AdRequestContext(
-				id: requestID,
-				adUnitID: adUnitID,
-				adLoader: adLoader,
-				continuation: continuation,
-				timeoutTask: timeoutTask
-			)
-			
-			queue.async(flags: .barrier) {
-				self.pendingRequests[requestID] = context
+
+			// GMA requires GADAdLoader methods on the main thread. We hop here
+			// so the SDK's internal WebKit/UIKit prep runs in the right
+			// context; register the pending request through `queue` before
+			// arming the timeout so the timeout block can never observe an
+			// empty `pendingRequests` for this id.
+			DispatchQueue.main.async { [weak self] in
+				guard let self = self else {
+					continuation.resume(throwing: CancellationError())
+					return
+				}
+
+				let adLoader = AdLoader(
+					adUnitID: adUnitID,
+					rootViewController: viewController,
+					adTypes: [.native],
+					options: loaderOptions
+				)
+				adLoader.delegate = self
+
+				let context = AdRequestContext(
+					id: requestID,
+					adUnitID: adUnitID,
+					adLoader: adLoader,
+					continuation: continuation,
+					timeoutTask: timeoutTask
+				)
+
+				self.queue.async(flags: .barrier) {
+					self.pendingRequests[requestID] = context
+				}
+
+				DispatchQueue.global().asyncAfter(deadline: .now() + timeout, execute: timeoutTask)
+
+				adLoader.load(request)
 			}
-			
-			adLoader.load(request)
 		}
 	}
 }
