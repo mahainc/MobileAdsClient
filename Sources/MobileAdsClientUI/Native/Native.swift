@@ -19,7 +19,10 @@ public struct Native: TCAInitializableReducer, Sendable {
         public let adUnitID: String
 		public let adLoaderOptions: [NativeAdClient.AnyAdLoaderOption]
         public var nativeAd: NativeAd?
-        public var adHeight: CGFloat = 320.0
+        /// Defaults to 1pt so an unloaded slot collapses to an invisible strip
+        /// rather than reserving a 320pt empty band. The real height is set by
+        /// `RowMediaNativeView` after binding via `.updateAdHeight(measured)`.
+        public var adHeight: CGFloat = 300.0
         public var configuration: NativeAdClient.AnyConfiguration = .init(NativeAdClient.Configuration.Compact.default)
 
 		public init(
@@ -29,6 +32,21 @@ public struct Native: TCAInitializableReducer, Sendable {
         ) {
             self.adUnitID = adUnitID
             self.adLoaderOptions = options
+            self.configuration = configuration
+        }
+
+        /// Pool-friendly initializer. Constructs state already bound to a
+        /// pre-loaded `NativeAd` (e.g. popped from `NativeAdInventory`), so
+        /// the reducer's `.onAppear` short-circuits and the view renders the
+        /// creative immediately. `adUnitID` and `adLoaderOptions` are left
+        /// empty because no further load will be issued for this slot.
+        public init(
+            preloaded ad: NativeAd,
+            configuration: NativeAdClient.AnyConfiguration = .init(NativeAdClient.Configuration.Compact.default)
+        ) {
+            self.adUnitID = ""
+            self.adLoaderOptions = []
+            self.nativeAd = ad
             self.configuration = configuration
         }
     }

@@ -19,7 +19,7 @@ final internal actor NativeActor {
 // MARK: - Public Methods
 
 extension NativeActor {
-    
+
 	public func loadAd(
 		adUnitID: String,
 		from viewController: UIViewController?,
@@ -31,5 +31,19 @@ extension NativeActor {
 			options: options
 		)
     }
+
+	public func loadAds(
+		adUnitID: String,
+		from viewController: UIViewController?,
+		options: [NativeAdClient.AnyAdLoaderOption]?,
+		count: Int
+	) async throws -> [NativeAd] {
+		return try await manager.loadAds(
+			adUnitID: adUnitID,
+			from: viewController,
+			options: options,
+			count: count
+		)
+	}
 }
 #endif

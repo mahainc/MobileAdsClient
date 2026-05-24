@@ -20,6 +20,14 @@ extension NativeAdClient: DependencyKey {
 					from: viewController,
 					options: options
 				)
+            },
+            loadAds: { adUnitID, viewController, options, count in
+				try await actor.loadAds(
+					adUnitID: adUnitID,
+					from: viewController,
+					options: options,
+					count: count
+				)
             }
         )
     }()

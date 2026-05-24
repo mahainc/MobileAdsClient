@@ -31,13 +31,28 @@ public struct RowMediaNativeView: View {
     }
 
     public var body: some View {
-        _RowMediaNativeRepresentable(store: store, configuration: rowMediaConfig)
-            .id(rowMediaConfig)
-            // Bind the row's height to the measured `store.adHeight`. Without
-            // this, SwiftUI containers (`List`, `LazyVStack`, …) fall back to
-            // the representable's intrinsic size — which is small/zero for a
-            // free-floating UIStackView and clips the content.
-            .frame(height: store.adHeight)
+        Group {
+            if store.nativeAd != nil {
+                _RowMediaNativeRepresentable(store: store, configuration: rowMediaConfig)
+                    .id(rowMediaConfig)
+                    // Bind the row's height to the measured `store.adHeight`.
+                    // Without this, SwiftUI containers (`List`, `LazyVStack`, …)
+                    // fall back to the representable's intrinsic size — which
+                    // is small/zero for a free-floating UIStackView and clips
+                    // the content.
+                    .frame(height: store.adHeight)
+                    .transition(.opacity)
+            } else {
+                // Pool-empty skeleton. Stays visible until either
+                // `state.nativeAd` flips non-nil (a future rebuild popped an
+                // ad into this slot) or the parent removes the slot.
+                SkeletonShimmer()
+                    .frame(height: 300)
+                    .padding(.horizontal, 0)
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: store.nativeAd != nil)
     }
 }
 
