@@ -31,28 +31,19 @@ public struct RowMediaNativeView: View {
     }
 
     public var body: some View {
-        Group {
-            if store.nativeAd != nil {
-                _RowMediaNativeRepresentable(store: store, configuration: rowMediaConfig)
-                    .id(rowMediaConfig)
-                    // Bind the row's height to the measured `store.adHeight`.
-                    // Without this, SwiftUI containers (`List`, `LazyVStack`, …)
-                    // fall back to the representable's intrinsic size — which
-                    // is small/zero for a free-floating UIStackView and clips
-                    // the content.
-                    .frame(height: store.adHeight)
-                    .transition(.opacity)
-            } else {
-                // Pool-empty skeleton. Stays visible until either
-                // `state.nativeAd` flips non-nil (a future rebuild popped an
-                // ad into this slot) or the parent removes the slot.
-                SkeletonShimmer()
-                    .frame(height: 300)
-                    .padding(.horizontal, 0)
-                    .transition(.opacity)
-            }
+        if store.nativeAd != nil {
+            _RowMediaNativeRepresentable(store: store, configuration: rowMediaConfig)
+                .transition(.opacity)
+                .id(rowMediaConfig)
+                .animation(.linear, value: store.nativeAd != nil)
+                .animation(.linear, value: store.adHeight)
+        } else {
+            RowMediaNativeSkeletonView(configuration: rowMediaConfig)
+                .transition(.opacity)
+                .id(rowMediaConfig)
+                .animation(.linear, value: store.nativeAd != nil)
+                .animation(.linear, value: store.adHeight)
         }
-        .animation(.easeInOut(duration: 0.2), value: store.nativeAd != nil)
     }
 }
 
@@ -69,24 +60,19 @@ private struct _RowMediaNativeRepresentable: UIViewRepresentable {
             uiView.style = configuration.style
         }
         guard let nativeAd = store.nativeAd else { return }
-        // Skip re-bind when the same creative is already attached. SwiftUI
-        // re-invokes updateUIView on every store change (including the
-        // adHeight update we send from this very block), and an unguarded
-        // `configure` re-triggers layout/measure in a feedback loop.
         guard uiView.nativeAd !== nativeAd else { return }
         uiView.configure(with: nativeAd)
+        uiView.invalidateIntrinsicContentSize()
+    }
 
-        DispatchQueue.main.async {
-            uiView.layoutIfNeeded()
-            let width = uiView.bounds.width
-            guard width > 0 else { return }
-            let height = uiView.calculateTotalHeight(fittingWidth: width)
-            // Epsilon guards against an infinite update loop caused by tiny float
-            // drift between the measured value and the value already in state.
-            if abs(height - store.adHeight) > 0.5 {
-                store.send(.updateAdHeight(height))
-            }
-        }
+    func sizeThatFits(
+        _ proposal: ProposedViewSize,
+        uiView: RowMediaNativeAdView,
+        context: Context
+    ) -> CGSize? {
+        guard let width = proposal.width, width > 0, width.isFinite else { return nil }
+        let height = uiView.calculateTotalHeight(fittingWidth: width)
+        return CGSize(width: width, height: height)
     }
 }
 #endif

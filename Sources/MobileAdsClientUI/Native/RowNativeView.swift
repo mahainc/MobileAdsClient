@@ -30,13 +30,28 @@ public struct RowNativeView: View {
     }
 
     public var body: some View {
-        _RowNativeRepresentable(store: store, configuration: rowConfig)
-            .id(rowConfig)
-            // Bind the row's height to the measured `store.adHeight`. Without
-            // this, SwiftUI containers (`List`, `LazyVStack`, …) fall back to
-            // the representable's intrinsic size — which is small/zero for a
-            // free-floating UIStackView and clips the content.
-            .frame(height: store.adHeight)
+        ZStack {
+            // Always in the tree — acts as the container's height floor so the
+            // ZStack stays stable across the skeleton → loaded transition.
+            // Without this, the representable's `sizeThatFits` returns the
+            // chrome's empty-label minimum on the very first layout pass (the
+            // UIView is built before `updateUIView` binds the creative), and
+            // `.animation` then re-targets mid-flight when the bound size
+            // arrives — visible as a dip-and-spring on every load.
+            RowNativeSkeletonView(configuration: rowConfig)
+                .opacity(store.nativeAd == nil ? 1 : 0)
+                .accessibilityHidden(store.nativeAd != nil)
+
+            if store.nativeAd != nil {
+                // Self-sizes through the representable's `sizeThatFits`. The
+                // skeleton above keeps the ZStack from shrinking if the bound
+                // creative measures slightly smaller than the placeholder.
+                _RowNativeRepresentable(store: store, configuration: rowConfig)
+                    .transition(.opacity)
+            }
+        }
+        .id(rowConfig)
+        .animation(.easeInOut(duration: 0.25), value: store.nativeAd != nil)
     }
 }
 
@@ -54,23 +69,24 @@ private struct _RowNativeRepresentable: UIViewRepresentable {
         }
         guard let nativeAd = store.nativeAd else { return }
         // Skip re-bind when the same creative is already attached. SwiftUI
-        // re-invokes updateUIView on every store change (including the
-        // adHeight update we send from this very block), and an unguarded
-        // `configure` re-triggers layout/measure in a feedback loop.
+        // re-invokes `updateUIView` on every store change, and an unguarded
+        // `configure` re-triggers layout in a feedback loop.
         guard uiView.nativeAd !== nativeAd else { return }
         uiView.configure(with: nativeAd)
+        // Tell SwiftUI to re-ask `sizeThatFits` now that the content has
+        // changed — the bound row height tracks the new creative without a
+        // deferred-async height jump.
+        uiView.invalidateIntrinsicContentSize()
+    }
 
-        DispatchQueue.main.async {
-            uiView.layoutIfNeeded()
-            let width = uiView.bounds.width
-            guard width > 0 else { return }
-            let height = uiView.calculateTotalHeight(fittingWidth: width)
-            // Epsilon guards against an infinite update loop caused by tiny float
-            // drift between the measured value and the value already in state.
-            if abs(height - store.adHeight) > 0.5 {
-                store.send(.updateAdHeight(height))
-            }
-        }
+    func sizeThatFits(
+        _ proposal: ProposedViewSize,
+        uiView: RowNativeAdView,
+        context: Context
+    ) -> CGSize? {
+        guard let width = proposal.width, width > 0, width.isFinite else { return nil }
+        let height = uiView.calculateTotalHeight(fittingWidth: width)
+        return CGSize(width: width, height: height)
     }
 }
 #endif
