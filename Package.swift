@@ -18,10 +18,10 @@ let package = Package(
         .singleTargetLibrary("NativeAdClientLive"),
     ],
     dependencies: [
-        .package(url: "https://github.com/pointfreeco/swift-composable-architecture.git", branch: "main"),
-        .package(url: "https://github.com/googleads/swift-package-manager-google-mobile-ads.git", branch: "main"),
-        .package(url: "https://github.com/ThanhHaiKhong/TCAInitializableReducer.git", branch: "master"),
-        .package(url: "https://github.com/mahainc/AdRevenueClient.git", branch: "master"),
+        .package(url: "https://github.com/pointfreeco/swift-composable-architecture.git", from: "1.25.5"),
+        .package(url: "https://github.com/googleads/swift-package-manager-google-mobile-ads.git", from: "13.4.0"),
+        .package(url: "https://github.com/mahainc/TCAInitializableReducer.git", from: "0.1.0"),
+        .package(url: "https://github.com/mahainc/AdRevenueClient.git", from: "2.0.0"),
     ],
     targets: [
         .target(
