@@ -164,7 +164,18 @@ extension RowMediaNativeAdView {
             adBodyLabel.numberOfLines = max(1, lines)
         }
 
-        let advertiserRow = UIStackView(arrangedSubviews: [adAdvertiserLabel, adAttributionLabel])
+        // Hug the advertiser text so it never stretches to fill the row's full
+        // width; a trailing flexible spacer absorbs the leftover space instead,
+        // keeping the "Sponsored" chip pinned 6pt after the name regardless of
+        // how short the advertiser name is.
+        adAdvertiserLabel.setContentHuggingPriority(.required, for: .horizontal)
+
+        let trailingSpacer = UIView()
+        trailingSpacer.translatesAutoresizingMaskIntoConstraints = false
+        trailingSpacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        trailingSpacer.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let advertiserRow = UIStackView(arrangedSubviews: [adAdvertiserLabel, adAttributionLabel, trailingSpacer])
         advertiserRow.axis = .horizontal
         advertiserRow.spacing = 6
         advertiserRow.alignment = .center
