@@ -58,7 +58,7 @@ public class CustomNativeAdView: NativeAdView {
         let label = PaddedLabel(padding: UIEdgeInsets(top: 4, left: 6, bottom: 4, right: 6))
         label.accessibilityIdentifier = "Ad Attribution Label"
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = "Sponsored"
+        label.text = "Ad"
         label.textAlignment = .center
         label.layer.cornerRadius = 5
         label.layer.masksToBounds = true

@@ -146,7 +146,7 @@ private struct RowNativeSkeletonChrome: View {
                     .foregroundStyle(Color(uiColor: style.text.sponsor))
                     .lineLimit(1)
 
-                Text("Sponsored")
+                Text("Ad")
                     .font(_RowSkeletonHelpers.font(for: style.attribution.font))
                     .foregroundStyle(Color(uiColor: style.attribution.text))
                     .padding(.horizontal, 6)

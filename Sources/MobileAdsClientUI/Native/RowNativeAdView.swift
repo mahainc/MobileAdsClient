@@ -69,7 +69,7 @@ public class RowNativeAdView: NativeAdView {
         let label = PaddedLabel(padding: UIEdgeInsets(top: 2, left: 6, bottom: 2, right: 6))
         label.accessibilityIdentifier = "Row Native Attribution"
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = "Sponsored"
+        label.text = "Ad"
         label.textAlignment = .center
         // Slight rounding to read as a chip; matches the 2pt vertical padding.
         label.layer.cornerRadius = 4
@@ -161,7 +161,7 @@ extension RowNativeAdView {
 
         // Hug the advertiser text so it never stretches to fill the row's full
         // width; a trailing flexible spacer absorbs the leftover space instead,
-        // keeping the "Sponsored" chip pinned 6pt after the name regardless of
+        // keeping the "Ad" chip pinned 6pt after the name regardless of
         // how short the advertiser name is.
         adAdvertiserLabel.setContentHuggingPriority(.required, for: .horizontal)
 
@@ -430,7 +430,7 @@ extension RowNativeAdView {
         // immediately after assignment can return a stale value.
         let visibilityChain: [(view: UIView, isVisible: Bool)] = [
             (adHeadlineLabel, !adHeadlineLabel.isHidden),
-            (advertiserRow, true),                  // Sponsored chip is fixed text
+            (advertiserRow, true),                  // Ad chip is fixed text
             (bodyContainer, !adBodyLabel.isHidden), // sync proxy for bodyContainer
         ]
 

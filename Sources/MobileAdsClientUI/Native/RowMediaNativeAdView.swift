@@ -81,7 +81,7 @@ public class RowMediaNativeAdView: NativeAdView {
         let label = PaddedLabel(padding: UIEdgeInsets(top: 2, left: 6, bottom: 2, right: 6))
         label.accessibilityIdentifier = "Row-Media Native Attribution"
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = "Sponsored"
+        label.text = "Ad"
         label.textAlignment = .center
         label.layer.cornerRadius = 4
         label.layer.masksToBounds = true
@@ -166,7 +166,7 @@ extension RowMediaNativeAdView {
 
         // Hug the advertiser text so it never stretches to fill the row's full
         // width; a trailing flexible spacer absorbs the leftover space instead,
-        // keeping the "Sponsored" chip pinned 6pt after the name regardless of
+        // keeping the "Ad" chip pinned 6pt after the name regardless of
         // how short the advertiser name is.
         adAdvertiserLabel.setContentHuggingPriority(.required, for: .horizontal)
 

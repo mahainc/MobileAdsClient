@@ -1,13 +1,13 @@
 {
-  "originHash" : "d140e1d48a347994de1b0dc4f8c18ea3df7c750ce849895045e9da80a1e9f54f",
+  "originHash" : "2277157f481c0bbbbeb1159b45e9781804a10847e3f2d7fce7f027a3992fb8b6",
   "pins" : [
     {
       "identity" : "adrevenueclient",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mahainc/AdRevenueClient.git",
       "state" : {
-        "branch" : "master",
-        "revision" : "582f72eaeeaf8ec8c880b4449495bcc2e91609fe"
+        "revision" : "582f72eaeeaf8ec8c880b4449495bcc2e91609fe",
+        "version" : "2.0.0"
       }
     },
     {
@@ -51,8 +51,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-composable-architecture.git",
       "state" : {
-        "branch" : "main",
-        "revision" : "d9f965e38a86c78279ff59dfab1754b637f097a2"
+        "revision" : "e2fa1df6cd9eec6fa6314aa20513e47da576f24e",
+        "version" : "1.26.0"
       }
     },
     {
@@ -105,8 +105,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/googleads/swift-package-manager-google-mobile-ads.git",
       "state" : {
-        "branch" : "main",
-        "revision" : "a81f522aa4f59c0d90ee523d703bd426d5b27a03"
+        "revision" : "166a2dcff33c893b22e4bfccbbdd0ed00a248c24",
+        "version" : "13.5.0"
       }
     },
     {
@@ -148,10 +148,10 @@
     {
       "identity" : "tcainitializablereducer",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/ThanhHaiKhong/TCAInitializableReducer.git",
+      "location" : "https://github.com/mahainc/TCAInitializableReducer.git",
       "state" : {
-        "branch" : "master",
-        "revision" : "894dde4e687f04adc68a9a20d36b70cab4bdda68"
+        "revision" : "a576bb3619c4160d4d33dd2c07f9f12e2f1a0ff8",
+        "version" : "0.1.0"
       }
     },
     {

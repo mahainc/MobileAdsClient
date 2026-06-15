@@ -8,7 +8,7 @@
 //
 //  Layout (top → bottom, safe-area-aware):
 //    ┌────────────────────────────────────┐
-//    │  [×]              [Sponsored]      │   close + ad chip, 16pt above safe-top
+//    │  [×]              [Ad]            │   close + ad chip, 16pt above safe-top
 //    │                                    │
 //    │        MediaView (~55%)            │   aspect-fit media
 //    │                                    │
@@ -98,7 +98,7 @@ public class FullScreenNativeAdView: NativeAdView {
         let label = PaddedLabel(padding: UIEdgeInsets(top: 3, left: 6, bottom: 3, right: 6))
         label.accessibilityIdentifier = "Full Screen Native Attribution"
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = "Sponsored"
+        label.text = "Ad"
         label.textAlignment = .center
         label.layer.cornerRadius = 4
         label.layer.masksToBounds = true
