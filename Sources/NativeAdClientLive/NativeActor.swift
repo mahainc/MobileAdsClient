@@ -6,44 +6,48 @@
 //
 
 #if canImport(UIKit)
-@preconcurrency import GoogleMobileAds
-import NativeAdClient
+    @preconcurrency import GoogleMobileAds
+    import NativeAdClient
 
-final internal actor NativeActor {
+    final internal actor NativeActor {
 
-    private let manager = NativeAdManager()
+        private let manager = NativeAdManager()
 
-    public init() { }
-}
-
-// MARK: - Public Methods
-
-extension NativeActor {
-
-	public func loadAd(
-		adUnitID: String,
-		from viewController: UIViewController?,
-		options: [NativeAdClient.AnyAdLoaderOption]?
-	) async throws -> NativeAd {
-        return try await manager.loadAd(
-			adUnitID: adUnitID,
-			from: viewController,
-			options: options
-		)
+        public init() {}
     }
 
-	public func loadAds(
-		adUnitID: String,
-		from viewController: UIViewController?,
-		options: [NativeAdClient.AnyAdLoaderOption]?,
-		count: Int
-	) async throws -> [NativeAd] {
-		return try await manager.loadAds(
-			adUnitID: adUnitID,
-			from: viewController,
-			options: options,
-			count: count
-		)
-	}
-}
+    // MARK: - Public Methods
+
+    extension NativeActor {
+
+        public func loadAd(
+            adUnitID: String,
+            from viewController: UIViewController?,
+            options: [NativeAdClient.AnyAdLoaderOption]?,
+            keywords: [String] = []
+        ) async throws -> NativeAd {
+            return try await manager.loadAd(
+                adUnitID: adUnitID,
+                from: viewController,
+                options: options,
+                keywords: keywords
+            )
+        }
+
+        public func loadAds(
+            adUnitID: String,
+            from viewController: UIViewController?,
+            options: [NativeAdClient.AnyAdLoaderOption]?,
+            count: Int,
+            keywords: [String] = []
+        ) async throws -> [NativeAd] {
+            return try await manager.loadAds(
+                adUnitID: adUnitID,
+                from: viewController,
+                options: options,
+                count: count,
+                keywords: keywords
+            )
+        }
+    }
 #endif

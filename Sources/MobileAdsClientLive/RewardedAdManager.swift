@@ -21,9 +21,13 @@
         /// `withLock { … }` is async-safe and scoped.
         private let pendingReward = OSAllocatedUnfairLock<[String: Bool]>(initialState: [:])
 
-        override func loadAd(adUnitID: String) async throws -> RewardedAd {
+        override func loadAd(
+            adUnitID: String,
+            keywords: [String]
+        ) async throws -> RewardedAd {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<RewardedAd, Error>) in
                 let request = Request()
+                request.keywords = keywords
                 RewardedAd.load(with: adUnitID, request: request) { [weak self] ad, error in
                     if let error = error {
                         continuation.resume(throwing: error)
@@ -61,9 +65,10 @@
         @MainActor
         func showAndAwaitReward(
             _ adUnitID: String,
-            from viewController: UIViewController
+            from viewController: UIViewController,
+            keywords: [String] = []
         ) async throws -> Bool {
-            guard let ad = getAd(for: adUnitID) else {
+            guard let ad = await ensureLoaded(adUnitID, keywords: keywords) else {
                 throw MobileAdsClient.AdError.adNotReady
             }
 

@@ -6,30 +6,32 @@
 //
 
 #if canImport(UIKit)
-import ComposableArchitecture
-import NativeAdClient
+    import ComposableArchitecture
+    import NativeAdClient
 
-extension NativeAdClient: DependencyKey {
-    public static let liveValue: NativeAdClient = {
-		let actor = NativeActor()
-		
-        return NativeAdClient(
-            loadAd: { adUnitID, viewController, options in
-				try await actor.loadAd(
-					adUnitID: adUnitID,
-					from: viewController,
-					options: options
-				)
-            },
-            loadAds: { adUnitID, viewController, options, count in
-				try await actor.loadAds(
-					adUnitID: adUnitID,
-					from: viewController,
-					options: options,
-					count: count
-				)
-            }
-        )
-    }()
-}
+    extension NativeAdClient: DependencyKey {
+        public static let liveValue: NativeAdClient = {
+            let actor = NativeActor()
+
+            return NativeAdClient(
+                loadAd: { adUnitID, viewController, options, keywords in
+                    try await actor.loadAd(
+                        adUnitID: adUnitID,
+                        from: viewController,
+                        options: options,
+                        keywords: keywords
+                    )
+                },
+                loadAds: { adUnitID, viewController, options, count, keywords in
+                    try await actor.loadAds(
+                        adUnitID: adUnitID,
+                        from: viewController,
+                        options: options,
+                        count: count,
+                        keywords: keywords
+                    )
+                }
+            )
+        }()
+    }
 #endif

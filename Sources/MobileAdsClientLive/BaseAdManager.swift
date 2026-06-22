@@ -30,6 +30,14 @@
         private let lock = NSLock()
         private var ads: [String: AdType] = [:]
 
+        /// Contextual keywords the cached ad for each unit was loaded with.
+        /// Keywords are baked into the `Request` at load time and can't be
+        /// changed on an already-loaded ad, so a show/preload that asks for
+        /// different keywords than the cached entry triggers a reload (see
+        /// `ensureLoaded`). The auto dismiss-reload reuses the stored value so
+        /// the next impression keeps the same targeting.
+        private var keywordsByUnit: [String: [String]] = [:]
+
         /// In-flight `showAd` continuation for a presented ad, plus the unit it was
         /// shown for (so dismiss can reload that unit). Keyed by the **presented ad
         /// object's identity** — see `presentations`.
@@ -61,19 +69,55 @@
             return ads[adUnitID]
         }
 
+        /// The keywords the currently cached ad for `adUnitID` was loaded with.
+        /// Empty when nothing is cached or it was loaded without keywords.
+        final func getKeywords(for adUnitID: String) -> [String] {
+            lock.lock()
+            defer { lock.unlock() }
+            return keywordsByUnit[adUnitID] ?? []
+        }
+
         final func setAd(
             _ ad: AdType,
+            keywords: [String],
             for adUnitID: String
         ) {
             lock.lock()
             defer { lock.unlock() }
             ads[adUnitID] = ad
+            keywordsByUnit[adUnitID] = keywords
         }
 
         final func removeAd(for adUnitID: String) {
             lock.lock()
             defer { lock.unlock() }
             ads.removeValue(forKey: adUnitID)
+            keywordsByUnit.removeValue(forKey: adUnitID)
+        }
+
+        /// Returns a cached ad for `adUnitID` when one is resident AND it was
+        /// loaded with the same `keywords`; otherwise loads a fresh ad with the
+        /// requested keywords, caches it, and returns it. Returns nil if the
+        /// load fails. Centralizes the "keywords are load-time" rule so every
+        /// entry point (shouldShowAd / showAd / showAndAwaitReward) applies the
+        /// caller's targeting even when a keyword-less ad was preloaded earlier.
+        final func ensureLoaded(
+            _ adUnitID: String,
+            keywords: [String]
+        ) async -> AdType? {
+            if let ad = getAd(for: adUnitID), getKeywords(for: adUnitID) == keywords {
+                return ad
+            }
+            do {
+                let ad = try await loadAd(adUnitID: adUnitID, keywords: keywords)
+                setAd(ad, keywords: keywords, for: adUnitID)
+                return ad
+            } catch {
+                #if DEBUG
+                    print("🌶️ Failed to load \(adTypeName()) ad: \(error.localizedDescription)")
+                #endif
+                return nil
+            }
         }
 
         /// Registers the `showAd` continuation against the exact ad object being
@@ -127,11 +171,16 @@
         // MARK: - Abstract Methods (Override in subclass)
 
         /// Loads an ad for the specified ad unit ID. Subclasses must override this method.
-        /// - Parameter adUnitID: The ad unit ID to load
+        /// - Parameters:
+        ///   - adUnitID: The ad unit ID to load
+        ///   - keywords: Contextual keywords to set on the `Request` (`request.keywords`)
         /// - Returns: The loaded ad instance
         /// - Throws: Error if ad loading fails
-        func loadAd(adUnitID: String) async throws -> AdType {
-            fatalError("Subclass must override loadAd(adUnitID:)")
+        func loadAd(
+            adUnitID: String,
+            keywords: [String]
+        ) async throws -> AdType {
+            fatalError("Subclass must override loadAd(adUnitID:keywords:)")
         }
 
         /// Returns the name of the ad type for logging purposes. Subclasses must override this method.
@@ -161,26 +210,18 @@
         /// - Returns: True if the ad should be shown, false otherwise
         public final func shouldShowAd(
             _ adUnitID: String,
-            rules: [MobileAdsClient.AdRule]
+            rules: [MobileAdsClient.AdRule],
+            keywords: [String] = []
         ) async -> Bool {
             let isSatisfied = await rules.allRulesSatisfied()
 
-            if getAd(for: adUnitID) == nil {
-                do {
-                    let ad = try await loadAd(adUnitID: adUnitID)
-                    setAd(ad, for: adUnitID)
-                    #if DEBUG
-                        print("🍺 \(adTypeName()) ad loaded successfully")
-                    #endif
-                    return isSatisfied
-                } catch {
-                    #if DEBUG
-                        print("🌶️ Failed to load \(adTypeName()) ad: \(error.localizedDescription)")
-                    #endif
-                    return false
-                }
+            // Warm (or re-warm, if the keywords changed) the cache for this unit.
+            guard await ensureLoaded(adUnitID, keywords: keywords) != nil else {
+                return false
             }
-
+            #if DEBUG
+                print("🍺 \(adTypeName()) ad ready")
+            #endif
             return isSatisfied
         }
 
@@ -192,9 +233,13 @@
         @MainActor
         public final func showAd(
             _ adUnitID: String,
-            from viewController: UIViewController
+            from viewController: UIViewController,
+            keywords: [String] = []
         ) async throws {
-            guard let ad = getAd(for: adUnitID) else {
+            // Present the cached ad when it matches the requested keywords;
+            // otherwise (re)load with these keywords first so the impression
+            // carries the caller's targeting. Throws only if the load fails.
+            guard let ad = await ensureLoaded(adUnitID, keywords: keywords) else {
                 throw MobileAdsClient.AdError.adNotReady
             }
 
@@ -218,10 +263,11 @@
             presentation.continuation.resume(returning: ())
 
             let adUnitID = presentation.adUnitID
+            let keywords = getKeywords(for: adUnitID)
             Task {
                 do {
-                    let loadedAd = try await loadAd(adUnitID: adUnitID)
-                    setAd(loadedAd, for: adUnitID)
+                    let loadedAd = try await loadAd(adUnitID: adUnitID, keywords: keywords)
+                    setAd(loadedAd, keywords: keywords, for: adUnitID)
                 } catch {
                     // Silently fail - ad will be reloaded on next shouldShowAd call
                 }
