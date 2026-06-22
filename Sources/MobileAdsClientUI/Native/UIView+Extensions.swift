@@ -102,4 +102,17 @@
             self.init(top: insets.top, leading: insets.left, bottom: insets.bottom, trailing: insets.right)
         }
     }
+
+    extension String {
+
+        /// Returns the string with only its first character uppercased; the
+        /// rest is left unchanged. Unlike `capitalized` (which title-cases
+        /// every word), this yields sentence-style capitalization — applied to
+        /// native-ad headline / advertiser / body text so each begins with a
+        /// capital letter without altering the publisher's original casing.
+        public func capitalizingFirstLetter() -> String {
+            guard let first else { return self }
+            return first.uppercased() + dropFirst()
+        }
+    }
 #endif

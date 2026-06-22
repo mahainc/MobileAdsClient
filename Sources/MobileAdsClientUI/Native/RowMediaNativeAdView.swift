@@ -413,9 +413,9 @@
         private func updateUI(with nativeAd: NativeAd) {
             adMediaView.mediaContent = nativeAd.mediaContent
             adIconImageView.image = nativeAd.icon?.image
-            adHeadlineLabel.text = nativeAd.headline
-            adAdvertiserLabel.text = nativeAd.advertiser ?? nativeAd.store
-            adBodyLabel.text = nativeAd.body
+            adHeadlineLabel.text = nativeAd.headline?.capitalizingFirstLetter()
+            adAdvertiserLabel.text = (nativeAd.advertiser ?? nativeAd.store)?.capitalizingFirstLetter()
+            adBodyLabel.text = nativeAd.body?.capitalizingFirstLetter()
             actionButton.setTitle(nativeAd.callToAction, for: .normal)
         }
 

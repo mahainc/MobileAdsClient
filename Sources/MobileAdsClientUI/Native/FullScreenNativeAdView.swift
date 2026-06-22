@@ -299,9 +299,9 @@
         private func updateUI(with nativeAd: NativeAd) {
             adMediaView.mediaContent = nativeAd.mediaContent
             adIconImageView.image = nativeAd.icon?.image
-            adHeadlineLabel.text = nativeAd.headline
-            adSponsorLabel.text = nativeAd.advertiser
-            adBodyLabel.text = nativeAd.body
+            adHeadlineLabel.text = nativeAd.headline?.capitalizingFirstLetter()
+            adSponsorLabel.text = nativeAd.advertiser?.capitalizingFirstLetter()
+            adBodyLabel.text = nativeAd.body?.capitalizingFirstLetter()
             actionButton.setTitle(nativeAd.callToAction?.uppercased(), for: .normal)
         }
 

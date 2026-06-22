@@ -425,12 +425,12 @@
                             case self.adIconImageView:
                                 self.adIconImageView.image = nativeAd.icon?.image
                             case self.adHeadlineLabel:
-                                self.adHeadlineLabel.text = nativeAd.headline?.capitalized
+                                self.adHeadlineLabel.text = nativeAd.headline?.capitalizingFirstLetter()
                                 self.adHeadlineLabel.invalidateIntrinsicContentSize()
                             case self.adRatingImageView:
                                 self.adRatingImageView.image = self.imageOfStars(from: nativeAd.starRating)
                             case self.adSponsorLabel:
-                                self.adSponsorLabel.text = nativeAd.advertiser
+                                self.adSponsorLabel.text = nativeAd.advertiser?.capitalizingFirstLetter()
                                 self.adSponsorLabel.invalidateIntrinsicContentSize()
                             case self.adStoreLabel:
                                 self.adStoreLabel.text = nativeAd.store?.capitalized
@@ -439,7 +439,7 @@
                                 self.adPriceLabel.text = nativeAd.price?.capitalized
                                 self.adPriceLabel.invalidateIntrinsicContentSize()
                             case self.adBodyLabel:
-                                self.adBodyLabel.text = nativeAd.body
+                                self.adBodyLabel.text = nativeAd.body?.capitalizingFirstLetter()
                                 self.adBodyLabel.invalidateIntrinsicContentSize()
                             case self.actionButton:
                                 self.actionButton.setTitle(nativeAd.callToAction?.uppercased(), for: .normal)

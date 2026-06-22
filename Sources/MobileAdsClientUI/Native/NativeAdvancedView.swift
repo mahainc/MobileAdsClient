@@ -310,13 +310,13 @@
                                 self.iconImageView.image = nativeAd.icon?.image
 
                             case self.headlineLabel:
-                                self.headlineLabel.text = nativeAd.headline?.capitalized
+                                self.headlineLabel.text = nativeAd.headline?.capitalizingFirstLetter()
 
                             case self.ratingImageView:
                                 self.ratingImageView.image = self.imageOfStars(from: nativeAd.starRating)
 
                             case self.sponsorLabel:
-                                self.sponsorLabel.text = nativeAd.advertiser
+                                self.sponsorLabel.text = nativeAd.advertiser?.capitalizingFirstLetter()
 
                             case self.storeLabel:
                                 self.storeLabel.text = nativeAd.store?.uppercased()
@@ -325,7 +325,7 @@
                                 self.priceLabel.text = nativeAd.price?.uppercased()
 
                             case self.bodyLabel:
-                                self.bodyLabel.text = nativeAd.body?.capitalized
+                                self.bodyLabel.text = nativeAd.body?.capitalizingFirstLetter()
 
                             case self.actionButton:
                                 self.actionButton.setTitle(nativeAd.callToAction?.uppercased(), for: .normal)
