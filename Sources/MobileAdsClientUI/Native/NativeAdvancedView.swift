@@ -6,472 +6,490 @@
 //
 
 #if canImport(UIKit)
-import GoogleMobileAds
-import NativeAdClient
-import UIKit
+    import GoogleMobileAds
+    import NativeAdClient
+    import UIKit
 
-public class NativeAdvancedView: NativeAdView {
+    public class NativeAdvancedView: NativeAdView {
 
-	public typealias Style = NativeAdClient.Configuration.Style
+        public typealias Style = NativeAdClient.Configuration.Style
 
-	public var style: Style {
-		didSet { applyStyle() }
-	}
+        public var style: Style {
+            didSet { applyStyle() }
+        }
 
-	private let metrics: NativeAdClient.Configuration.Metrics
+        private let metrics: NativeAdClient.Configuration.Metrics
 
-	public init(
-		frame: CGRect = .zero,
-		style: Style = .advanced,
-		metrics: NativeAdClient.Configuration.Metrics = .advanced
-	) {
-		self.style = style
-		self.metrics = metrics
-		super.init(frame: frame)
+        public init(
+            frame: CGRect = .zero,
+            style: Style = .advanced,
+            metrics: NativeAdClient.Configuration.Metrics = .advanced
+        ) {
+            self.style = style
+            self.metrics = metrics
+            super.init(frame: frame)
 
-		setupViews()
-		updateViewBindings()
-		applyStyle()
-	}
+            setupViews()
+            updateViewBindings()
+            applyStyle()
+        }
 
-	required init?(coder: NSCoder) {
-		fatalError("init(coder:) has not been implemented")
-	}
+        required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
 
-	public override func layoutSubviews() {
-		super.layoutSubviews()
-		layoutNativeAdGradient()
-		contentView.layoutNativeAdGradient()
-		containerView.layoutNativeAdGradient()
-		if case .capsule = style.actionButton.shape.mode {
-			applyButtonShape()
-		}
-	}
+        public override func layoutSubviews() {
+            super.layoutSubviews()
+            layoutNativeAdGradient()
+            contentView.layoutNativeAdGradient()
+            containerView.layoutNativeAdGradient()
+            if case .capsule = style.actionButton.shape.mode {
+                applyButtonShape()
+            }
+        }
 
-	// MARK: - SetupViews
+        // MARK: - SetupViews
 
-	private lazy var contentView: UIView = {
-		let view = UIView()
-		view.translatesAutoresizingMaskIntoConstraints = false
-		view.accessibilityIdentifier = "Ad Content View"
-		// Corner radius is driven by `metrics.containerCornerRadius` and applied in `setupViews()`.
-		view.layer.masksToBounds = true
-		return view
-	}()
+        private lazy var contentView: UIView = {
+            let view = UIView()
+            view.translatesAutoresizingMaskIntoConstraints = false
+            view.accessibilityIdentifier = "Ad Content View"
+            // Corner radius is driven by `metrics.containerCornerRadius` and applied in `setupViews()`.
+            view.layer.masksToBounds = true
+            return view
+        }()
 
-	public lazy var containerView: UIImageView = {
-		let imageView = UIImageView()
-		imageView.translatesAutoresizingMaskIntoConstraints = false
-		imageView.accessibilityIdentifier = "Ad Container View"
-		imageView.contentMode = .scaleAspectFill
-		imageView.layer.cornerRadius = 5
-		imageView.layer.masksToBounds = true
-		imageView.image = UIImage.fromSPM(named: "placeholder_image")
+        public lazy var containerView: UIImageView = {
+            let imageView = UIImageView()
+            imageView.translatesAutoresizingMaskIntoConstraints = false
+            imageView.accessibilityIdentifier = "Ad Container View"
+            imageView.contentMode = .scaleAspectFill
+            imageView.layer.cornerRadius = 5
+            imageView.layer.masksToBounds = true
+            imageView.image = UIImage.fromSPM(named: "placeholder_image")
 
-		return imageView
-	}()
+            return imageView
+        }()
 
-	public lazy var headlineLabel: UILabel = {
-		let label = UILabel()
-		label.accessibilityIdentifier = "Ad Headline Label"
-		label.translatesAutoresizingMaskIntoConstraints = false
-		label.numberOfLines = 0
-		label.text = "Ad Headline"
+        public lazy var headlineLabel: UILabel = {
+            let label = UILabel()
+            label.accessibilityIdentifier = "Ad Headline Label"
+            label.translatesAutoresizingMaskIntoConstraints = false
+            label.numberOfLines = 0
+            label.text = "Ad Headline"
 
-		return label
-	}()
+            return label
+        }()
 
-	public lazy var sponsorLabel: UILabel = {
-		let label = UILabel()
-		label.accessibilityIdentifier = "Ad Sponsor Label"
-		label.translatesAutoresizingMaskIntoConstraints = false
-		label.numberOfLines = 0
-		label.text = "Ad Sponsor"
+        public lazy var sponsorLabel: UILabel = {
+            let label = UILabel()
+            label.accessibilityIdentifier = "Ad Sponsor Label"
+            label.translatesAutoresizingMaskIntoConstraints = false
+            label.numberOfLines = 0
+            label.text = "Ad Sponsor"
 
-		return label
-	}()
+            return label
+        }()
 
-	public lazy var attributionLabel: PaddedLabel = {
-		let label = PaddedLabel(padding: UIEdgeInsets(top: 2, left: 6, bottom: 2, right: 6))
-		label.accessibilityIdentifier = "Ad Attribution Label"
-		label.translatesAutoresizingMaskIntoConstraints = false
-		label.text = "Ad"
-		label.textAlignment = .center
-		label.layer.cornerRadius = 4
-		label.layer.masksToBounds = true
-		// Border width is structural; color tracks `style.attribution.text`
-		// via `applyStyle()` so outlined-chip presets (e.g. `.advanced`) work.
-		label.layer.borderWidth = 1.4
+        public lazy var attributionLabel: PaddedLabel = {
+            let label = PaddedLabel(padding: UIEdgeInsets(top: 2, left: 6, bottom: 2, right: 6))
+            label.accessibilityIdentifier = "Ad Attribution Label"
+            label.translatesAutoresizingMaskIntoConstraints = false
+            label.text = "Ad"
+            label.textAlignment = .center
+            label.layer.cornerRadius = 4
+            label.layer.masksToBounds = true
+            // Border width is structural; color tracks `style.attribution.text`
+            // via `applyStyle()` so outlined-chip presets (e.g. `.advanced`) work.
+            label.layer.borderWidth = 1.4
 
-		return label
-	}()
-	
-	public lazy var iconImageView: UIImageView = {
-		let imageView = UIImageView()
-		imageView.accessibilityIdentifier = "Ad Icon Image View"
-		imageView.image = UIImage.fromSPM(named: "placeholder_image")
-		imageView.translatesAutoresizingMaskIntoConstraints = false
-		imageView.contentMode = .scaleAspectFill
-		// Corner radius is driven by `metrics.iconCornerRadius` and applied in `setupViews()`.
-		imageView.layer.masksToBounds = true
+            return label
+        }()
 
-		return imageView
-	}()
-	
-	public lazy var ratingImageView: UIImageView = {
-		let imageView = UIImageView()
-		imageView.accessibilityIdentifier = "Ad Rating Image View"
-		imageView.translatesAutoresizingMaskIntoConstraints = false
-		imageView.contentMode = .left
-		
-		return imageView
-	}()
-	
-	public lazy var actionButton: UIButton = {
-		let button = UIButton()
-		button.accessibilityIdentifier = "Ad Action Button"
-		button.translatesAutoresizingMaskIntoConstraints = false
-		button.setTitle("Install Now", for: .normal)
-		// Corner radius is driven by `style.actionButton.shape` via `applyButtonShape()`.
-		button.layer.masksToBounds = true
-		button.isUserInteractionEnabled = false
+        public lazy var iconImageView: UIImageView = {
+            let imageView = UIImageView()
+            imageView.accessibilityIdentifier = "Ad Icon Image View"
+            imageView.image = UIImage.fromSPM(named: "placeholder_image")
+            imageView.translatesAutoresizingMaskIntoConstraints = false
+            imageView.contentMode = .scaleAspectFill
+            // Corner radius is driven by `metrics.iconCornerRadius` and applied in `setupViews()`.
+            imageView.layer.masksToBounds = true
 
-		return button
-	}()
+            return imageView
+        }()
 
-	public lazy var bodyLabel: UILabel = {
-		let label = UILabel()
-		label.accessibilityIdentifier = "Ad Body Label"
-		label.translatesAutoresizingMaskIntoConstraints = false
-		label.numberOfLines = 0
-		label.textAlignment = .left
+        public lazy var ratingImageView: UIImageView = {
+            let imageView = UIImageView()
+            imageView.accessibilityIdentifier = "Ad Rating Image View"
+            imageView.translatesAutoresizingMaskIntoConstraints = false
+            imageView.contentMode = .left
 
-		return label
-	}()
+            return imageView
+        }()
 
-	public lazy var storeLabel: PaddedLabel = {
-		let label = PaddedLabel(padding: UIEdgeInsets(top: 4, left: 6, bottom: 4, right: 6))
-		label.accessibilityIdentifier = "Ad Store Label"
-		label.translatesAutoresizingMaskIntoConstraints = false
-		label.numberOfLines = 0
-		label.textAlignment = .center
-		label.text = "App Store"
-		label.layer.cornerRadius = 5
-		label.layer.masksToBounds = true
+        public lazy var actionButton: UIButton = {
+            let button = UIButton()
+            // Use `UIButton.Configuration` (iOS 15+) so `contentInsets` — the
+            // modern replacement for the deprecated `contentEdgeInsets` — takes
+            // effect. Background, foreground, font, and corner radius are all
+            // driven via the same configuration in `applyStyle()` / `applyButtonShape()`.
+            var config = UIButton.Configuration.plain()
+            config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 14, bottom: 8, trailing: 14)
+            button.configuration = config
+            button.accessibilityIdentifier = "Ad Action Button"
+            button.translatesAutoresizingMaskIntoConstraints = false
+            button.setTitle("Install Now", for: .normal)
+            button.isUserInteractionEnabled = false
 
-		return label
-	}()
+            return button
+        }()
 
-	public lazy var priceLabel: PaddedLabel = {
-		let label = PaddedLabel(padding: UIEdgeInsets(top: 4, left: 6, bottom: 4, right: 6))
-		label.accessibilityIdentifier = "Ad Price Label"
-		label.translatesAutoresizingMaskIntoConstraints = false
-		label.numberOfLines = 0
-		label.textAlignment = .center
-		label.text = "Free"
-		label.layer.cornerRadius = 5
-		label.layer.masksToBounds = true
+        public lazy var bodyLabel: UILabel = {
+            let label = UILabel()
+            label.accessibilityIdentifier = "Ad Body Label"
+            label.translatesAutoresizingMaskIntoConstraints = false
+            label.numberOfLines = 0
+            label.textAlignment = .left
 
-		return label
-	}()
-	
-	public lazy var mediaContentView: MediaView = {
-		let view = MediaView()
-		view.translatesAutoresizingMaskIntoConstraints = false
-		view.contentMode = .scaleAspectFill
-		view.backgroundColor = .systemGray6
-		view.layer.cornerRadius = 5
-		view.layer.masksToBounds = true
-		
-		return view
-	}()
-}
+            return label
+        }()
 
-// MARK: - Supporting Methods
+        public lazy var storeLabel: PaddedLabel = {
+            let label = PaddedLabel(padding: UIEdgeInsets(top: 4, left: 6, bottom: 4, right: 6))
+            label.accessibilityIdentifier = "Ad Store Label"
+            label.translatesAutoresizingMaskIntoConstraints = false
+            label.numberOfLines = 0
+            label.textAlignment = .center
+            label.text = "App Store"
+            label.layer.cornerRadius = 5
+            label.layer.masksToBounds = true
 
-extension NativeAdvancedView {
-	
-	private func setupViews() {
-		addBlur(style: .dark)
+            return label
+        }()
 
-		contentView.layer.cornerRadius = metrics.containerCornerRadius
-		iconImageView.layer.cornerRadius = metrics.iconCornerRadius
+        public lazy var priceLabel: PaddedLabel = {
+            let label = PaddedLabel(padding: UIEdgeInsets(top: 4, left: 6, bottom: 4, right: 6))
+            label.accessibilityIdentifier = "Ad Price Label"
+            label.translatesAutoresizingMaskIntoConstraints = false
+            label.numberOfLines = 0
+            label.textAlignment = .center
+            label.text = "Free"
+            label.layer.cornerRadius = 5
+            label.layer.masksToBounds = true
 
-		let storeStack = AutoHidingStackView(arrangedSubviews: [actionButton, storeLabel, priceLabel])
-		storeStack.accessibilityIdentifier = "Store Stack"
-		storeStack.axis = .horizontal
-		storeStack.spacing = metrics.horizontalSpacing
-		storeStack.alignment = .fill
-		storeStack.distribution = .fillEqually
-		storeStack.translatesAutoresizingMaskIntoConstraints = false
-		
-		let attributionStack = AutoHidingStackView(arrangedSubviews: [attributionLabel, sponsorLabel])
-		attributionStack.accessibilityIdentifier = "Attribution Stack"
-		attributionStack.axis = .horizontal
-		attributionStack.spacing = 8
-		attributionStack.alignment = .center
-		attributionStack.distribution = .fill
-		attributionStack.translatesAutoresizingMaskIntoConstraints = false
-		
-		let labelStack = AutoHidingStackView(arrangedSubviews: [headlineLabel, attributionStack, ratingImageView])
-		labelStack.translatesAutoresizingMaskIntoConstraints = false
-		labelStack.accessibilityIdentifier = "Label Stack"
-		labelStack.axis = .vertical
-		labelStack.spacing = metrics.verticalSpacing
-		labelStack.alignment = .leading
-		labelStack.distribution = .fillProportionally
-		
-		let headerStack = AutoHidingStackView(arrangedSubviews: [iconImageView, labelStack])
-		headerStack.translatesAutoresizingMaskIntoConstraints = false
-		headerStack.accessibilityIdentifier = "Header Stack"
-		headerStack.axis = .horizontal
-		headerStack.spacing = metrics.horizontalSpacing
-		headerStack.alignment = .center
-		headerStack.distribution = .fill
-		
-		let stackView = AutoHidingStackView(arrangedSubviews: [containerView, headerStack, bodyLabel, storeStack])
-		stackView.translatesAutoresizingMaskIntoConstraints = false
-		stackView.accessibilityIdentifier = "Main Stack"
-		stackView.axis = .vertical
-		stackView.spacing = metrics.verticalSpacing
-		stackView.alignment = .fill
-		stackView.distribution = .fill
-		
-		/*
-		ratingImageView.image = UIImage.fromSPM(named: "stars_5")
-		headlineLabel.text = "The new era of fashion is here"
-		sponsorLabel.text = "Polo Ralph Lauren"
-		bodyLabel.text = "This is a sample body text for the ad. It provides additional information about the product or service being advertised."
-		*/
-		
-		containerView.setContentHuggingPriority(.defaultHigh, for: .vertical)
-		containerView.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
-		
-		bodyLabel.setContentHuggingPriority(.required, for: .vertical)
-		bodyLabel.setContentCompressionResistancePriority(.required, for: .vertical)
-		
-		headlineLabel.setContentHuggingPriority(.required, for: .vertical)
-				
-		containerView.addSubview(mediaContentView)
-		contentView.addSubview(stackView)
-		
-		addSubview(contentView)
-		
-		NSLayoutConstraint.activate([
-			contentView.topAnchor.constraint(equalTo: topAnchor, constant: 8),
-			contentView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
-			contentView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
-			contentView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
-			
-			stackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
-			stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
-			stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
-			stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
-			
-			containerView.heightAnchor.constraint(greaterThanOrEqualToConstant: 120),
-			
-			mediaContentView.topAnchor.constraint(equalTo: containerView.topAnchor),
-			mediaContentView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-			mediaContentView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-			mediaContentView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
-			
-			storeStack.heightAnchor.constraint(equalToConstant: metrics.ctaMinHeight),
+            return label
+        }()
 
-			iconImageView.widthAnchor.constraint(equalToConstant: metrics.iconSize.width),
-			iconImageView.heightAnchor.constraint(equalToConstant: metrics.iconSize.height),
-		])
-	}
-	
-	private func updateUI(with nativeAd: NativeAd) {
-		let viewsToAnimate: [UIView] = [
-			iconImageView,
-			headlineLabel,
-			ratingImageView,
-			sponsorLabel,
-			storeLabel,
-			priceLabel,
-			bodyLabel,
-			actionButton
-		]
-		
-		for view in viewsToAnimate {
-			UIView.transition(with: view, duration: 0.3, options: .transitionFlipFromLeft) {
-				DispatchQueue.main.async {
-					switch view {
-					case self.iconImageView:
-						self.iconImageView.image = nativeAd.icon?.image
-						
-					case self.headlineLabel:
-						self.headlineLabel.text = nativeAd.headline?.capitalized
-						
-					case self.ratingImageView:
-						self.ratingImageView.image = self.imageOfStars(from: nativeAd.starRating)
-						
-					case self.sponsorLabel:
-						self.sponsorLabel.text = nativeAd.advertiser
-						
-					case self.storeLabel:
-						self.storeLabel.text = nativeAd.store?.uppercased()
-						
-					case self.priceLabel:
-						self.priceLabel.text = nativeAd.price?.uppercased()
-						
-					case self.bodyLabel:
-						self.bodyLabel.text = nativeAd.body?.capitalized
-						
-					case self.actionButton:
-						self.actionButton.setTitle(nativeAd.callToAction?.uppercased(), for: .normal)
-						
-					default:
-						break
-					}
-				}
-			}
-		}
-		
-		UIView.transition(with: mediaContentView, duration: 0.3, options: [.curveEaseOut]) {
-			DispatchQueue.main.async {
-				self.mediaContentView.mediaContent = nativeAd.mediaContent
-			}
-		}
-	}
-	
-	private func updateViewBindings() {
-		self.iconView = iconImageView
-		self.headlineView = headlineLabel
-		self.advertiserView = sponsorLabel
-		self.starRatingView = ratingImageView
-		self.storeView = storeLabel
-		self.priceView = priceLabel
-		self.callToActionView = actionButton
-		self.bodyView = bodyLabel
-		self.mediaView = mediaContentView
-	}
-	
-	private func updateVisibility(for nativeAd: NativeAd) {
-		let views: [(UIView?, Any?)] = [
-			(iconView, nativeAd.icon?.image),
-			(headlineView, nativeAd.headline),
-			(advertiserView, nativeAd.advertiser),
-			(starRatingView, nativeAd.starRating),
-			(bodyView, nativeAd.body),
-			(callToActionView, nativeAd.callToAction),
-			(storeView, nativeAd.store),
-			(priceView, nativeAd.price)
-		]
-		
-		func isVisibleData(_ data: Any?) -> Bool {
-			guard let data = data else { return false }
-			
-			if let string = data as? String {
-				return !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-			}
-			
-			if let nsString = data as? NSString {
-				return !nsString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-			}
-			
-			if let number = data as? NSDecimalNumber {
-				return number.doubleValue > 0
-			}
-			
-			return true
-		}
-		
-		let validViews: [(UIView, Bool)] = views.map { view, data in
-			guard let view = view else { return nil }
-			return (view, isVisibleData(data))
-		}.compactMap { $0 }
-		
-		UIView.animate(withDuration: 0.3) {
-			validViews.forEach { view, isVisible in
-				view.isHidden = !isVisible
-			}
-		}
-	}
-	
-	private func imageOfStars(from starRating: NSDecimalNumber?) -> UIImage? {
-		guard let rating = starRating?.doubleValue else {
-			return nil
-		}
-		
-		if rating >= 5 {
-			return UIImage.fromSPM(named: "stars_5")
-		} else if rating >= 4.5 {
-			return UIImage.fromSPM(named: "stars_4_5")
-		} else if rating >= 4 {
-			return UIImage.fromSPM(named: "stars_4")
-		} else if rating >= 3.5 {
-			return UIImage.fromSPM(named: "stars_3_5")
-		} else {
-			return nil
-		}
-	}
-}
+        public lazy var mediaContentView: MediaView = {
+            let view = MediaView()
+            view.translatesAutoresizingMaskIntoConstraints = false
+            view.contentMode = .scaleAspectFill
+            view.backgroundColor = .systemGray6
+            view.layer.cornerRadius = 5
+            view.layer.masksToBounds = true
 
-// MARK: - Styling
+            return view
+        }()
+    }
 
-extension NativeAdvancedView {
+    // MARK: - Supporting Methods
 
-	private func applyStyle() {
-		applyBackgroundFill(style.backgrounds.card)
-		contentView.applyBackgroundFill(style.backgrounds.content)
-		containerView.applyBackgroundFill(style.backgrounds.content)
+    extension NativeAdvancedView {
 
-		headlineLabel.textColor = style.text.headline
-		headlineLabel.font = style.text.headlineFont.resolved
-		sponsorLabel.textColor = style.text.sponsor
-		sponsorLabel.font = style.text.sponsorFont.resolved
-		bodyLabel.textColor = style.text.body
-		bodyLabel.font = style.text.bodyFont.resolved
+        private func setupViews() {
+            addBlur(style: .dark)
 
-		attributionLabel.textColor = style.attribution.text
-		attributionLabel.backgroundColor = style.attribution.background
-		attributionLabel.layer.borderColor = style.attribution.text.cgColor
-		attributionLabel.font = style.attribution.font.resolved
+            contentView.layer.cornerRadius = metrics.containerCornerRadius
+            iconImageView.layer.cornerRadius = metrics.iconCornerRadius
 
-		actionButton.backgroundColor = style.actionButton.background
-		actionButton.setTitleColor(style.actionButton.title, for: .normal)
-		actionButton.titleLabel?.font = style.actionButton.font.resolved
-		applyButtonShape()
+            let storeStack = AutoHidingStackView(arrangedSubviews: [actionButton, storeLabel, priceLabel])
+            storeStack.accessibilityIdentifier = "Store Stack"
+            storeStack.axis = .horizontal
+            storeStack.spacing = metrics.horizontalSpacing
+            storeStack.alignment = .fill
+            storeStack.distribution = .fillEqually
+            storeStack.translatesAutoresizingMaskIntoConstraints = false
 
-		storeLabel.backgroundColor = style.store.background
-		storeLabel.textColor = style.store.text
-		storeLabel.font = style.store.font.resolved
+            let attributionStack = AutoHidingStackView(arrangedSubviews: [attributionLabel, sponsorLabel])
+            attributionStack.accessibilityIdentifier = "Attribution Stack"
+            attributionStack.axis = .horizontal
+            attributionStack.spacing = 8
+            attributionStack.alignment = .center
+            attributionStack.distribution = .fill
+            attributionStack.translatesAutoresizingMaskIntoConstraints = false
 
-		priceLabel.backgroundColor = style.price.background
-		priceLabel.textColor = style.price.text
-		priceLabel.font = style.price.font.resolved
-	}
+            let labelStack = AutoHidingStackView(arrangedSubviews: [headlineLabel, attributionStack, ratingImageView])
+            labelStack.translatesAutoresizingMaskIntoConstraints = false
+            labelStack.accessibilityIdentifier = "Label Stack"
+            labelStack.axis = .vertical
+            labelStack.spacing = metrics.verticalSpacing
+            labelStack.alignment = .leading
+            labelStack.distribution = .fillProportionally
 
-	private func applyButtonShape() {
-		switch style.actionButton.shape.mode {
-		case let .rect(cornerRadius):
-			actionButton.layer.cornerRadius = cornerRadius
-		case .capsule:
-			let h = actionButton.bounds.height > 0 ? actionButton.bounds.height : metrics.ctaMinHeight
-			actionButton.layer.cornerRadius = h / 2
-		}
-	}
-}
+            let headerStack = AutoHidingStackView(arrangedSubviews: [iconImageView, labelStack])
+            headerStack.translatesAutoresizingMaskIntoConstraints = false
+            headerStack.accessibilityIdentifier = "Header Stack"
+            headerStack.axis = .horizontal
+            headerStack.spacing = metrics.horizontalSpacing
+            headerStack.alignment = .center
+            headerStack.distribution = .fill
 
-// MARK: - Public Methods
+            let stackView = AutoHidingStackView(arrangedSubviews: [containerView, headerStack, bodyLabel, storeStack])
+            stackView.translatesAutoresizingMaskIntoConstraints = false
+            stackView.accessibilityIdentifier = "Main Stack"
+            stackView.axis = .vertical
+            stackView.spacing = metrics.verticalSpacing
+            stackView.alignment = .fill
+            stackView.distribution = .fill
 
-extension NativeAdvancedView {
+            /*
+            ratingImageView.image = UIImage.fromSPM(named: "stars_5")
+            headlineLabel.text = "The new era of fashion is here"
+            sponsorLabel.text = "Polo Ralph Lauren"
+            bodyLabel.text = "This is a sample body text for the ad. It provides additional information about the product or service being advertised."
+            */
 
-	public func configure(with nativeAd: NativeAd) {
-		self.nativeAd = nativeAd
+            containerView.setContentHuggingPriority(.defaultHigh, for: .vertical)
+            containerView.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
 
-		updateUI(with: nativeAd)
-		updateVisibility(for: nativeAd)
+            bodyLabel.setContentHuggingPriority(.required, for: .vertical)
+            bodyLabel.setContentCompressionResistancePriority(.required, for: .vertical)
 
-		// The Google SDK rebinds the registered `iconView` when `nativeAd`
-		// is assigned and may reset its image-rendering knobs. Re-assert
-		// them here so the icon stays cropped-and-filled inside its slot
-		// instead of being letterboxed at the asset's native aspect ratio.
-		iconImageView.contentMode = .scaleAspectFill
-		iconImageView.clipsToBounds = true
-		iconImageView.layer.masksToBounds = true
-	}
-}
+            headlineLabel.setContentHuggingPriority(.required, for: .vertical)
+
+            containerView.addSubview(mediaContentView)
+            contentView.addSubview(stackView)
+
+            addSubview(contentView)
+
+            NSLayoutConstraint.activate([
+                contentView.topAnchor.constraint(equalTo: topAnchor, constant: 8),
+                contentView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
+                contentView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
+                contentView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
+
+                stackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
+                stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
+                stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
+                stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
+
+                containerView.heightAnchor.constraint(greaterThanOrEqualToConstant: 120),
+
+                mediaContentView.topAnchor.constraint(equalTo: containerView.topAnchor),
+                mediaContentView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+                mediaContentView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+                mediaContentView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+
+                storeStack.heightAnchor.constraint(equalToConstant: metrics.ctaMinHeight)
+                    .priority(UILayoutPriority(999)),
+
+                iconImageView.widthAnchor.constraint(equalToConstant: metrics.iconSize.width)
+                    .priority(UILayoutPriority(999)),
+                iconImageView.heightAnchor.constraint(equalToConstant: metrics.iconSize.height)
+                    .priority(UILayoutPriority(999)),
+            ])
+        }
+
+        private func updateUI(with nativeAd: NativeAd) {
+            let viewsToAnimate: [UIView] = [
+                iconImageView,
+                headlineLabel,
+                ratingImageView,
+                sponsorLabel,
+                storeLabel,
+                priceLabel,
+                bodyLabel,
+                actionButton,
+            ]
+
+            for view in viewsToAnimate {
+                UIView.transition(with: view, duration: 0.3, options: .transitionFlipFromLeft) {
+                    DispatchQueue.main.async {
+                        switch view {
+                            case self.iconImageView:
+                                self.iconImageView.image = nativeAd.icon?.image
+
+                            case self.headlineLabel:
+                                self.headlineLabel.text = nativeAd.headline?.capitalized
+
+                            case self.ratingImageView:
+                                self.ratingImageView.image = self.imageOfStars(from: nativeAd.starRating)
+
+                            case self.sponsorLabel:
+                                self.sponsorLabel.text = nativeAd.advertiser
+
+                            case self.storeLabel:
+                                self.storeLabel.text = nativeAd.store?.uppercased()
+
+                            case self.priceLabel:
+                                self.priceLabel.text = nativeAd.price?.uppercased()
+
+                            case self.bodyLabel:
+                                self.bodyLabel.text = nativeAd.body?.capitalized
+
+                            case self.actionButton:
+                                self.actionButton.setTitle(nativeAd.callToAction?.uppercased(), for: .normal)
+
+                            default:
+                                break
+                        }
+                    }
+                }
+            }
+
+            UIView.transition(with: mediaContentView, duration: 0.3, options: [.curveEaseOut]) {
+                DispatchQueue.main.async {
+                    self.mediaContentView.mediaContent = nativeAd.mediaContent
+                }
+            }
+        }
+
+        private func updateViewBindings() {
+            self.iconView = iconImageView
+            self.headlineView = headlineLabel
+            self.advertiserView = sponsorLabel
+            self.starRatingView = ratingImageView
+            self.storeView = storeLabel
+            self.priceView = priceLabel
+            self.callToActionView = actionButton
+            self.bodyView = bodyLabel
+            self.mediaView = mediaContentView
+        }
+
+        private func updateVisibility(for nativeAd: NativeAd) {
+            let views: [(UIView?, Any?)] = [
+                (iconView, nativeAd.icon?.image),
+                (headlineView, nativeAd.headline),
+                (advertiserView, nativeAd.advertiser),
+                (starRatingView, nativeAd.starRating),
+                (bodyView, nativeAd.body),
+                (callToActionView, nativeAd.callToAction),
+                (storeView, nativeAd.store),
+                (priceView, nativeAd.price),
+            ]
+
+            func isVisibleData(_ data: Any?) -> Bool {
+                guard let data = data else { return false }
+
+                if let string = data as? String {
+                    return !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                }
+
+                if let nsString = data as? NSString {
+                    return !nsString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                }
+
+                if let number = data as? NSDecimalNumber {
+                    return number.doubleValue > 0
+                }
+
+                return true
+            }
+
+            let validViews: [(UIView, Bool)] = views.map { view, data in
+                guard let view = view else { return nil }
+                return (view, isVisibleData(data))
+            }.compactMap { $0 }
+
+            UIView.animate(withDuration: 0.3) {
+                validViews.forEach { view, isVisible in
+                    view.isHidden = !isVisible
+                }
+            }
+        }
+
+        private func imageOfStars(from starRating: NSDecimalNumber?) -> UIImage? {
+            guard let rating = starRating?.doubleValue else {
+                return nil
+            }
+
+            if rating >= 5 {
+                return UIImage.fromSPM(named: "stars_5")
+            } else if rating >= 4.5 {
+                return UIImage.fromSPM(named: "stars_4_5")
+            } else if rating >= 4 {
+                return UIImage.fromSPM(named: "stars_4")
+            } else if rating >= 3.5 {
+                return UIImage.fromSPM(named: "stars_3_5")
+            } else {
+                return nil
+            }
+        }
+    }
+
+    // MARK: - Styling
+
+    extension NativeAdvancedView {
+
+        private func applyStyle() {
+            applyBackgroundFill(style.backgrounds.card)
+            contentView.applyBackgroundFill(style.backgrounds.content)
+            containerView.applyBackgroundFill(style.backgrounds.content)
+
+            headlineLabel.textColor = style.text.headline
+            headlineLabel.font = style.text.headlineFont.resolved
+            sponsorLabel.textColor = style.text.sponsor
+            sponsorLabel.font = style.text.sponsorFont.resolved
+            bodyLabel.textColor = style.text.body
+            bodyLabel.font = style.text.bodyFont.resolved
+
+            attributionLabel.textColor = style.attribution.text
+            attributionLabel.backgroundColor = style.attribution.background
+            attributionLabel.layer.borderColor = style.attribution.text.cgColor
+            attributionLabel.font = style.attribution.font.resolved
+
+            var buttonConfig = actionButton.configuration ?? UIButton.Configuration.plain()
+            buttonConfig.contentInsets = NSDirectionalEdgeInsets(style.actionButton.contentInsets)
+            buttonConfig.background.backgroundColor = style.actionButton.background
+            buttonConfig.baseForegroundColor = style.actionButton.title
+            let titleFont = style.actionButton.font.resolved
+            buttonConfig.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { container in
+                var updated = container
+                updated.font = titleFont
+                return updated
+            }
+            actionButton.configuration = buttonConfig
+            applyButtonShape()
+
+            storeLabel.backgroundColor = style.store.background
+            storeLabel.textColor = style.store.text
+            storeLabel.font = style.store.font.resolved
+
+            priceLabel.backgroundColor = style.price.background
+            priceLabel.textColor = style.price.text
+            priceLabel.font = style.price.font.resolved
+        }
+
+        private func applyButtonShape() {
+            var config = actionButton.configuration ?? UIButton.Configuration.plain()
+            switch style.actionButton.shape.mode {
+                case let .rect(cornerRadius):
+                    config.cornerStyle = .fixed
+                    config.background.cornerRadius = cornerRadius
+                case .capsule:
+                    config.cornerStyle = .capsule
+            }
+            actionButton.configuration = config
+        }
+    }
+
+    // MARK: - Public Methods
+
+    extension NativeAdvancedView {
+
+        public func configure(with nativeAd: NativeAd) {
+            self.nativeAd = nativeAd
+
+            updateUI(with: nativeAd)
+            updateVisibility(for: nativeAd)
+
+            // The Google SDK rebinds the registered `iconView` when `nativeAd`
+            // is assigned and may reset its image-rendering knobs. Re-assert
+            // them here so the icon stays cropped-and-filled inside its slot
+            // instead of being letterboxed at the asset's native aspect ratio.
+            iconImageView.contentMode = .scaleAspectFill
+            iconImageView.clipsToBounds = true
+            iconImageView.layer.masksToBounds = true
+        }
+    }
 #endif
