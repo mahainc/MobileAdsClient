@@ -291,57 +291,20 @@
         }
 
         private func updateUI(with nativeAd: NativeAd) {
-            let viewsToAnimate: [UIView] = [
-                iconImageView,
-                headlineLabel,
-                ratingImageView,
-                sponsorLabel,
-                storeLabel,
-                priceLabel,
-                bodyLabel,
-                actionButton,
-            ]
-
-            for view in viewsToAnimate {
-                UIView.transition(with: view, duration: 0.3, options: .transitionFlipFromLeft) {
-                    DispatchQueue.main.async {
-                        switch view {
-                            case self.iconImageView:
-                                self.iconImageView.image = nativeAd.icon?.image
-
-                            case self.headlineLabel:
-                                self.headlineLabel.text = nativeAd.headline?.capitalizingFirstLetter()
-
-                            case self.ratingImageView:
-                                self.ratingImageView.image = self.imageOfStars(from: nativeAd.starRating)
-
-                            case self.sponsorLabel:
-                                self.sponsorLabel.text = nativeAd.advertiser?.capitalizingFirstLetter()
-
-                            case self.storeLabel:
-                                self.storeLabel.text = nativeAd.store?.uppercased()
-
-                            case self.priceLabel:
-                                self.priceLabel.text = nativeAd.price?.uppercased()
-
-                            case self.bodyLabel:
-                                self.bodyLabel.text = nativeAd.body?.capitalizingFirstLetter()
-
-                            case self.actionButton:
-                                self.actionButton.setTitle(nativeAd.callToAction?.uppercased(), for: .normal)
-
-                            default:
-                                break
-                        }
-                    }
-                }
-            }
-
-            UIView.transition(with: mediaContentView, duration: 0.3, options: [.curveEaseOut]) {
-                DispatchQueue.main.async {
-                    self.mediaContentView.mediaContent = nativeAd.mediaContent
-                }
-            }
+            // Synchronous content assignment — the cross-dissolve + layout is
+            // driven once by `applyNativeContentUpdate` in `configure`. (The old
+            // per-element flips nested `DispatchQueue.main.async` inside the
+            // transition, so the new text landed AFTER the flip snapshot and
+            // popped in unanimated.)
+            iconImageView.image = nativeAd.icon?.image
+            headlineLabel.text = nativeAd.headline?.capitalizingFirstLetter()
+            ratingImageView.image = imageOfStars(from: nativeAd.starRating)
+            sponsorLabel.text = nativeAd.advertiser?.capitalizingFirstLetter()
+            storeLabel.text = nativeAd.store?.uppercased()
+            priceLabel.text = nativeAd.price?.uppercased()
+            bodyLabel.text = nativeAd.body?.capitalizingFirstLetter()
+            actionButton.setTitle(nativeAd.callToAction?.uppercased(), for: .normal)
+            mediaContentView.mediaContent = nativeAd.mediaContent
         }
 
         private func updateViewBindings() {
@@ -391,10 +354,10 @@
                 return (view, isVisibleData(data))
             }.compactMap { $0 }
 
-            UIView.animate(withDuration: 0.3) {
-                validViews.forEach { view, isVisible in
-                    view.isHidden = !isVisible
-                }
+            // Toggle synchronously — the stack collapse / height change animates
+            // as part of the single cross-dissolve pass in `configure`.
+            validViews.forEach { view, isVisible in
+                view.isHidden = !isVisible
             }
         }
 
@@ -478,18 +441,22 @@
     extension NativeAdvancedView {
 
         public func configure(with nativeAd: NativeAd) {
-            self.nativeAd = nativeAd
+            // Re-bind (refresh) cross-dissolves; first bind applies instantly.
+            let animated = self.nativeAd != nil
+            applyNativeContentUpdate(animated: animated) { [self] in
+                self.nativeAd = nativeAd
 
-            updateUI(with: nativeAd)
-            updateVisibility(for: nativeAd)
+                updateUI(with: nativeAd)
+                updateVisibility(for: nativeAd)
 
-            // The Google SDK rebinds the registered `iconView` when `nativeAd`
-            // is assigned and may reset its image-rendering knobs. Re-assert
-            // them here so the icon stays cropped-and-filled inside its slot
-            // instead of being letterboxed at the asset's native aspect ratio.
-            iconImageView.contentMode = .scaleAspectFill
-            iconImageView.clipsToBounds = true
-            iconImageView.layer.masksToBounds = true
+                // The Google SDK rebinds the registered `iconView` when `nativeAd`
+                // is assigned and may reset its image-rendering knobs. Re-assert
+                // them here so the icon stays cropped-and-filled inside its slot
+                // instead of being letterboxed at the asset's native aspect ratio.
+                iconImageView.contentMode = .scaleAspectFill
+                iconImageView.clipsToBounds = true
+                iconImageView.layer.masksToBounds = true
+            }
         }
     }
 #endif

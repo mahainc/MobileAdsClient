@@ -103,6 +103,37 @@
         }
     }
 
+    extension UIView {
+
+        /// Applies native-ad content/visibility updates as ONE coordinated pass:
+        /// a single cross-dissolve of the whole card plus a layout pass, so text,
+        /// images, stack collapse, and the resulting height settle together
+        /// instead of via N independent per-element flips and a deferred reflow.
+        ///
+        /// Pass `animated: false` for the first bind (the slot is appearing for
+        /// the first time — no prior content to dissolve from), `true` for a
+        /// re-bind/refresh.
+        public func applyNativeContentUpdate(
+            animated: Bool,
+            _ updates: @escaping () -> Void
+        ) {
+            guard animated else {
+                updates()
+                setNeedsLayout()
+                layoutIfNeeded()
+                return
+            }
+            UIView.transition(
+                with: self,
+                duration: 0.25,
+                options: [.transitionCrossDissolve, .allowAnimatedContent, .beginFromCurrentState]
+            ) {
+                updates()
+                self.layoutIfNeeded()
+            }
+        }
+    }
+
     extension String {
 
         /// Returns the string with only its first character uppercased; the

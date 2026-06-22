@@ -17,7 +17,7 @@ struct NativeAdsListView: View {
                     List {
                         ForEach(store.scope(state: \.ads, action: \.ads)) { adStore in
                             NativeView(store: adStore)
-                                .frame(width: proxy.size.width - 40, height: adStore.adHeight)
+                                .frame(width: proxy.size.width - 40)
                                 .padding(.horizontal, 20)
                                 .listRowInsets(EdgeInsets())
                                 .listRowSeparator(.hidden)

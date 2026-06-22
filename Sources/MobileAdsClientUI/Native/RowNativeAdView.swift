@@ -361,20 +361,21 @@
 
     extension RowNativeAdView {
         public func configure(with nativeAd: NativeAd) {
-            updateUI(with: nativeAd)
-            updateVisibility(for: nativeAd)
-            self.nativeAd = nativeAd
+            // Re-bind (refresh) cross-dissolves; first bind applies instantly.
+            let animated = self.nativeAd != nil
+            applyNativeContentUpdate(animated: animated) { [self] in
+                updateUI(with: nativeAd)
+                updateVisibility(for: nativeAd)
+                self.nativeAd = nativeAd
 
-            // The Google SDK rebinds the registered `iconView` when `nativeAd`
-            // is assigned and may reset its image-rendering knobs. Re-assert
-            // them here so the icon stays cropped-and-filled inside its slot
-            // instead of being letterboxed at the asset's native aspect ratio.
-            adIconImageView.contentMode = .scaleAspectFill
-            adIconImageView.clipsToBounds = true
-            adIconImageView.layer.masksToBounds = true
-
-            setNeedsLayout()
-            layoutIfNeeded()
+                // The Google SDK rebinds the registered `iconView` when `nativeAd`
+                // is assigned and may reset its image-rendering knobs. Re-assert
+                // them here so the icon stays cropped-and-filled inside its slot
+                // instead of being letterboxed at the asset's native aspect ratio.
+                adIconImageView.contentMode = .scaleAspectFill
+                adIconImageView.clipsToBounds = true
+                adIconImageView.layer.masksToBounds = true
+            }
         }
 
         public func calculateTotalHeight(fittingWidth: CGFloat) -> CGFloat {

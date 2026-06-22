@@ -44,7 +44,7 @@ struct GoogleAdsView: View {
 
                         if let store = store.scope(state: \.native, action: \.native) {
                             NativeView(store: store)
-                                .frame(width: proxy.size.width - 40, height: store.adHeight)
+                                .frame(width: proxy.size.width - 40)
                                 .padding(.horizontal, 20)
                                 .onAppear {
                                     Task {

@@ -353,29 +353,37 @@
 
     extension CustomNativeAdView {
         public func configure(with nativeAd: NativeAd) {
-            updateAspectRatio(for: nativeAd.mediaContent.aspectRatio)
-            updateUI(with: nativeAd)
+            // Re-bind (refresh) cross-dissolves; first bind applies instantly.
+            let animated = self.nativeAd != nil
+
+            // Asset-view registration and the media aspect-ratio constraint are
+            // applied up-front (not visual); the content + visibility + the
+            // resulting layout/height all settle in ONE coordinated pass below.
+            applyAspectRatioConstraint(for: nativeAd.mediaContent.aspectRatio)
             updateViewBindings(for: nativeAd)
-            updateVisibility(for: nativeAd)
 
-            self.nativeAd = nativeAd
+            applyNativeContentUpdate(animated: animated) { [self] in
+                updateUI(with: nativeAd)
+                updateVisibility(for: nativeAd)
 
-            // The Google SDK rebinds the registered `iconView` when `nativeAd`
-            // is assigned and may reset its image-rendering knobs. Re-assert
-            // them here so the icon stays cropped-and-filled inside its slot
-            // instead of being letterboxed at the asset's native aspect ratio.
-            adIconImageView.contentMode = .scaleAspectFill
-            adIconImageView.clipsToBounds = true
-            adIconImageView.layer.masksToBounds = true
+                self.nativeAd = nativeAd
 
-            // Force layout update to recalculate all component heights after data changes
-            setNeedsLayout()
-            layoutIfNeeded()
+                // The Google SDK rebinds the registered `iconView` when `nativeAd`
+                // is assigned and may reset its image-rendering knobs. Re-assert
+                // them here so the icon stays cropped-and-filled inside its slot
+                // instead of being letterboxed at the asset's native aspect ratio.
+                adIconImageView.contentMode = .scaleAspectFill
+                adIconImageView.clipsToBounds = true
+                adIconImageView.layer.masksToBounds = true
+            }
         }
 
         // MARK: - Update Aspect Ratio
 
-        private func updateAspectRatio(for aspectRatio: CGFloat) {
+        /// Swaps the media height constraint to match the creative's aspect
+        /// ratio. No animation here — the layout change is animated as part of
+        /// the coordinated cross-dissolve in `configure`.
+        private func applyAspectRatioConstraint(for aspectRatio: CGFloat) {
             guard aspectRatio > 0 else {
                 return
             }
@@ -392,67 +400,24 @@
             )
             heightConstraint.isActive = true
             currentMultiplier = 1.0 / aspectRatio
-
-            UIView.animate(withDuration: 0.5) {
-                self.layoutIfNeeded()
-            } completion: { _ in
-
-            }
         }
 
         // MARK: - Update UI Elements
 
         private func updateUI(with nativeAd: NativeAd) {
-            let viewsToAnimate: [UIView] = [
-                adIconImageView,
-                adHeadlineLabel,
-                adRatingImageView,
-                adSponsorLabel,
-                adStoreLabel,
-                adPriceLabel,
-                adBodyLabel,
-                actionButton,
-                contentView,
-            ]
-
-            for view in viewsToAnimate {
-                UIView.transition(
-                    with: view,
-                    duration: 0.3,
-                    options: .transitionFlipFromLeft,
-                    animations: {
-                        switch view {
-                            case self.adIconImageView:
-                                self.adIconImageView.image = nativeAd.icon?.image
-                            case self.adHeadlineLabel:
-                                self.adHeadlineLabel.text = nativeAd.headline?.capitalizingFirstLetter()
-                                self.adHeadlineLabel.invalidateIntrinsicContentSize()
-                            case self.adRatingImageView:
-                                self.adRatingImageView.image = self.imageOfStars(from: nativeAd.starRating)
-                            case self.adSponsorLabel:
-                                self.adSponsorLabel.text = nativeAd.advertiser?.capitalizingFirstLetter()
-                                self.adSponsorLabel.invalidateIntrinsicContentSize()
-                            case self.adStoreLabel:
-                                self.adStoreLabel.text = nativeAd.store?.capitalized
-                                self.adStoreLabel.invalidateIntrinsicContentSize()
-                            case self.adPriceLabel:
-                                self.adPriceLabel.text = nativeAd.price?.capitalized
-                                self.adPriceLabel.invalidateIntrinsicContentSize()
-                            case self.adBodyLabel:
-                                self.adBodyLabel.text = nativeAd.body?.capitalizingFirstLetter()
-                                self.adBodyLabel.invalidateIntrinsicContentSize()
-                            case self.actionButton:
-                                self.actionButton.setTitle(nativeAd.callToAction?.uppercased(), for: .normal)
-                                self.actionButton.invalidateIntrinsicContentSize()
-                            case self.contentView:
-                                self.contentView.mediaContent = nativeAd.mediaContent
-                                self.contentView.contentMode = .scaleAspectFit
-                            default:
-                                break
-                        }
-                    }
-                )
-            }
+            // Synchronous content assignment — the cross-dissolve + layout is
+            // driven once by `applyNativeContentUpdate` in `configure`, so this
+            // must not start its own per-element animations.
+            adIconImageView.image = nativeAd.icon?.image
+            adHeadlineLabel.text = nativeAd.headline?.capitalizingFirstLetter()
+            adRatingImageView.image = imageOfStars(from: nativeAd.starRating)
+            adSponsorLabel.text = nativeAd.advertiser?.capitalizingFirstLetter()
+            adStoreLabel.text = nativeAd.store?.capitalized
+            adPriceLabel.text = nativeAd.price?.capitalized
+            adBodyLabel.text = nativeAd.body?.capitalizingFirstLetter()
+            actionButton.setTitle(nativeAd.callToAction?.uppercased(), for: .normal)
+            contentView.mediaContent = nativeAd.mediaContent
+            contentView.contentMode = .scaleAspectFit
         }
 
         // MARK: - Bind Views to Native Ad
@@ -483,25 +448,14 @@
                 (priceView, nativeAd.price),
             ]
 
-            let validViews = views.compactMap { view, data in
-                view.map { ($0, data != nil) }
+            // Toggle visibility synchronously — the stack collapse and the
+            // resulting height change animate as part of the single
+            // cross-dissolve pass in `configure`, not a separate alpha+deferred
+            // -isHidden animation (which caused a two-stage height jump).
+            views.forEach { view, data in
+                view?.isHidden = (data == nil)
+                view?.alpha = 1
             }
-
-            UIView.animate(
-                withDuration: 0.3,
-                delay: 0,
-                options: [.curveEaseInOut],
-                animations: {
-                    validViews.forEach { view, isVisible in
-                        view.alpha = isVisible ? 1 : 0
-                    }
-                },
-                completion: { _ in
-                    validViews.forEach { view, isVisible in
-                        view.isHidden = !isVisible
-                    }
-                }
-            )
         }
 
         private func imageOfStars(from starRating: NSDecimalNumber?) -> UIImage? {
@@ -524,17 +478,16 @@
 
         // MARK: - Calculate Total Height
 
-        public func calculateTotalHeight() -> CGFloat {
-            // Force layout to ensure all component heights are updated
-            layoutIfNeeded()
-
-            let contentHeight = contentView.frame.height
-            let headlineHeight = headlineStack.frame.height
-            let bodyHeight = adBodyLabel.frame.height
-            let buttonHeight = actionButton.frame.height
-            let totalHeight = contentHeight + headlineHeight + bodyHeight + buttonHeight + 8 + defaultSpacing * 4
-
-            return totalHeight
+        /// Width-aware Auto Layout measurement, mirroring the row/compact views
+        /// so the SwiftUI wrapper can self-size via `sizeThatFits` (no manual
+        /// frame-summing, no `updateAdHeight` feedback loop).
+        public func calculateTotalHeight(fittingWidth: CGFloat) -> CGFloat {
+            let target = CGSize(width: fittingWidth, height: UIView.layoutFittingCompressedSize.height)
+            return systemLayoutSizeFitting(
+                target,
+                withHorizontalFittingPriority: .required,
+                verticalFittingPriority: .fittingSizeLevel
+            ).height
         }
     }
 #endif
