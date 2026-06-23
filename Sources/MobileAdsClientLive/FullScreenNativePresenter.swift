@@ -38,10 +38,11 @@
                     }
 
                     // Loader options for the full-screen layout: pin AdChoices to the
-                    // bottom-left — with full-bleed media a top corner collides with
-                    // the status bar / Dynamic Island, and the bottom-right holds the
-                    // CTA. Start any video muted. Media aspect ratio is left
-                    // unrestricted by default so fill/revenue isn't reduced.
+                    // bottom-left. With full-bleed media a top corner puts AdChoices
+                    // under the status bar / Dynamic Island (the AdMob validator flags
+                    // it as obstructed), and the top-left also holds our close button
+                    // / countdown. Bottom-left is clear of the chrome and validates
+                    // clean. Start any video muted; media aspect ratio unrestricted.
                     var options: [NativeAdClient.AnyAdLoaderOption] = [
                         .init(NativeAdClient.AdChoicesPositionOption(corner: adChoicesCorner)),
                         .init(NativeAdClient.VideoPlaybackOption(shouldStartMuted: videoStartsMuted)),

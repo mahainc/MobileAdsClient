@@ -51,13 +51,22 @@
         private let mediaIgnoresSafeArea: Bool
         private let mediaContentMode: UIView.ContentMode
 
+        // MARK: - Close countdown
+
+        /// Seconds the ad stays locked before the close button appears (`0` = no gate).
+        private let closeCountdown: Int
+        private var secondsRemaining: Int
+        private var countdownTimer: Timer?
+        /// Guards `didMoveToWindow` so the countdown starts exactly once.
+        private var countdownStarted = false
+
         /// Exposed so the SwiftUI wrapper / hosting controller can hook its
         /// `addTarget` to an `onClose` callback.
         public let closeButton: UIButton = {
             let button = UIButton(type: .system)
             button.accessibilityIdentifier = "Full Screen Native Close Button"
             button.translatesAutoresizingMaskIntoConstraints = false
-            let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .semibold)
+            let config = UIImage.SymbolConfiguration(pointSize: 11, weight: .heavy)
             button.setImage(UIImage(systemName: "xmark", withConfiguration: config), for: .normal)
             button.imageView?.contentMode = .scaleAspectFit
             return button
@@ -142,6 +151,19 @@
             return label
         }()
 
+        /// Shown in the close button's slot while the countdown is running ("closes
+        /// in Ns"); hidden once it reaches 0 and replaced by `closeButton`. Styled
+        /// from `style.closeButton` so it matches the `×` chip.
+        private lazy var countdownLabel: PaddedLabel = {
+            let label = PaddedLabel(padding: UIEdgeInsets(top: 6, left: 12, bottom: 6, right: 12))
+            label.accessibilityIdentifier = "Full Screen Native Countdown"
+            label.translatesAutoresizingMaskIntoConstraints = false
+            label.textAlignment = .center
+            label.font = .preferredFont(forTextStyle: .footnote)
+            label.layer.masksToBounds = true
+            return label
+        }()
+
         private lazy var actionButton: UIButton = {
             let button = UIButton(type: .system)
             // Use `UIButton.Configuration` (iOS 15+) so `contentInsets` — the
@@ -193,6 +215,8 @@
                 case .fit:
                     self.mediaContentMode = .scaleAspectFit
             }
+            self.closeCountdown = max(0, configuration.closeCountdown)
+            self.secondsRemaining = max(0, configuration.closeCountdown)
             super.init(frame: frame)
             setupViews()
             applyStyle()
@@ -202,6 +226,10 @@
             fatalError("init(coder:) has not been implemented")
         }
 
+        isolated deinit {
+            countdownTimer?.invalidate()
+        }
+
         public override func layoutSubviews() {
             super.layoutSubviews()
             layoutNativeAdGradient()
@@ -209,6 +237,19 @@
             scrimView.layoutNativeAdGradient()
             applyButtonShape()
             closeButton.layer.cornerRadius = closeButton.bounds.height / 2
+            countdownLabel.layer.cornerRadius = countdownLabel.bounds.height / 2
+        }
+
+        public override func didMoveToWindow() {
+            super.didMoveToWindow()
+            if window == nil {
+                // Dismissed / detached mid-countdown — stop the timer.
+                countdownTimer?.invalidate()
+                countdownTimer = nil
+            } else {
+                // Now on screen — start the countdown once.
+                startCloseCountdownIfNeeded()
+            }
         }
     }
 
@@ -273,12 +314,13 @@
             // Media in its own container (kept for click-attribution consistency).
             mediaContainer.addSubview(adMediaView)
 
-            // Top bar holds just the (non-asset) close button, top-left, so the
-            // top-right corner stays clear for the SDK's AdChoices overlay. The
-            // "Ad" chip now lives in the header row beneath the headline.
+            // Top bar holds the close button and the countdown label (only one is
+            // visible at a time), top-left, so the top-right corner stays clear for
+            // the SDK's AdChoices overlay. The "Ad" chip lives in the header row.
             let topBar = UIView()
             topBar.translatesAutoresizingMaskIntoConstraints = false
             topBar.addSubview(closeButton)
+            topBar.addSubview(countdownLabel)
 
             // Back → front: media (full-bleed) → scrim → controls.
             addSubview(mediaContainer)
@@ -316,6 +358,13 @@
                 closeButton.widthAnchor.constraint(equalToConstant: 32),
                 closeButton.heightAnchor.constraint(equalToConstant: 32),
 
+                // Countdown label occupies the same top-left slot as the close
+                // button (hugs its text); only one of the two is ever visible.
+                countdownLabel.leadingAnchor.constraint(equalTo: topBar.leadingAnchor),
+                countdownLabel.centerYAnchor.constraint(equalTo: topBar.centerYAnchor),
+                countdownLabel.topAnchor.constraint(greaterThanOrEqualTo: topBar.topAnchor),
+                countdownLabel.bottomAnchor.constraint(lessThanOrEqualTo: topBar.bottomAnchor),
+
                 // Bottom cluster overlays the scrim: 20pt horizontal padding, flush
                 // to the safe-area bottom (0pt) so it clears the home indicator
                 // without an extra gap.
@@ -346,6 +395,16 @@
                 actionButton.bottomAnchor.constraint(equalTo: ctaContainer.bottomAnchor),
                 actionButton.heightAnchor.constraint(greaterThanOrEqualToConstant: metrics.ctaMinHeight),
             ])
+
+            // Initial close-gate state: while a countdown is configured, show the
+            // label and hide the close button; the timer (started in
+            // `didMoveToWindow`) swaps them at 0. No gate → close button shown.
+            let gated = closeCountdown > 0
+            countdownLabel.isHidden = !gated
+            closeButton.isHidden = gated
+            if gated {
+                countdownLabel.text = countdownText(for: secondsRemaining)
+            }
         }
 
         /// Pins `mediaContainer`'s four edges to either the view's own edges
@@ -366,6 +425,59 @@
                     mediaContainer.trailingAnchor.constraint(equalTo: guide.trailingAnchor),
                     mediaContainer.bottomAnchor.constraint(equalTo: guide.bottomAnchor),
                 ]
+            }
+        }
+
+        // MARK: - Close countdown
+
+        private func countdownText(for seconds: Int) -> String {
+            "Ad · closes in \(seconds)s"
+        }
+
+        /// Starts the 1s countdown once the view is on screen. No-op when the gate
+        /// is off (`closeCountdown == 0`) or already started.
+        private func startCloseCountdownIfNeeded() {
+            guard closeCountdown > 0, !countdownStarted else {
+                return
+            }
+            countdownStarted = true
+            countdownLabel.text = countdownText(for: secondsRemaining)
+
+            let timer = Timer(timeInterval: 1, repeats: true) { [weak self] timer in
+                guard let self else {
+                    timer.invalidate()
+                    return
+                }
+                // The timer is added to `RunLoop.main` below, so the block always
+                // fires on the main actor — assert that to reach this view's
+                // main-actor-isolated state.
+                MainActor.assumeIsolated {
+                    self.secondsRemaining -= 1
+                    if self.secondsRemaining > 0 {
+                        self.countdownLabel.text = self.countdownText(for: self.secondsRemaining)
+                    } else {
+                        self.countdownTimer?.invalidate()
+                        self.countdownTimer = nil
+                        self.revealCloseButton()
+                    }
+                }
+            }
+            // `.common` so the countdown keeps ticking during scroll/tracking runloop
+            // modes (the media view may drive its own interactions).
+            RunLoop.main.add(timer, forMode: .common)
+            countdownTimer = timer
+        }
+
+        /// Swaps the countdown label for the tappable close button, with a quick
+        /// cross-dissolve so the transition isn't abrupt.
+        private func revealCloseButton() {
+            UIView.transition(
+                with: self,
+                duration: 0.2,
+                options: [.transitionCrossDissolve, .beginFromCurrentState]
+            ) {
+                self.countdownLabel.isHidden = true
+                self.closeButton.isHidden = false
             }
         }
 
@@ -406,6 +518,10 @@
             // `closeButton.text` doubles as the icon tint color for the close button.
             closeButton.tintColor = style.closeButton.text
             closeButton.backgroundColor = style.closeButton.background
+            // Countdown label shares the close button's chip colors so the swap at 0
+            // is visually seamless.
+            countdownLabel.backgroundColor = style.closeButton.background
+            countdownLabel.textColor = style.closeButton.text
             applyButtonShape()
         }
 

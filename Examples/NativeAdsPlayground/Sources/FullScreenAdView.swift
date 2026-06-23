@@ -15,6 +15,7 @@ struct FullScreenAdView: View {
     @Perception.Bindable var store: StoreOf<FullScreenAd>
     @State private var mediaIgnoresSafeArea = true
     @State private var mediaFills = true
+    @State private var gateClose = true
 
     var body: some View {
         WithPerceptionTracking {
@@ -43,6 +44,9 @@ struct FullScreenAdView: View {
                         .padding(.horizontal, 32)
 
                     Toggle("Media fills (off = fit)", isOn: $mediaFills)
+                        .padding(.horizontal, 32)
+
+                    Toggle("Gate close (5s countdown)", isOn: $gateClose)
                         .padding(.horizontal, 32)
 
                     Button {
@@ -81,7 +85,8 @@ struct FullScreenAdView: View {
                         nativeAd: nativeAd,
                         configuration: .init(
                             mediaIgnoresSafeArea: mediaIgnoresSafeArea,
-                            mediaContentMode: mediaFills ? .fill : .fit
+                            mediaContentMode: mediaFills ? .fill : .fit,
+                            closeCountdown: gateClose ? 5 : 0
                         ),
                         onClose: { store.send(.dismissTapped) }
                     )

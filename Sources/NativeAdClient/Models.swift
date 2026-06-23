@@ -449,7 +449,7 @@ import Foundation
                         font: .textStyle(.caption2, weight: .semibold)
                     ),
                     closeButton: .init(
-                        background: UIColor.black.withAlphaComponent(0.4),
+                        background: UIColor.black.withAlphaComponent(0.25),
                         text: .white
                     )
                 )
@@ -799,19 +799,25 @@ import Foundation
                 public var mediaIgnoresSafeArea: Bool
                 /// How the media creative fills its frame (default `.fill`).
                 public var mediaContentMode: MediaContentMode
+                /// Seconds the ad stays locked before the close button appears. While
+                /// counting down, a "closes in Ns" label shows in place of the close
+                /// button. `0` = no gate (close button shown immediately).
+                public var closeCountdown: Int
 
                 public init(
                     style: Style = .fullScreen,
                     bodyDisplay: BodyDisplay = .truncated(lines: 3),
                     metrics: Metrics = .fullScreen,
                     mediaIgnoresSafeArea: Bool = true,
-                    mediaContentMode: MediaContentMode = .fill
+                    mediaContentMode: MediaContentMode = .fill,
+                    closeCountdown: Int = 5
                 ) {
                     self.style = style
                     self.bodyDisplay = bodyDisplay
                     self.metrics = metrics
                     self.mediaIgnoresSafeArea = mediaIgnoresSafeArea
                     self.mediaContentMode = mediaContentMode
+                    self.closeCountdown = closeCountdown
                 }
 
                 public static let `default` = FullScreen()
@@ -821,6 +827,7 @@ import Foundation
                     hasher.combine(metrics)
                     hasher.combine(mediaIgnoresSafeArea)
                     hasher.combine(mediaContentMode)
+                    hasher.combine(closeCountdown)
                 }
             }
         }

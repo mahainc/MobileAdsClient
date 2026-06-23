@@ -80,9 +80,10 @@ public struct FullScreenAd: Sendable {
                     state.errorText = nil
 
                     // Mirror `FullScreenNativePresenter`'s options: AdChoices
-                    // bottom-left (clear of the status bar and the bottom-right CTA)
-                    // and video muted. Request portrait media — it fills the
-                    // full-bleed screen edge-to-edge under `scaleAspectFill`.
+                    // bottom-left (a top corner sits under the status bar/Dynamic
+                    // Island with full-bleed media — the validator flags it; the
+                    // top-left holds the close button/countdown) and video muted.
+                    // Request portrait media — fills the full-bleed screen.
                     let options: [NativeAdClient.AnyAdLoaderOption] = [
                         .init(NativeAdClient.AdChoicesPositionOption(corner: .bottomLeft)),
                         .init(NativeAdClient.VideoPlaybackOption(shouldStartMuted: true)),
