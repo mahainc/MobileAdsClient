@@ -34,21 +34,25 @@
 
         public var body: some View {
             ZStack {
-                // Always in the tree — acts as the container's height floor so the
-                // ZStack stays stable across the skeleton → loaded transition
-                // (mirrors RowNativeView). Replaces the old hard if/else swap, which
-                // had no shared floor and stepped when the loaded height differed.
+                // Height floor during the skeleton → loaded swap. The `.animation`
+                // is scoped to the skeleton's own opacity ONLY — a subtree-wide
+                // `.animation(value: nativeAd != nil)` would suppress the eased
+                // height change on a refresh (that value doesn't change on refresh).
                 RowMediaNativeSkeletonView(configuration: rowMediaConfig)
                     .opacity(store.nativeAd == nil ? 1 : 0)
                     .accessibilityHidden(store.nativeAd != nil)
+                    .animation(.easeInOut(duration: 0.25), value: store.nativeAd != nil)
 
                 if store.nativeAd != nil {
+                    // Height is state-driven (`store.adHeight`, measured in
+                    // `updateUIView`) so a refresh EASES via the `.updateAdHeight`
+                    // animation transaction instead of snapping.
                     _RowMediaNativeRepresentable(store: store, configuration: rowMediaConfig)
+                        .frame(height: store.adHeight)
                         .transition(.opacity)
                 }
             }
             .id(rowMediaConfig)
-            .animation(.easeInOut(duration: 0.25), value: store.nativeAd != nil)
         }
     }
 
@@ -69,18 +73,17 @@
             }
             guard let nativeAd = store.nativeAd else { return }
             guard uiView.nativeAd !== nativeAd else { return }
+            let isRebind = uiView.nativeAd != nil
             uiView.configure(with: nativeAd)
-            uiView.invalidateIntrinsicContentSize()
-        }
-
-        func sizeThatFits(
-            _ proposal: ProposedViewSize,
-            uiView: RowMediaNativeAdView,
-            context: Context
-        ) -> CGSize? {
-            guard let width = proposal.width, width > 0, width.isFinite else { return nil }
-            let height = uiView.calculateTotalHeight(fittingWidth: width)
-            return CGSize(width: width, height: height)
+            // Measure the new content height off the laid-out width and push it to
+            // state so `.frame(height:)` eases it (refresh) or sets it (first bind).
+            DispatchQueue.main.async {
+                let width = uiView.bounds.width
+                guard width > 0 else { return }
+                let height = uiView.calculateTotalHeight(fittingWidth: width)
+                guard abs(height - store.adHeight) > 0.5 else { return }
+                store.send(.updateAdHeight(height), animation: isRebind ? .easeInOut(duration: 0.3) : nil)
+            }
         }
     }
 #endif

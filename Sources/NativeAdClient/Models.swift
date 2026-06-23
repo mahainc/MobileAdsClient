@@ -423,23 +423,34 @@ import Foundation
                     )
                 )
 
+                // Immersive full-bleed layout: media fills the screen and text
+                // overlays a bottom dark scrim, so the foreground text is light
+                // regardless of the creative. Card stays dark for the brief
+                // pre-media frame / no-media fallback behind the scrim.
                 public static let fullScreen: Style = .init(
-                    backgrounds: .init(card: .systemBackground, content: .clear),
+                    backgrounds: .init(card: .black, content: .clear),
                     text: .init(
-                        headlineFont: .textStyle(.title3, weight: .bold),
-                        bodyFont: .textStyle(.callout),
-                        sponsorFont: .textStyle(.footnote)
+                        headline: .white,
+                        body: UIColor.white.withAlphaComponent(0.9),
+                        sponsor: UIColor.white.withAlphaComponent(0.8),
+                        headlineFont: .textStyle(.headline, weight: .bold),
+                        bodyFont: .textStyle(.subheadline),
+                        sponsorFont: .textStyle(.caption1)
                     ),
                     actionButton: .init(
                         background: .systemBlue,
                         title: .white,
                         shape: .capsule,
-                        font: .textStyle(.headline)
+                        font: .textStyle(.subheadline, weight: .semibold)
                     ),
                     attribution: .init(
                         background: .systemBlue,
                         text: .white,
                         font: .textStyle(.caption2, weight: .semibold)
+                    ),
+                    closeButton: .init(
+                        background: UIColor.black.withAlphaComponent(0.4),
+                        text: .white
                     )
                 )
 
@@ -758,6 +769,58 @@ import Foundation
                 public func hash(into hasher: inout Hasher) {
                     hasher.combine(bodyDisplay)
                     hasher.combine(metrics)
+                }
+            }
+
+            // Drives the immersive full-bleed `FullScreenNativeAdView`. Unlike the
+            // in-feed templates this one isn't store/`AnyConfiguration`-selectable —
+            // it's passed directly to `FullScreenNativeView` / the presenter — but
+            // it shares the same `style` + `metrics` + `bodyDisplay` shape so the
+            // renderer reads config instead of hardcoded values.
+            public struct FullScreen: Kind, Hashable {
+                /// How the media creative fills its frame.
+                public enum MediaContentMode: Sendable, Equatable, Hashable {
+                    /// Crops to fill the frame edge-to-edge (no letterboxing). Best
+                    /// for the immersive full-bleed look — parts of the creative may
+                    /// be cropped. Maps to `.scaleAspectFill`.
+                    case fill
+                    /// Fits the whole creative inside the frame; any leftover space
+                    /// shows the card/scrim background (letterboxed). Maps to
+                    /// `.scaleAspectFit`.
+                    case fit
+                }
+
+                public var style: Style
+                public var bodyDisplay: BodyDisplay
+                public var metrics: Metrics
+                /// When `true` (default) the media view bleeds to every screen edge
+                /// (under the notch + home indicator). When `false` the media is
+                /// inset to the safe area instead.
+                public var mediaIgnoresSafeArea: Bool
+                /// How the media creative fills its frame (default `.fill`).
+                public var mediaContentMode: MediaContentMode
+
+                public init(
+                    style: Style = .fullScreen,
+                    bodyDisplay: BodyDisplay = .truncated(lines: 3),
+                    metrics: Metrics = .fullScreen,
+                    mediaIgnoresSafeArea: Bool = true,
+                    mediaContentMode: MediaContentMode = .fill
+                ) {
+                    self.style = style
+                    self.bodyDisplay = bodyDisplay
+                    self.metrics = metrics
+                    self.mediaIgnoresSafeArea = mediaIgnoresSafeArea
+                    self.mediaContentMode = mediaContentMode
+                }
+
+                public static let `default` = FullScreen()
+
+                public func hash(into hasher: inout Hasher) {
+                    hasher.combine(bodyDisplay)
+                    hasher.combine(metrics)
+                    hasher.combine(mediaIgnoresSafeArea)
+                    hasher.combine(mediaContentMode)
                 }
             }
         }

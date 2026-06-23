@@ -353,16 +353,13 @@
 
     extension CustomNativeAdView {
         public func configure(with nativeAd: NativeAd) {
-            // Re-bind (refresh) cross-dissolves; first bind applies instantly.
-            let animated = self.nativeAd != nil
-
-            // Asset-view registration and the media aspect-ratio constraint are
-            // applied up-front (not visual); the content + visibility + the
-            // resulting layout/height all settle in ONE coordinated pass below.
+            // Content is set synchronously; the card height eases at the SwiftUI
+            // layer via `.frame(height: store.adHeight)`. (A UIKit transition on
+            // `self` here would fight that frame animation on the same layer.)
             applyAspectRatioConstraint(for: nativeAd.mediaContent.aspectRatio)
             updateViewBindings(for: nativeAd)
 
-            applyNativeContentUpdate(animated: animated) { [self] in
+            applyNativeContentUpdate(animated: false) { [self] in
                 updateUI(with: nativeAd)
                 updateVisibility(for: nativeAd)
 

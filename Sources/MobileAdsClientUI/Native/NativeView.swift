@@ -29,6 +29,7 @@
         public var body: some View {
             _CustomNativeRepresentable(store: store, configuration: customConfig)
                 .id(customConfig)
+                .frame(height: store.adHeight)
         }
     }
 
@@ -50,21 +51,20 @@
             guard let nativeAd = store.nativeAd else { return }
             // Skip re-bind when the same creative is already attached — matches the
             // Row/RowMedia/Compact wrappers. Without this guard, SwiftUI re-invokes
-            // `updateUIView` on every store mutation and `configure` re-runs the
-            // content animation in a feedback loop.
+            // `updateUIView` on every store mutation and `configure` + the height
+            // measure/send re-run in a feedback loop.
             guard nativeAdView.nativeAd !== nativeAd else { return }
+            let isRebind = nativeAdView.nativeAd != nil
             nativeAdView.configure(with: nativeAd)
-            nativeAdView.invalidateIntrinsicContentSize()
-        }
-
-        func sizeThatFits(
-            _ proposal: ProposedViewSize,
-            uiView: CustomNativeAdView,
-            context: Context
-        ) -> CGSize? {
-            guard let width = proposal.width, width > 0, width.isFinite else { return nil }
-            let height = uiView.calculateTotalHeight(fittingWidth: width)
-            return CGSize(width: width, height: height)
+            // Measure the new content height off the laid-out width and push it to
+            // state so `.frame(height:)` eases it (refresh) or sets it (first bind).
+            DispatchQueue.main.async {
+                let width = nativeAdView.bounds.width
+                guard width > 0 else { return }
+                let height = nativeAdView.calculateTotalHeight(fittingWidth: width)
+                guard abs(height - store.adHeight) > 0.5 else { return }
+                store.send(.updateAdHeight(height), animation: isRebind ? .easeInOut(duration: 0.3) : nil)
+            }
         }
     }
 #endif

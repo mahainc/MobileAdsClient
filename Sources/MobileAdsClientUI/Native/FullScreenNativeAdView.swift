@@ -6,18 +6,30 @@
 //  `GoogleMobileAds` primitives only — no dependency on `ads_swift`. Intended
 //  to back `MobileAdsClient.showNativeFullScreen(_:)` via `UIHostingController`.
 //
-//  Layout (top → bottom, safe-area-aware):
+//  Immersive full-bleed layout: the media view fills the ENTIRE screen and every
+//  other element overlays on top of it. A bottom gradient scrim (clear → black)
+//  sits behind the content cluster so light text stays legible over arbitrary
+//  creative imagery.
+//
 //    ┌────────────────────────────────────┐
-//    │  [×]              [Ad]            │   close + ad chip, 16pt above safe-top
+//    │  [×] [Ad]            (AdChoices)   │   close + ad chip top-left (over media)
 //    │                                    │
-//    │        MediaView (~55%)            │   aspect-fit media
-//    │                                    │
-//    │  [Icon 56] Headline                │
-//    │            Sponsor                 │
-//    │  Body (4 lines max)                │
-//    │                                    │
-//    │  [    Install Now CTA    ]         │   56pt pill, 16pt above safe-bottom
+//    │         FULL-BLEED MEDIA           │   edge-to-edge, scaleAspectFill
+//    │         (under notch +             │
+//    │          home indicator)           │
+//    │░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░│ ← scrim (clear → black) starts here
+//    │  [Icon] Headline                   │
+//    │         Sponsor                    │
+//    │  Body (3 lines max)                │
+//    │  [    Install Now CTA    ]         │   pill, above safe-bottom
 //    └────────────────────────────────────┘
+//
+//  Per Google's full-screen native guidance, each interactive ad asset (CTA,
+//  headline, body) is wrapped in its own plain `UIView` container that is a
+//  subview of this `NativeAdView`. The SDK disables `isUserInteractionEnabled`
+//  on registered asset views (but not their containers) while video plays, so
+//  wrapping keeps taps attributable instead of falling through to the media view
+//  — which matters even more here, since assets now sit directly over the media.
 //
 
 #if canImport(UIKit)
@@ -28,12 +40,16 @@
     public class FullScreenNativeAdView: NativeAdView {
 
         public typealias Style = NativeAdClient.Configuration.Style
+        public typealias Configuration = NativeAdClient.Configuration.FullScreen
 
         public var style: Style {
             didSet { applyStyle() }
         }
 
         private let metrics: NativeAdClient.Configuration.Metrics
+        private let bodyDisplay: NativeAdClient.Configuration.BodyDisplay
+        private let mediaIgnoresSafeArea: Bool
+        private let mediaContentMode: UIView.ContentMode
 
         /// Exposed so the SwiftUI wrapper / hosting controller can hook its
         /// `addTarget` to an `onClose` callback.
@@ -52,10 +68,25 @@
         private lazy var adMediaView: MediaView = {
             let view = MediaView()
             view.translatesAutoresizingMaskIntoConstraints = false
-            view.contentMode = .scaleAspectFill
-            view.layer.cornerRadius = 16
+            // `contentMode` is driven by config — set in `setupViews()` and
+            // re-asserted in `updateUI` (the SDK resets it on `mediaContent`).
+            view.contentMode = mediaContentMode
+            // Full-bleed: no corner radius — the media reaches every screen edge.
             view.layer.masksToBounds = true
             view.clipsToBounds = true
+            return view
+        }()
+
+        /// Bottom gradient scrim (clear → black) that sits between the full-bleed
+        /// media and the overlaid content cluster so light text stays legible. The
+        /// gradient is a managed `CAGradientLayer` applied via `applyBackgroundFill`
+        /// and re-framed in `layoutSubviews()`. Non-interactive so taps pass through
+        /// to the media view (video controls) and the registered asset containers.
+        private lazy var scrimView: UIView = {
+            let view = UIView()
+            view.translatesAutoresizingMaskIntoConstraints = false
+            view.backgroundColor = .clear
+            view.isUserInteractionEnabled = false
             return view
         }()
 
@@ -92,9 +123,10 @@
             let label = UILabel()
             label.accessibilityIdentifier = "Full Screen Native Body"
             label.translatesAutoresizingMaskIntoConstraints = false
-            // Body must not be truncated (Google native policy: ≤90 chars, no
-            // truncation). Wrap to as many lines as the text needs.
-            label.numberOfLines = 0
+            // `numberOfLines` is driven by `bodyDisplay` in `setupViews()`. Default
+            // here is a safe cap so a long creative never eats into the media area
+            // above the scrim; headline stays uncapped (≤25-char policy → ≤2 lines).
+            label.numberOfLines = 3
             label.lineBreakMode = .byWordWrapping
             return label
         }()
@@ -128,15 +160,39 @@
             return button
         }()
 
+        // MARK: - Asset containers
+
+        // Each interactive asset lives inside a plain container `UIView` (see the
+        // file header). Held as properties so `updateVisibility(for:)` can collapse
+        // the header / body rows inside `midStack` when their assets are absent.
+        private let headerContainer = FullScreenNativeAdView.makeContainer()
+        private let bodyContainer = FullScreenNativeAdView.makeContainer()
+        private let ctaContainer = FullScreenNativeAdView.makeContainer()
+        private let mediaContainer = FullScreenNativeAdView.makeContainer()
+
+        private static func makeContainer() -> UIView {
+            let view = UIView()
+            view.translatesAutoresizingMaskIntoConstraints = false
+            view.backgroundColor = .clear
+            return view
+        }
+
         // MARK: - Init
 
         public init(
             frame: CGRect = .zero,
-            style: Style = .fullScreen,
-            metrics: NativeAdClient.Configuration.Metrics = .fullScreen
+            configuration: Configuration = .default
         ) {
-            self.style = style
-            self.metrics = metrics
+            self.style = configuration.style
+            self.metrics = configuration.metrics
+            self.bodyDisplay = configuration.bodyDisplay
+            self.mediaIgnoresSafeArea = configuration.mediaIgnoresSafeArea
+            switch configuration.mediaContentMode {
+                case .fill:
+                    self.mediaContentMode = .scaleAspectFill
+                case .fit:
+                    self.mediaContentMode = .scaleAspectFit
+            }
             super.init(frame: frame)
             setupViews()
             applyStyle()
@@ -149,6 +205,8 @@
         public override func layoutSubviews() {
             super.layoutSubviews()
             layoutNativeAdGradient()
+            // Keep the scrim's managed gradient layer sized to the scrim's bounds.
+            scrimView.layoutNativeAdGradient()
             applyButtonShape()
             closeButton.layer.cornerRadius = closeButton.bounds.height / 2
         }
@@ -158,12 +216,32 @@
 
     extension FullScreenNativeAdView {
         private func setupViews() {
-            layer.cornerRadius = metrics.containerCornerRadius
-            layer.masksToBounds = metrics.containerCornerRadius > 0
+            // No card corner radius — the media is full-bleed to every screen edge.
+            layer.masksToBounds = true
 
             adIconImageView.layer.cornerRadius = metrics.iconCornerRadius
 
-            let textStack = UIStackView(arrangedSubviews: [adHeadlineLabel, adSponsorLabel])
+            // Body line count from config. `.hidden` is handled in `updateVisibility`.
+            switch bodyDisplay.mode {
+                case .hidden, .full:
+                    adBodyLabel.numberOfLines = 0
+                case let .truncated(lines):
+                    adBodyLabel.numberOfLines = max(1, lines)
+            }
+
+            // Sponsor + "Ad" chip share a line below the headline. The chip hugs
+            // its content so it sits right after the sponsor (or leads the row when
+            // the sponsor is absent).
+            adAttributionLabel.setContentHuggingPriority(.required, for: .horizontal)
+            adAttributionLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+            let sponsorRow = UIStackView(arrangedSubviews: [adSponsorLabel, adAttributionLabel])
+            sponsorRow.axis = .horizontal
+            sponsorRow.spacing = 6
+            sponsorRow.alignment = .center
+            sponsorRow.translatesAutoresizingMaskIntoConstraints = false
+
+            // Header: icon | (headline / sponsor + Ad chip). Wrapped in `headerContainer`.
+            let textStack = UIStackView(arrangedSubviews: [adHeadlineLabel, sponsorRow])
             textStack.axis = .vertical
             textStack.spacing = 2
             textStack.alignment = .leading
@@ -175,62 +253,136 @@
             headerStack.spacing = metrics.horizontalSpacing
             headerStack.alignment = .center
             headerStack.translatesAutoresizingMaskIntoConstraints = false
+            headerContainer.addSubview(headerStack)
 
+            // Body + CTA each wrapped in their own container.
+            bodyContainer.addSubview(adBodyLabel)
+            ctaContainer.addSubview(actionButton)
+
+            // Bottom content cluster: header → body → CTA, collapsing rows hidden.
+            let bottomCluster = AutoHidingStackView()
+            bottomCluster.axis = .vertical
+            bottomCluster.spacing = 10
+            bottomCluster.alignment = .fill
+            bottomCluster.distribution = .fill
+            bottomCluster.translatesAutoresizingMaskIntoConstraints = false
+            bottomCluster.addArrangedSubview(headerContainer)
+            bottomCluster.addArrangedSubview(bodyContainer)
+            bottomCluster.addArrangedSubview(ctaContainer)
+
+            // Media in its own container (kept for click-attribution consistency).
+            mediaContainer.addSubview(adMediaView)
+
+            // Top bar holds just the (non-asset) close button, top-left, so the
+            // top-right corner stays clear for the SDK's AdChoices overlay. The
+            // "Ad" chip now lives in the header row beneath the headline.
             let topBar = UIView()
             topBar.translatesAutoresizingMaskIntoConstraints = false
             topBar.addSubview(closeButton)
-            topBar.addSubview(adAttributionLabel)
 
+            // Back → front: media (full-bleed) → scrim → controls.
+            addSubview(mediaContainer)
+            addSubview(scrimView)
             addSubview(topBar)
-            addSubview(adMediaView)
-            addSubview(headerStack)
-            addSubview(adBodyLabel)
-            addSubview(actionButton)
+            addSubview(bottomCluster)
 
             let guide = safeAreaLayoutGuide
 
+            // Media edges: the view's own edges (full-bleed, under notch + home
+            // indicator) when `mediaIgnoresSafeArea`, else inset to the safe area.
+            // `pinMediaContainer` reads `mediaIgnoresSafeArea` to pick the source.
+            NSLayoutConstraint.activate(mediaContainerEdgeConstraints())
+
             NSLayoutConstraint.activate([
-                topBar.topAnchor.constraint(equalTo: guide.topAnchor, constant: 12),
-                topBar.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 16),
-                topBar.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -16),
-                topBar.heightAnchor.constraint(equalToConstant: 36),
+                adMediaView.topAnchor.constraint(equalTo: mediaContainer.topAnchor),
+                adMediaView.leadingAnchor.constraint(equalTo: mediaContainer.leadingAnchor),
+                adMediaView.trailingAnchor.constraint(equalTo: mediaContainer.trailingAnchor),
+                adMediaView.bottomAnchor.constraint(equalTo: mediaContainer.bottomAnchor),
+
+                // Scrim: bottom 55% of the screen, behind the controls.
+                scrimView.leadingAnchor.constraint(equalTo: leadingAnchor),
+                scrimView.trailingAnchor.constraint(equalTo: trailingAnchor),
+                scrimView.bottomAnchor.constraint(equalTo: bottomAnchor),
+                scrimView.heightAnchor.constraint(equalTo: heightAnchor, multiplier: 0.55),
+
+                // Top bar — close button, over the media (safe-area top-left).
+                topBar.topAnchor.constraint(equalTo: guide.topAnchor, constant: 8),
+                topBar.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 20),
+                topBar.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -20),
+                topBar.heightAnchor.constraint(equalToConstant: 32),
 
                 closeButton.leadingAnchor.constraint(equalTo: topBar.leadingAnchor),
                 closeButton.centerYAnchor.constraint(equalTo: topBar.centerYAnchor),
-                closeButton.widthAnchor.constraint(equalToConstant: 36),
-                closeButton.heightAnchor.constraint(equalToConstant: 36),
+                closeButton.widthAnchor.constraint(equalToConstant: 32),
+                closeButton.heightAnchor.constraint(equalToConstant: 32),
 
-                adAttributionLabel.trailingAnchor.constraint(equalTo: topBar.trailingAnchor),
-                adAttributionLabel.centerYAnchor.constraint(equalTo: topBar.centerYAnchor),
+                // Bottom cluster overlays the scrim: 20pt horizontal padding, flush
+                // to the safe-area bottom (0pt) so it clears the home indicator
+                // without an extra gap.
+                bottomCluster.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 20),
+                bottomCluster.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -20),
+                bottomCluster.bottomAnchor.constraint(equalTo: guide.bottomAnchor, constant: 0),
+                // Never let the cluster grow past the top bar into the media.
+                bottomCluster.topAnchor.constraint(greaterThanOrEqualTo: topBar.bottomAnchor, constant: 12),
 
-                adMediaView.topAnchor.constraint(equalTo: topBar.bottomAnchor, constant: 16),
-                adMediaView.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 20),
-                adMediaView.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -20),
-                adMediaView.heightAnchor.constraint(equalTo: guide.heightAnchor, multiplier: 0.48),
-
-                headerStack.topAnchor.constraint(equalTo: adMediaView.bottomAnchor, constant: 20),
-                headerStack.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 24),
-                headerStack.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -24),
+                headerStack.topAnchor.constraint(equalTo: headerContainer.topAnchor),
+                headerStack.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor),
+                headerStack.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor),
+                headerStack.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor),
 
                 adIconImageView.widthAnchor.constraint(equalToConstant: metrics.iconSize.width)
                     .priority(UILayoutPriority(999)),
                 adIconImageView.heightAnchor.constraint(equalToConstant: metrics.iconSize.height)
                     .priority(UILayoutPriority(999)),
 
-                adBodyLabel.topAnchor.constraint(equalTo: headerStack.bottomAnchor, constant: 12),
-                adBodyLabel.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 24),
-                adBodyLabel.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -24),
-                adBodyLabel.bottomAnchor.constraint(lessThanOrEqualTo: actionButton.topAnchor, constant: -16),
+                adBodyLabel.topAnchor.constraint(equalTo: bodyContainer.topAnchor),
+                adBodyLabel.leadingAnchor.constraint(equalTo: bodyContainer.leadingAnchor),
+                adBodyLabel.trailingAnchor.constraint(equalTo: bodyContainer.trailingAnchor),
+                adBodyLabel.bottomAnchor.constraint(equalTo: bodyContainer.bottomAnchor),
 
-                actionButton.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 24),
-                actionButton.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -24),
-                actionButton.bottomAnchor.constraint(equalTo: guide.bottomAnchor, constant: -20),
+                actionButton.topAnchor.constraint(equalTo: ctaContainer.topAnchor),
+                actionButton.leadingAnchor.constraint(equalTo: ctaContainer.leadingAnchor),
+                actionButton.trailingAnchor.constraint(equalTo: ctaContainer.trailingAnchor),
+                actionButton.bottomAnchor.constraint(equalTo: ctaContainer.bottomAnchor),
                 actionButton.heightAnchor.constraint(greaterThanOrEqualToConstant: metrics.ctaMinHeight),
             ])
         }
 
+        /// Pins `mediaContainer`'s four edges to either the view's own edges
+        /// (full-bleed, when `mediaIgnoresSafeArea`) or the safe-area guide.
+        private func mediaContainerEdgeConstraints() -> [NSLayoutConstraint] {
+            if mediaIgnoresSafeArea {
+                return [
+                    mediaContainer.topAnchor.constraint(equalTo: topAnchor),
+                    mediaContainer.leadingAnchor.constraint(equalTo: leadingAnchor),
+                    mediaContainer.trailingAnchor.constraint(equalTo: trailingAnchor),
+                    mediaContainer.bottomAnchor.constraint(equalTo: bottomAnchor),
+                ]
+            } else {
+                let guide = safeAreaLayoutGuide
+                return [
+                    mediaContainer.topAnchor.constraint(equalTo: guide.topAnchor),
+                    mediaContainer.leadingAnchor.constraint(equalTo: guide.leadingAnchor),
+                    mediaContainer.trailingAnchor.constraint(equalTo: guide.trailingAnchor),
+                    mediaContainer.bottomAnchor.constraint(equalTo: guide.bottomAnchor),
+                ]
+            }
+        }
+
         private func applyStyle() {
             applyBackgroundFill(style.backgrounds.card)
+            // Bottom scrim: transparent at the top, fading to near-opaque black at
+            // the bottom so the overlaid light text reads over any creative.
+            scrimView.applyBackgroundFill(
+                .gradient(
+                    colors: [
+                        .clear,
+                        UIColor.black.withAlphaComponent(0.85),
+                    ],
+                    locations: [0.0, 1.0],
+                    direction: .vertical
+                )
+            )
             adHeadlineLabel.textColor = style.text.headline
             adHeadlineLabel.font = style.text.headlineFont.resolved
             adBodyLabel.textColor = style.text.body
@@ -299,6 +451,10 @@
     extension FullScreenNativeAdView {
         private func updateUI(with nativeAd: NativeAd) {
             adMediaView.mediaContent = nativeAd.mediaContent
+            // Re-assert AFTER assigning `mediaContent` — the SDK resets the media
+            // view's `contentMode` on assignment, which would otherwise override the
+            // configured fill/fit behavior.
+            adMediaView.contentMode = mediaContentMode
             adIconImageView.image = nativeAd.icon?.image
             adHeadlineLabel.text = nativeAd.headline?.capitalizingFirstLetter()
             adSponsorLabel.text = nativeAd.advertiser?.capitalizingFirstLetter()
@@ -316,13 +472,25 @@
         }
 
         private func updateVisibility(for nativeAd: NativeAd) {
-            let mediaContent = nativeAd.mediaContent
-            let hasMedia = mediaContent.hasVideoContent || mediaContent.aspectRatio > 0
-            adMediaView.isHidden = !hasMedia
+            // Media is full-bleed and always visible — if a creative has no media
+            // (rare for full-screen), the solid card background fills behind the
+            // scrim, keeping the overlaid text legible. No collapse here.
+
             adIconImageView.isHidden = nativeAd.icon?.image == nil
             adHeadlineLabel.isHidden = nativeAd.headline == nil
             adSponsorLabel.isHidden = nativeAd.advertiser == nil
-            adBodyLabel.isHidden = nativeAd.body == nil
+            // Collapse the whole header row when none of its assets are present so
+            // `midStack` reclaims the spacing.
+            headerContainer.isHidden =
+                nativeAd.icon?.image == nil && nativeAd.headline == nil && nativeAd.advertiser == nil
+
+            // Hide the body when the creative has none OR config says `.hidden`.
+            let bodyHidden = nativeAd.body == nil || bodyDisplay.mode == .hidden
+            adBodyLabel.isHidden = bodyHidden
+            // Drive the container too — the bottom cluster is an `AutoHidingStackView`,
+            // so a hidden `bodyContainer` collapses and removes its inter-row spacing.
+            bodyContainer.isHidden = bodyHidden
+
             actionButton.isHidden = nativeAd.callToAction == nil
         }
     }

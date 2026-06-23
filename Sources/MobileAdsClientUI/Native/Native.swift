@@ -19,11 +19,15 @@
             public let adUnitID: String
             public let adLoaderOptions: [NativeAdClient.AnyAdLoaderOption]
             public var nativeAd: NativeAd?
-            /// Legacy/unused: all shipped wrappers now self-size via the
-            /// representable's `sizeThatFits` (`calculateTotalHeight(fittingWidth:)`),
-            /// so neither `adHeight` nor `.updateAdHeight` is read by the views.
-            /// Kept for source compatibility with any external consumer.
-            public var adHeight: CGFloat = 300.0
+            /// Measured card height, applied by the wrappers via
+            /// `.frame(height: store.adHeight)`. Driving height from state (rather
+            /// than the representable's `sizeThatFits`) is what lets a content
+            /// refresh EASE the height — `.frame` animates inside the
+            /// `.updateAdHeight(_, animation:)` transaction, whereas a
+            /// `sizeThatFits` height is applied in a non-animated layout pass and
+            /// snaps. Starts at 0 so an unmeasured slot reserves no band; the real
+            /// height is set on first bind (instantly) and eased on refresh.
+            public var adHeight: CGFloat = 0
             public var configuration: NativeAdClient.AnyConfiguration = .init(
                 NativeAdClient.Configuration.Compact.default
             )

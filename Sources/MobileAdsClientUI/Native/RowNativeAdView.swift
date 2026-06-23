@@ -361,9 +361,10 @@
 
     extension RowNativeAdView {
         public func configure(with nativeAd: NativeAd) {
-            // Re-bind (refresh) cross-dissolves; first bind applies instantly.
-            let animated = self.nativeAd != nil
-            applyNativeContentUpdate(animated: animated) { [self] in
+            // Content is set synchronously; the card height eases at the SwiftUI
+            // layer via `.frame(height: store.adHeight)`. (A UIKit transition on
+            // `self` here would fight that frame animation on the same layer.)
+            applyNativeContentUpdate(animated: false) { [self] in
                 updateUI(with: nativeAd)
                 updateVisibility(for: nativeAd)
                 self.nativeAd = nativeAd

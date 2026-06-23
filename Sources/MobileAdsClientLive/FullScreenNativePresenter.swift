@@ -21,7 +21,10 @@
         static func present(
             adUnitID: String,
             keywords: [String] = [],
-            style: FullScreenNativeAdView.Style = .fullScreen
+            configuration: FullScreenNativeAdView.Configuration = .default,
+            adChoicesCorner: NativeAdClient.AdChoicesPositionOption.Corner = .bottomLeft,
+            mediaAspectRatio: NativeAdClient.MediaAspectRatioOption.Ratio? = nil,
+            videoStartsMuted: Bool = true
         ) async {
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 Task { @MainActor in
@@ -34,13 +37,26 @@
                         return
                     }
 
+                    // Loader options for the full-screen layout: pin AdChoices to the
+                    // bottom-left — with full-bleed media a top corner collides with
+                    // the status bar / Dynamic Island, and the bottom-right holds the
+                    // CTA. Start any video muted. Media aspect ratio is left
+                    // unrestricted by default so fill/revenue isn't reduced.
+                    var options: [NativeAdClient.AnyAdLoaderOption] = [
+                        .init(NativeAdClient.AdChoicesPositionOption(corner: adChoicesCorner)),
+                        .init(NativeAdClient.VideoPlaybackOption(shouldStartMuted: videoStartsMuted)),
+                    ]
+                    if let mediaAspectRatio {
+                        options.append(.init(NativeAdClient.MediaAspectRatioOption(ratio: mediaAspectRatio)))
+                    }
+
                     // Load before presenting so the user never sees a blank screen
                     // with a spinner. If the load fails, resume immediately.
                     // `NativeAdManager.adLoader(_:didReceive:)` already attaches the
                     // `paidEventHandler` so revenue flows without extra wiring.
                     let nativeAd: NativeAd
                     do {
-                        nativeAd = try await nativeAdClient.loadAd(adUnitID, topVC, nil, keywords)
+                        nativeAd = try await nativeAdClient.loadAd(adUnitID, topVC, options, keywords)
                     } catch {
                         #if DEBUG
                             print(
@@ -59,7 +75,7 @@
 
                     let content = FullScreenNativeView(
                         nativeAd: nativeAd,
-                        style: style,
+                        configuration: configuration,
                         onClose: { [weak hostVC] in
                             hostVC?.presentedViewController?.dismiss(animated: true) {
                                 resumeBox.resume(continuation)
@@ -71,7 +87,7 @@
                     host.modalPresentationStyle = .fullScreen
                     host.loadViewIfNeeded()
                     host.view.frame = hostVC.view.bounds
-                    host.view.applyBackgroundFill(style.backgrounds.card)
+                    host.view.applyBackgroundFill(configuration.style.backgrounds.card)
                     hostVC.present(host, animated: true)
                 }
             }
