@@ -72,11 +72,18 @@
                 uiView.style = configuration.style
             }
             guard let nativeAd = store.nativeAd else { return }
-            guard uiView.nativeAd !== nativeAd else { return }
-            let isRebind = uiView.nativeAd != nil
-            uiView.configure(with: nativeAd)
-            // Measure the new content height off the laid-out width and push it to
-            // state so `.frame(height:)` eases it (refresh) or sets it (first bind).
+            // Bind the creative only when it changes (an unguarded `configure`
+            // re-triggers layout in a feedback loop on every store change).
+            let isNewCreative = uiView.nativeAd !== nativeAd
+            let isRebind = isNewCreative && uiView.nativeAd != nil
+            if isNewCreative {
+                uiView.configure(with: nativeAd)
+            }
+            // Re-measure off the CURRENT laid-out width on EVERY pass — not only
+            // when the creative changes — so a creative that first binds at width 0
+            // (e.g. mid navigation-push) isn't stuck at `adHeight == 0` forever; a
+            // later layout pass corrects it. The `> 0.5` guard makes it a no-op once
+            // stable, so there is no feedback loop.
             DispatchQueue.main.async {
                 let width = uiView.bounds.width
                 guard width > 0 else { return }
