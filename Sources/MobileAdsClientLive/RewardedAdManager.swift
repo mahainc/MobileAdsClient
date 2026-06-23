@@ -68,7 +68,7 @@
             from viewController: UIViewController,
             keywords: [String] = []
         ) async throws -> Bool {
-            guard let ad = await ensureLoaded(adUnitID, keywords: keywords) else {
+            guard let ad = await acquireForPresentation(adUnitID, keywords: keywords) else {
                 throw MobileAdsClient.AdError.adNotReady
             }
 
