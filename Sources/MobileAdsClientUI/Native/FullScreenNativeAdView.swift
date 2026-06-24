@@ -72,7 +72,6 @@
             let config = UIImage.SymbolConfiguration(pointSize: 11, weight: .bold)
             button.setImage(UIImage(systemName: "xmark", withConfiguration: config), for: .normal)
             button.imageView?.contentMode = .scaleAspectFit
-            button.layer.borderWidth = 1
             button.layer.masksToBounds = true
             return button
         }()
@@ -543,9 +542,8 @@
             // `closeButton.text` doubles as the icon tint color for the close button.
             closeButton.tintColor = style.closeButton.text
             // Background is the blur effect view, not a solid fill — keep the button
-            // itself clear so the blur shows through. A thin border outlines the chip.
+            // itself clear so the blur shows through, with no border outline.
             closeButton.backgroundColor = .clear
-            closeButtonBlurView.layer.borderColor = UIColor.white.withAlphaComponent(0.5).cgColor
             // Countdown label shares the close button's chip colors so the swap at 0
             // is visually seamless.
             countdownLabel.backgroundColor = style.closeButton.background
