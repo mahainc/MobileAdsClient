@@ -793,11 +793,11 @@ import Foundation
                 public var style: Style
                 public var bodyDisplay: BodyDisplay
                 public var metrics: Metrics
-                /// When `true` (default) the media view bleeds to every screen edge
-                /// (under the notch + home indicator). When `false` the media is
+                /// When `true` the media view bleeds to every screen edge (under the
+                /// notch + home indicator). When `false` (default) the media is
                 /// inset to the safe area instead.
                 public var mediaIgnoresSafeArea: Bool
-                /// How the media creative fills its frame (default `.fill`).
+                /// How the media creative fills its frame (default `.fit`).
                 public var mediaContentMode: MediaContentMode
                 /// Seconds the ad stays locked before the close button appears. While
                 /// counting down, a "closes in Ns" label shows in place of the close
@@ -808,8 +808,8 @@ import Foundation
                     style: Style = .fullScreen,
                     bodyDisplay: BodyDisplay = .truncated(lines: 3),
                     metrics: Metrics = .fullScreen,
-                    mediaIgnoresSafeArea: Bool = true,
-                    mediaContentMode: MediaContentMode = .fill,
+                    mediaIgnoresSafeArea: Bool = false,
+                    mediaContentMode: MediaContentMode = .fit,
                     closeCountdown: Int = 5
                 ) {
                     self.style = style
