@@ -164,6 +164,7 @@ public struct Either<Content: TCAInitializableReducer & Sendable, Ad: TCAInitial
 where
     Content.State: Identifiable, Content.State: Sendable,
     Ad.State: Identifiable, Ad.State: Sendable,
+    Content.State.ID: Sendable, Ad.State.ID: Sendable,
     Content.Action: Sendable, Ad.Action: Sendable
 {
 
@@ -172,13 +173,24 @@ where
         case content(Content.State)
         case ad(Ad.State)
 
-        public var id: AnyHashable {
+        /// A concrete, `Sendable` id. This was `AnyHashable`, which the standard
+        /// library ships as an `@available(*, unavailable)` `Sendable`
+        /// conformance — forcing every consumer that sends `.element(id:)`
+        /// across an effect boundary to add an `@unchecked Sendable` shim.
+        /// Distinguishing the two cases also stops a content id and an ad id
+        /// that share an underlying value from colliding in an `IdentifiedArray`.
+        public enum ID: Hashable, Sendable {
+            case content(Content.State.ID)
+            case ad(Ad.State.ID)
+        }
+
+        public var id: ID {
             switch self {
                 case .content(let contentState):
-                    return contentState.id
+                    return .content(contentState.id)
 
                 case .ad(let adState):
-                    return adState.id
+                    return .ad(adState.id)
             }
         }
     }
