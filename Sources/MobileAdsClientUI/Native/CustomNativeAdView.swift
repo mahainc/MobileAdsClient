@@ -353,9 +353,9 @@
 
     extension CustomNativeAdView {
         public func configure(with nativeAd: NativeAd) {
-            // Content is set synchronously; the card height eases at the SwiftUI
-            // layer via `.frame(height: store.adHeight)`. (A UIKit transition on
-            // `self` here would fight that frame animation on the same layer.)
+            // Content is set synchronously; the card height self-sizes at the
+            // SwiftUI layer via the representable's `sizeThatFits`. (A UIKit
+            // transition on `self` here would fight that.)
             applyAspectRatioConstraint(for: nativeAd.mediaContent.aspectRatio)
             updateViewBindings(for: nativeAd)
 
@@ -477,7 +477,7 @@
 
         /// Width-aware Auto Layout measurement, mirroring the row/compact views
         /// so the SwiftUI wrapper can self-size via `sizeThatFits` (no manual
-        /// frame-summing, no `updateAdHeight` feedback loop).
+        /// frame-summing).
         public func calculateTotalHeight(fittingWidth: CGFloat) -> CGFloat {
             let target = CGSize(width: fittingWidth, height: UIView.layoutFittingCompressedSize.height)
             return systemLayoutSizeFitting(

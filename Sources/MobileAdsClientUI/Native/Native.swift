@@ -19,14 +19,12 @@
             public let adUnitID: String
             public let adLoaderOptions: [NativeAdClient.AnyAdLoaderOption]
             public var nativeAd: NativeAd?
-            /// Measured card height, applied by the wrappers via
-            /// `.frame(height: store.adHeight)`. Driving height from state (rather
-            /// than the representable's `sizeThatFits`) is what lets a content
-            /// refresh EASE the height — `.frame` animates inside the
-            /// `.updateAdHeight(_, animation:)` transaction, whereas a
-            /// `sizeThatFits` height is applied in a non-animated layout pass and
-            /// snaps. Starts at 0 so an unmeasured slot reserves no band; the real
-            /// height is set on first bind (instantly) and eased on refresh.
+            /// Seed/minimum card height used as a height floor while the slot is
+            /// loading (the skeleton reserves this height so an unfilled slot
+            /// doesn't collapse to a blank strip). Consumers set it when building a
+            /// slot (e.g. `slot.adHeight = 68`). Once the creative binds, the view
+            /// self-sizes to the real content height via `sizeThatFits`; this value
+            /// only governs the pre-load floor. `0` = no reserved floor.
             public var adHeight: CGFloat = 0
             public var configuration: NativeAdClient.AnyConfiguration = .init(
                 NativeAdClient.Configuration.Compact.default

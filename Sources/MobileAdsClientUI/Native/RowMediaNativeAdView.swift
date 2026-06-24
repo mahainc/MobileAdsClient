@@ -37,13 +37,23 @@
         // so the media→row breathing room stays predictable.
         private let mediaToRowSpacing: CGFloat = 10
 
+        // Media height = width × (1 / aspectRatio). Held so `configure(with:)` can
+        // swap it to the creative's TRUE ratio (AdMob policy forbids distorting or
+        // height-cropping the media). Defaults to 16:9 for the pre-bind state.
+        private var mediaHeightConstraint: NSLayoutConstraint!
+        private var mediaAspectMultiplier: CGFloat = 9.0 / 16.0
+
         // MARK: - Subviews
 
         private lazy var adMediaView: MediaView = {
             let view = MediaView()
             view.accessibilityIdentifier = "Row-Media Native Media"
             view.translatesAutoresizingMaskIntoConstraints = false
-            view.contentMode = .scaleAspectFill
+            // `.scaleAspectFit` (not fill): the media box is sized to the creative's
+            // true ratio in `configure`, so the content fills it without distortion
+            // or height cropping (AdMob policy). Fit avoids any crop if the box and
+            // creative ratios momentarily differ (e.g. before the swap on first bind).
+            view.contentMode = .scaleAspectFit
             view.layer.masksToBounds = true
             return view
         }()
@@ -231,10 +241,7 @@
                 outer.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -insets.right),
                 outer.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -insets.bottom),
 
-                // 16:9 lock — media height tracks media width regardless of what
-                // aspect ratio the actual creative ships with.
-                adMediaView.heightAnchor.constraint(equalTo: adMediaView.widthAnchor, multiplier: 9.0 / 16.0)
-                    .priority(UILayoutPriority(999)),
+                makeMediaHeightConstraint(),
 
                 adIconImageView.widthAnchor.constraint(equalToConstant: configuration.metrics.iconSize.width)
                     .priority(UILayoutPriority(999)),
@@ -274,8 +281,7 @@
                 outer.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -insets.right),
                 outer.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -insets.bottom),
 
-                adMediaView.heightAnchor.constraint(equalTo: adMediaView.widthAnchor, multiplier: 9.0 / 16.0)
-                    .priority(UILayoutPriority(999)),
+                makeMediaHeightConstraint(),
 
                 adIconImageView.widthAnchor.constraint(equalToConstant: configuration.metrics.iconSize.width)
                     .priority(UILayoutPriority(999)),
@@ -317,8 +323,7 @@
                 outer.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -insets.right),
                 outer.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -insets.bottom),
 
-                adMediaView.heightAnchor.constraint(equalTo: adMediaView.widthAnchor, multiplier: 9.0 / 16.0)
-                    .priority(UILayoutPriority(999)),
+                makeMediaHeightConstraint(),
 
                 adIconImageView.widthAnchor.constraint(equalToConstant: configuration.metrics.iconSize.width)
                     .priority(UILayoutPriority(999)),
@@ -328,6 +333,18 @@
                 actionButton.heightAnchor.constraint(greaterThanOrEqualToConstant: configuration.metrics.ctaMinHeight)
                     .priority(UILayoutPriority(999)),
             ])
+        }
+
+        /// Builds (once) the media height = width × multiplier constraint, stored so
+        /// `configure(with:)` can swap the multiplier to the creative's true ratio.
+        private func makeMediaHeightConstraint() -> NSLayoutConstraint {
+            let constraint = adMediaView.heightAnchor.constraint(
+                equalTo: adMediaView.widthAnchor,
+                multiplier: mediaAspectMultiplier
+            )
+            constraint.priority = UILayoutPriority(999)
+            mediaHeightConstraint = constraint
+            return constraint
         }
     }
 
@@ -381,9 +398,13 @@
 
     extension RowMediaNativeAdView {
         public func configure(with nativeAd: NativeAd) {
-            // Content is set synchronously; the card height eases at the SwiftUI
-            // layer via `.frame(height: store.adHeight)`. (A UIKit transition on
-            // `self` here would fight that frame animation on the same layer.)
+            // Size the media box to the creative's TRUE aspect ratio before binding
+            // so it renders without distortion or height cropping (AdMob policy).
+            applyMediaAspectRatio(for: nativeAd.mediaContent.aspectRatio)
+
+            // Content is set synchronously; the card height self-sizes at the
+            // SwiftUI layer via `sizeThatFits`. (A UIKit transition on `self` here
+            // would fight that.)
             applyNativeContentUpdate(animated: false) { [self] in
                 updateUI(with: nativeAd)
                 updateVisibility(for: nativeAd)
@@ -396,7 +417,29 @@
                 adIconImageView.contentMode = .scaleAspectFill
                 adIconImageView.clipsToBounds = true
                 adIconImageView.layer.masksToBounds = true
+
+                // The SDK also resets the media view's contentMode on `mediaContent`
+                // assignment — re-assert fit so it never crops/distorts.
+                adMediaView.contentMode = .scaleAspectFit
             }
+        }
+
+        /// Swaps the media height constraint to match the creative's real ratio.
+        /// No-op for `aspectRatio <= 0` (keeps the 16:9 default until known).
+        private func applyMediaAspectRatio(for aspectRatio: CGFloat) {
+            guard aspectRatio > 0 else { return }
+            let multiplier = 1.0 / aspectRatio
+            guard abs(multiplier - mediaAspectMultiplier) > 0.001 else { return }
+            mediaAspectMultiplier = multiplier
+
+            mediaHeightConstraint.isActive = false
+            let updated = adMediaView.heightAnchor.constraint(
+                equalTo: adMediaView.widthAnchor,
+                multiplier: multiplier
+            )
+            updated.priority = UILayoutPriority(999)
+            updated.isActive = true
+            mediaHeightConstraint = updated
         }
 
         public func calculateTotalHeight(fittingWidth: CGFloat) -> CGFloat {

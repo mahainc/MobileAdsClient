@@ -44,11 +44,10 @@
                     .animation(.easeInOut(duration: 0.25), value: store.nativeAd != nil)
 
                 if store.nativeAd != nil {
-                    // Height is state-driven (`store.adHeight`, measured in
-                    // `updateUIView`) so a refresh EASES via the `.updateAdHeight`
-                    // animation transaction instead of snapping.
+                    // Height is self-sized by the representable's `sizeThatFits` off
+                    // the laid-out width, so a width-0 first pass self-heals on the
+                    // next layout pass (no stuck/blank card).
                     _RowMediaNativeRepresentable(store: store, configuration: rowMediaConfig)
-                        .frame(height: store.adHeight)
                         .transition(.opacity)
                 }
             }
@@ -74,23 +73,25 @@
             guard let nativeAd = store.nativeAd else { return }
             // Bind the creative only when it changes (an unguarded `configure`
             // re-triggers layout in a feedback loop on every store change).
-            let isNewCreative = uiView.nativeAd !== nativeAd
-            let isRebind = isNewCreative && uiView.nativeAd != nil
-            if isNewCreative {
-                uiView.configure(with: nativeAd)
-            }
-            // Re-measure off the CURRENT laid-out width on EVERY pass — not only
-            // when the creative changes — so a creative that first binds at width 0
-            // (e.g. mid navigation-push) isn't stuck at `adHeight == 0` forever; a
-            // later layout pass corrects it. The `> 0.5` guard makes it a no-op once
-            // stable, so there is no feedback loop.
-            DispatchQueue.main.async {
-                let width = uiView.bounds.width
-                guard width > 0 else { return }
-                let height = uiView.calculateTotalHeight(fittingWidth: width)
-                guard abs(height - store.adHeight) > 0.5 else { return }
-                store.send(.updateAdHeight(height), animation: isRebind ? .easeInOut(duration: 0.3) : nil)
-            }
+            guard uiView.nativeAd !== nativeAd else { return }
+            uiView.configure(with: nativeAd)
+            // New creative attached — invalidate so SwiftUI re-runs `sizeThatFits`
+            // and the card resizes to the new content height.
+            uiView.invalidateIntrinsicContentSize()
+        }
+
+        // SwiftUI drives the card height from the laid-out width on every layout
+        // pass. Returning nil for a 0/invalid width lets a later pass (with a real
+        // width) resolve the height, so a slot that first lays out at width 0 never
+        // gets stuck blank.
+        func sizeThatFits(
+            _ proposal: ProposedViewSize,
+            uiView: RowMediaNativeAdView,
+            context: Context
+        ) -> CGSize? {
+            guard let width = proposal.width, width > 0, width.isFinite else { return nil }
+            let height = uiView.calculateTotalHeight(fittingWidth: width)
+            return CGSize(width: width, height: height)
         }
     }
 #endif

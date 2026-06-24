@@ -24,8 +24,8 @@ struct NativeAdsPlaygroundApp: App {
 }
 
 private struct RootTabView: View {
-    // Default to the "Full Screen" tab while iterating on `FullScreenNativeAdView`.
-    @State private var selection: Int = 4
+    // Default to the "Row+Media" tab while iterating on `RowMediaNativeAdView`.
+    @State private var selection: Int = 3
 
     var body: some View {
         TabView(selection: $selection) {

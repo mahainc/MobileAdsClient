@@ -361,9 +361,9 @@
 
     extension RowNativeAdView {
         public func configure(with nativeAd: NativeAd) {
-            // Content is set synchronously; the card height eases at the SwiftUI
-            // layer via `.frame(height: store.adHeight)`. (A UIKit transition on
-            // `self` here would fight that frame animation on the same layer.)
+            // Content is set synchronously; the card height self-sizes at the
+            // SwiftUI layer via the representable's `sizeThatFits`. (A UIKit
+            // transition on `self` here would fight that.)
             applyNativeContentUpdate(animated: false) { [self] in
                 updateUI(with: nativeAd)
                 updateVisibility(for: nativeAd)
