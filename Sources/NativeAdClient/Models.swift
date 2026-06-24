@@ -333,7 +333,7 @@ import Foundation
                         title: UIColor = .white,
                         shape: ButtonShape = .rect(cornerRadius: 8),
                         font: AdFont = .textStyle(.headline),
-                        contentInsets: UIEdgeInsets = .init(top: 8, left: 14, bottom: 8, right: 14)
+                        contentInsets: UIEdgeInsets = .init(top: 6, left: 10, bottom: 6, right: 10)
                     ) {
                         self.background = background
                         self.title = title

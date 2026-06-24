@@ -61,15 +61,30 @@
         private var countdownStarted = false
 
         /// Exposed so the SwiftUI wrapper / hosting controller can hook its
-        /// `addTarget` to an `onClose` callback.
+        /// `addTarget` to an `onClose` callback. The button fills
+        /// `closeButtonBlurView` (its 34×34 contentView), so the whole circular
+        /// chip is the tappable element with the `xmark` glyph centered inside.
         public let closeButton: UIButton = {
             let button = UIButton(type: .system)
             button.accessibilityIdentifier = "Full Screen Native Close Button"
             button.translatesAutoresizingMaskIntoConstraints = false
-            let config = UIImage.SymbolConfiguration(pointSize: 11, weight: .heavy)
+            // ~20×20 glyph (the SF `xmark` renders narrower than its point size).
+            let config = UIImage.SymbolConfiguration(pointSize: 11, weight: .bold)
             button.setImage(UIImage(systemName: "xmark", withConfiguration: config), for: .normal)
             button.imageView?.contentMode = .scaleAspectFit
+            button.layer.borderWidth = 1
+            button.layer.masksToBounds = true
             return button
+        }()
+
+        /// Blur backing that hosts `closeButton` inside its `contentView`. Stays
+        /// interactive so the embedded button receives the tap. Hidden while the
+        /// close countdown is running and revealed (with the button) at 0.
+        private let closeButtonBlurView: UIVisualEffectView = {
+            let view = UIVisualEffectView(effect: UIBlurEffect(style: .dark))
+            view.translatesAutoresizingMaskIntoConstraints = false
+            view.clipsToBounds = true
+            return view
         }()
 
         // MARK: - Subviews
@@ -237,6 +252,8 @@
             scrimView.layoutNativeAdGradient()
             applyButtonShape()
             closeButton.layer.cornerRadius = closeButton.bounds.height / 2
+            // Clip the blur backing to the same circle as the button.
+            closeButtonBlurView.layer.cornerRadius = closeButtonBlurView.bounds.height / 2
             countdownLabel.layer.cornerRadius = countdownLabel.bounds.height / 2
         }
 
@@ -319,8 +336,10 @@
             // the SDK's AdChoices overlay. The "Ad" chip lives in the header row.
             let topBar = UIView()
             topBar.translatesAutoresizingMaskIntoConstraints = false
-            topBar.addSubview(closeButton)
+            topBar.addSubview(closeButtonBlurView)
             topBar.addSubview(countdownLabel)
+
+            closeButtonBlurView.contentView.addSubview(closeButton)
 
             // Back → front: media (full-bleed) → scrim → controls.
             addSubview(mediaContainer)
@@ -351,12 +370,18 @@
                 topBar.topAnchor.constraint(equalTo: guide.topAnchor, constant: 8),
                 topBar.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 20),
                 topBar.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -20),
-                topBar.heightAnchor.constraint(equalToConstant: 32),
+                topBar.heightAnchor.constraint(equalToConstant: 34),
 
-                closeButton.leadingAnchor.constraint(equalTo: topBar.leadingAnchor),
-                closeButton.centerYAnchor.constraint(equalTo: topBar.centerYAnchor),
-                closeButton.widthAnchor.constraint(equalToConstant: 32),
-                closeButton.heightAnchor.constraint(equalToConstant: 32),
+                closeButtonBlurView.leadingAnchor.constraint(equalTo: topBar.leadingAnchor),
+                closeButtonBlurView.centerYAnchor.constraint(equalTo: topBar.centerYAnchor),
+                closeButtonBlurView.widthAnchor.constraint(equalToConstant: 34),
+                closeButtonBlurView.heightAnchor.constraint(equalToConstant: 34),
+
+                // Close button fills the blur chip so the full circle is tappable.
+                closeButton.centerXAnchor.constraint(equalTo: closeButtonBlurView.contentView.centerXAnchor),
+                closeButton.centerYAnchor.constraint(equalTo: closeButtonBlurView.contentView.centerYAnchor),
+                closeButton.widthAnchor.constraint(equalToConstant: 18),
+                closeButton.heightAnchor.constraint(equalToConstant: 18),
 
                 // Countdown label occupies the same top-left slot as the close
                 // button (hugs its text); only one of the two is ever visible.
@@ -397,11 +422,11 @@
             ])
 
             // Initial close-gate state: while a countdown is configured, show the
-            // label and hide the close button; the timer (started in
-            // `didMoveToWindow`) swaps them at 0. No gate → close button shown.
+            // label and hide the close-button chip; the timer (started in
+            // `didMoveToWindow`) swaps them at 0. No gate → close chip shown.
             let gated = closeCountdown > 0
             countdownLabel.isHidden = !gated
-            closeButton.isHidden = gated
+            closeButtonBlurView.isHidden = gated
             if gated {
                 countdownLabel.text = countdownText(for: secondsRemaining)
             }
@@ -477,7 +502,7 @@
                 options: [.transitionCrossDissolve, .beginFromCurrentState]
             ) {
                 self.countdownLabel.isHidden = true
-                self.closeButton.isHidden = false
+                self.closeButtonBlurView.isHidden = false
             }
         }
 
@@ -517,7 +542,10 @@
             actionButton.configuration = buttonConfig
             // `closeButton.text` doubles as the icon tint color for the close button.
             closeButton.tintColor = style.closeButton.text
-            closeButton.backgroundColor = style.closeButton.background
+            // Background is the blur effect view, not a solid fill — keep the button
+            // itself clear so the blur shows through. A thin border outlines the chip.
+            closeButton.backgroundColor = .clear
+            closeButtonBlurView.layer.borderColor = UIColor.white.withAlphaComponent(0.5).cgColor
             // Countdown label shares the close button's chip colors so the swap at 0
             // is visually seamless.
             countdownLabel.backgroundColor = style.closeButton.background
