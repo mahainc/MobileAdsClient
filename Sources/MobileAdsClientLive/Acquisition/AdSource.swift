@@ -163,6 +163,7 @@
     final class GooglePreloadSource<Ad: FullScreenPresentingAd>: @unchecked Sendable {
         private let registerImpl: @Sendable (_ preloadID: String, _ bufferSize: Int) -> Bool
         private let isAvailableImpl: @Sendable (_ preloadID: String) -> Bool
+        private let countImpl: @Sendable (_ preloadID: String) -> Int
         private let dequeueImpl: @Sendable (_ preloadID: String) -> Ad?
         private let stopImpl: @Sendable (_ preloadID: String) -> Void
         private let configure: @Sendable (_ ad: Ad, _ preloadID: String) -> Void
@@ -170,12 +171,14 @@
         init(
             register: @escaping @Sendable (_ preloadID: String, _ bufferSize: Int) -> Bool,
             isAvailable: @escaping @Sendable (_ preloadID: String) -> Bool,
+            count: @escaping @Sendable (_ preloadID: String) -> Int,
             dequeue: @escaping @Sendable (_ preloadID: String) -> Ad?,
             stop: @escaping @Sendable (_ preloadID: String) -> Void,
             configure: @escaping @Sendable (_ ad: Ad, _ preloadID: String) -> Void
         ) {
             self.registerImpl = register
             self.isAvailableImpl = isAvailable
+            self.countImpl = count
             self.dequeueImpl = dequeue
             self.stopImpl = stop
             self.configure = configure
@@ -193,6 +196,11 @@
 
         func isAvailable(_ adUnitID: String) -> Bool {
             isAvailableImpl(adUnitID)
+        }
+
+        /// Number of ads currently available in the SDK buffer for `adUnitID`.
+        func count(_ adUnitID: String) -> Int {
+            countImpl(adUnitID)
         }
 
         /// Dequeues a preloaded ad (triggering the SDK's background refill) and

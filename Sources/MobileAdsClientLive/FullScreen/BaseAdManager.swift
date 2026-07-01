@@ -75,6 +75,7 @@
         private lazy var googleSource = GooglePreloadSource<AdType>(
             register: { [weak self] id, size in self?.googleRegister(id, bufferSize: size) ?? false },
             isAvailable: { [weak self] id in self?.googleIsAvailable(id) ?? false },
+            count: { [weak self] id in self?.googleAdCount(id) ?? 0 },
             dequeue: { [weak self] id in self?.googleDequeue(id) },
             stop: { [weak self] id in self?.googleStop(id) },
             configure: { [weak self] ad, id in self?.configureDequeued(ad, adUnitID: id) }
@@ -256,6 +257,10 @@
 
         func googleIsAvailable(_ preloadID: String) -> Bool { false }
 
+        /// Number of ads currently buffered by the preloader for `preloadID`.
+        /// Overridden by preload-capable subclasses; base returns 0.
+        func googleAdCount(_ preloadID: String) -> Int { 0 }
+
         func googleDequeue(_ preloadID: String) -> AdType? { nil }
 
         func googleStop(_ preloadID: String) {}
@@ -289,6 +294,30 @@
             googleSource.stop(adUnitID)
             unmarkRegistered(adUnitID)
             logPool("stopPreloading · unit=\(adUnitID)")
+        }
+
+        /// Google Preloader bucket counts for this format's registered units, omitting
+        /// units whose buffer is currently empty. Empty when the format doesn't
+        /// support Google preload.
+        public final func googleCountsByUnit() -> [String: Int] {
+            guard supportsGooglePreload else { return [:] }
+            stateLock.lock()
+            let units = Array(registeredPreloadUnits)
+            stateLock.unlock()
+
+            var out: [String: Int] = [:]
+            for unit in units {
+                let count = googleSource.count(unit)
+                if count > 0 {
+                    out[unit] = count
+                }
+            }
+            return out
+        }
+
+        /// Snapshot of the keyword-aware pool's live variants, grouped by unit id.
+        public final func poolVariantsByUnit() -> [String: [AdPool<AdType>.VariantInfo]] {
+            pool.variantsByUnit()
         }
 
         /// On-demand warm. Google-managed units are a no-op (the SDK owns the

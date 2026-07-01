@@ -138,6 +138,29 @@
             return ads.keys.contains { $0.unitID == adUnitID }
         }
 
+        /// Metadata for one cached variant — the original request `keywords` and the
+        /// `loadedAt` time. Carries no ad object (those stay internal + consumable).
+        struct VariantInfo: Sendable, Equatable {
+            let keywords: [String]
+            let loadedAt: Date
+        }
+
+        /// A snapshot of every non-expired cached variant, grouped by unit id. Purges
+        /// expired entries across all units first, so the result reflects what is
+        /// genuinely available right now. Read-only — does not consume.
+        func variantsByUnit() -> [String: [VariantInfo]] {
+            lock.lock()
+            defer { lock.unlock() }
+            purgeAllExpired()
+            var out: [String: [VariantInfo]] = [:]
+            for (cacheKey, entry) in ads {
+                out[cacheKey.unitID, default: []].append(
+                    VariantInfo(keywords: entry.keywords, loadedAt: entry.loadedAt)
+                )
+            }
+            return out
+        }
+
         /// Stores a freshly loaded ad under `(unit, normalized keywords)`, then
         /// evicts this unit's oldest variant if it now exceeds `maxVariantsPerUnit`.
         /// Returns an eviction note for logging (nil if nothing was evicted).
@@ -206,6 +229,13 @@
         /// Removes all expired entries for a unit. Caller must hold `lock`.
         private func purgeExpired(forUnit adUnitID: String) {
             for (cacheKey, entry) in ads where cacheKey.unitID == adUnitID && isExpired(entry) {
+                ads.removeValue(forKey: cacheKey)
+            }
+        }
+
+        /// Removes every expired entry across all units. Caller must hold `lock`.
+        private func purgeAllExpired() {
+            for (cacheKey, entry) in ads where isExpired(entry) {
                 ads.removeValue(forKey: cacheKey)
             }
         }

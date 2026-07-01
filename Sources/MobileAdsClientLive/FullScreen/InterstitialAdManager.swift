@@ -70,6 +70,10 @@
                 InterstitialAdPreloader.shared.isAdAvailable(with: preloadID)
             }
 
+            override func googleAdCount(_ preloadID: String) -> Int {
+                Int(InterstitialAdPreloader.shared.numberOfAdsAvailable(with: preloadID))
+            }
+
             override func googleDequeue(_ preloadID: String) -> InterstitialAd? {
                 InterstitialAdPreloader.shared.ad(with: preloadID)  // dequeue + auto-refill
             }

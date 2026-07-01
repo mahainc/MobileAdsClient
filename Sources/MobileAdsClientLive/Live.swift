@@ -45,6 +45,9 @@
                 },
                 loadStates: {
                     AdLoadStateRelay.shared.stream()
+                },
+                preloadStatus: {
+                    await AdsManager.shared.preloadStatus()
                 }
             )
         }()

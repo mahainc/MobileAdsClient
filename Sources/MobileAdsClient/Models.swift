@@ -84,6 +84,44 @@ extension MobileAdsClient {
         case failed(AdType)
     }
 
+    /// Snapshot of currently-available preloaded ads at the moment `preloadStatus()`
+    /// is called, from both acquisition sources. Only units with ≥1 available ad
+    /// appear in each map. Buffers refill asynchronously, so treat this as a reading.
+    public struct PreloadStatus: Sendable, Equatable {
+        /// Google Preloader buckets: ad unit id → available count. Count-only — the
+        /// SDK exposes `numberOfAdsAvailable(with:)` but no way to enumerate the ads,
+        /// and the bucket is keyword-less.
+        public let googleByUnit: [String: Int]
+
+        /// AdPool cache: ad unit id → the variants currently held for it. Each
+        /// variant is one cached ad's keywords + load time.
+        public let poolByUnit: [String: [Variant]]
+
+        /// One cached pool ad's metadata (not the ad object — that stays internal and
+        /// consumable). `keywords` are the original request keywords; `loadedAt` is
+        /// when it was fetched.
+        public struct Variant: Sendable, Equatable {
+            public let keywords: [String]
+            public let loadedAt: Date
+
+            public init(
+                keywords: [String],
+                loadedAt: Date
+            ) {
+                self.keywords = keywords
+                self.loadedAt = loadedAt
+            }
+        }
+
+        public init(
+            googleByUnit: [String: Int] = [:],
+            poolByUnit: [String: [Variant]] = [:]
+        ) {
+            self.googleByUnit = googleByUnit
+            self.poolByUnit = poolByUnit
+        }
+    }
+
     public enum AdError: Error, Sendable, Equatable, CustomStringConvertible {
         case adNotReady
 

@@ -183,6 +183,46 @@
             }
         }
 
+        /// Point-in-time snapshot of available preloaded ads across both sources:
+        /// Google Preloader bucket counts + keyword-aware pool variants, unioned over
+        /// the three full-screen managers. Native has neither, so it never appears.
+        internal func preloadStatus() -> MobileAdsClient.PreloadStatus {
+            var google: [String: Int] = [:]
+            var pool: [String: [MobileAdsClient.PreloadStatus.Variant]] = [:]
+
+            for counts in [
+                openAdManager.googleCountsByUnit(),
+                interstitialAdManager.googleCountsByUnit(),
+                rewardedAdManager.googleCountsByUnit(),
+            ] {
+                google.merge(counts) { _, new in new }
+            }
+
+            // `poolVariantsByUnit()` returns a differently-specialized
+            // `AdPool<Ad>.VariantInfo` per manager, so these can't share an array —
+            // fold each in turn. `foldPool` is generic over the info type; each call
+            // site's concrete `VariantInfo` exposes `keywords` / `loadedAt`.
+            func foldPool<Info>(
+                _ variantsByUnit: [String: [Info]],
+                _ toVariant: (Info) -> MobileAdsClient.PreloadStatus.Variant
+            ) {
+                for (unit, variants) in variantsByUnit where !variants.isEmpty {
+                    pool[unit, default: []] += variants.map(toVariant)
+                }
+            }
+            foldPool(openAdManager.poolVariantsByUnit()) {
+                .init(keywords: $0.keywords, loadedAt: $0.loadedAt)
+            }
+            foldPool(interstitialAdManager.poolVariantsByUnit()) {
+                .init(keywords: $0.keywords, loadedAt: $0.loadedAt)
+            }
+            foldPool(rewardedAdManager.poolVariantsByUnit()) {
+                .init(keywords: $0.keywords, loadedAt: $0.loadedAt)
+            }
+
+            return MobileAdsClient.PreloadStatus(googleByUnit: google, poolByUnit: pool)
+        }
+
         /// Stop preloading and drop the buffer for the given units (show-rate lever).
         internal func stopPreloading(_ adTypes: [MobileAdsClient.AdType]) async {
             for adType in adTypes {

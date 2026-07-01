@@ -24,7 +24,8 @@ extension MobileAdsClient: TestDependencyKey {
             registerPreloads: { _, _ in },
             stopPreloading: { _ in },
             showRewardedAd: { _, _ in true },
-            loadStates: { AsyncStream { $0.finish() } }
+            loadStates: { AsyncStream { $0.finish() } },
+            preloadStatus: { PreloadStatus() }
         )
     }()
 
@@ -40,7 +41,8 @@ extension MobileAdsClient: TestDependencyKey {
             registerPreloads: { _, _ in },
             stopPreloading: { _ in },
             showRewardedAd: { _, _ in true },
-            loadStates: { AsyncStream { $0.finish() } }
+            loadStates: { AsyncStream { $0.finish() } },
+            preloadStatus: { PreloadStatus() }
         )
     }()
 }
@@ -55,6 +57,7 @@ extension MobileAdsClient {
         registerPreloads: { _, _ in },
         stopPreloading: { _ in },
         showRewardedAd: { _, _ in true },  // user still gets the reward
-        loadStates: { AsyncStream { $0.finish() } }
+        loadStates: { AsyncStream { $0.finish() } },
+        preloadStatus: { PreloadStatus() }
     )
 }

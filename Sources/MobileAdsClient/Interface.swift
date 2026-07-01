@@ -61,4 +61,10 @@ public struct MobileAdsClient: Sendable {
     /// refills are silent. Each call returns an independent stream; subscribe once
     /// and drive UI from the emitted `AdType`.
     public var loadStates: @Sendable () -> AsyncStream<AdLoadState> = { AsyncStream { $0.finish() } }
+
+    /// A point-in-time snapshot of currently-available preloaded ads: Google
+    /// Preloader bucket counts + `AdPool` variants, per unit. Buffers refill
+    /// asynchronously in the SDK/pool, so treat this as a reading, not a live value —
+    /// call it when you need one (debug overlay, telemetry).
+    public var preloadStatus: @Sendable () async -> PreloadStatus = { PreloadStatus() }
 }

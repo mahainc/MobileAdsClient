@@ -74,6 +74,10 @@
                 AppOpenAdPreloader.shared.isAdAvailable(with: preloadID)
             }
 
+            override func googleAdCount(_ preloadID: String) -> Int {
+                Int(AppOpenAdPreloader.shared.numberOfAdsAvailable(with: preloadID))
+            }
+
             override func googleDequeue(_ preloadID: String) -> AppOpenAd? {
                 AppOpenAdPreloader.shared.ad(with: preloadID)  // dequeue + auto-refill
             }
