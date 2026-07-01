@@ -104,9 +104,29 @@ extension MobileAdsClient {
         await shouldShowFullScreenAd(adType, rules, [])
     }
 
-    /// Convenience: presents `adType` with no contextual keywords.
-    public func showFullScreenAd(_ adType: AdType) async throws {
-        try await showFullScreenAd(adType, [])
+    /// Convenience: presents `adType` with no contextual keywords, no completion.
+    @discardableResult
+    public func showFullScreenAd(_ adType: AdType) async throws -> AdOutcome {
+        try await showFullScreenAd(adType, [], nil)
+    }
+
+    /// Convenience: presents `adType` with a completion handler, no keywords.
+    @discardableResult
+    public func showFullScreenAd(
+        _ adType: AdType,
+        onComplete: CompletionHandler?
+    ) async throws -> AdOutcome {
+        try await showFullScreenAd(adType, [], onComplete)
+    }
+
+    /// Convenience: presents `adType` with keywords and an optional completion handler.
+    @discardableResult
+    public func showFullScreenAd(
+        _ adType: AdType,
+        _ keywords: [String],
+        onComplete: CompletionHandler? = nil
+    ) async throws -> AdOutcome {
+        try await showFullScreenAd(adType, keywords, onComplete)
     }
 
     /// Convenience: warms `adType` with no contextual keywords.
@@ -119,9 +139,23 @@ extension MobileAdsClient {
         await registerPreloads(adTypes, 2)
     }
 
-    /// Convenience: presents a rewarded ad with no contextual keywords.
-    public func showRewardedAd(_ unitID: String) async -> Bool {
-        await showRewardedAd(unitID, [])
+    /// Presents a rewarded ad for `unitID` and returns whether the user earned the
+    /// reward — `false` if they dismissed without earning or nothing could present.
+    /// A convenience over `showFullScreenAd(.rewarded(unitID))` that swallows the
+    /// not-ready throw as `false`, preserving grant-friendly ergonomics.
+    public func showRewardedAd(
+        _ unitID: String,
+        _ keywords: [String] = []
+    ) async -> Bool {
+        (try? await showFullScreenAd(.rewarded(unitID), keywords, nil))?.earnedReward ?? false
+    }
+
+    /// As `showRewardedAd(_:_:)`, with a post-show completion handler.
+    public func showRewardedAd(
+        _ unitID: String,
+        onComplete: CompletionHandler?
+    ) async -> Bool {
+        (try? await showFullScreenAd(.rewarded(unitID), [], onComplete))?.earnedReward ?? false
     }
 }
 

@@ -50,54 +50,90 @@
             }
         }
 
+        /// Presents `adType` and returns its `AdOutcome`. `.presented` for appOpen /
+        /// interstitial / native; `.rewardEarned` / `.rewardNotEarned` for rewarded.
+        /// Throws `AdError.adNotReady` uniformly when nothing could be presented.
         @MainActor
         internal func showAd(
             _ adType: MobileAdsClient.AdType,
-            keywords: [String] = []
-        ) async throws {
+            keywords: [String] = [],
+            onComplete: MobileAdsClient.CompletionHandler? = nil
+        ) async throws -> MobileAdsClient.AdOutcome {
             guard let rootViewController = UIApplication.shared.topViewController() else {
-                return
+                throw MobileAdsClient.AdError.adNotReady
             }
 
             let onColdLoad = Self.makeColdLoadEmitter(for: adType)
+            // A supplied handler takes over the post-dismiss preload decision, so the
+            // managers skip their built-in auto-warm for this show.
+            let suppress = onComplete != nil
 
+            let outcome: MobileAdsClient.AdOutcome
             switch adType {
                 case let .appOpen(adUnitID):
                     try await openAdManager.showAd(
                         adUnitID,
                         from: rootViewController,
                         keywords: keywords,
+                        suppressAutoReload: suppress,
                         onColdLoad: onColdLoad
                     )
+                    outcome = .presented
 
                 case let .interstitial(adUnitID):
                     try await interstitialAdManager.showAd(
                         adUnitID,
                         from: rootViewController,
                         keywords: keywords,
+                        suppressAutoReload: suppress,
                         onColdLoad: onColdLoad
                     )
+                    outcome = .presented
 
                 case let .rewarded(adUnitID):
-                    try await rewardedAdManager.showAd(
+                    // Route to the earn-capturing path (not the void showAd) so the
+                    // outcome reflects whether the user earned the reward.
+                    let earned = try await rewardedAdManager.showAndAwaitReward(
                         adUnitID,
                         from: rootViewController,
                         keywords: keywords,
+                        suppressAutoReload: suppress,
                         onColdLoad: onColdLoad
                     )
+                    outcome = earned ? .rewardEarned : .rewardNotEarned
 
                 case let .nativeFullScreen(adUnitID):
-                    // Native has its own pipeline (AdLoader + FullScreenNativeView),
-                    // not BaseAdManager — it always loads at show time, so it reports
-                    // cold-load like any other fresh fetch.
-                    await FullScreenNativePresenter.present(
+                    // Native has its own pipeline (AdLoader + FullScreenNativeView), not
+                    // BaseAdManager. `didShow` is false when the load / presentation
+                    // failed — throw uniformly so native matches the other formats.
+                    let didShow = await FullScreenNativePresenter.present(
                         adUnitID: adUnitID,
                         keywords: keywords,
                         onColdLoad: onColdLoad
                     )
+                    guard didShow else {
+                        throw MobileAdsClient.AdError.adNotReady
+                    }
+                    outcome = .presented
             }
 
             debugPrint("👉 The \(adType.description) ad has been closed, proceeding with the next action!")
+            // Reached only after a real show + dismiss (a throw above skips this).
+            await fireCompletion(onComplete, shown: adType)
+            return outcome
+        }
+
+        /// Fires the caller's completion handler with a fresh preload snapshot, then
+        /// returns immediately. No-op when no handler was supplied. The handler is a
+        /// preload hook, so it runs in a detached task and does **not** block the
+        /// `showFullScreenAd` caller — the snapshot is still captured now (at dismiss).
+        private func fireCompletion(
+            _ onComplete: MobileAdsClient.CompletionHandler?,
+            shown adType: MobileAdsClient.AdType
+        ) {
+            guard let onComplete else { return }
+            let context = MobileAdsClient.CompletionContext(shown: adType, status: preloadStatus())
+            Task { await onComplete(context) }
         }
 
         /// Builds the phase → `AdLoadState` bridge that broadcasts a show-time cold
@@ -113,28 +149,6 @@
                     case .failed: AdLoadStateRelay.shared.emit(.failed(adType))
                 }
             }
-        }
-
-        /// Presents the rewarded ad and returns whether the user earned the reward.
-        /// Distinct from `showAd(.rewarded(_:))` which returns Void — the reward
-        /// result is captured via `userDidEarnRewardHandler` inside
-        /// `RewardedAdManager.showAndAwaitReward`.
-        @MainActor
-        internal func showRewardAd(
-            _ adUnitID: String,
-            keywords: [String] = []
-        ) async -> Bool {
-            guard let rootViewController = UIApplication.shared.topViewController() else {
-                return false
-            }
-            let onColdLoad = Self.makeColdLoadEmitter(for: .rewarded(adUnitID))
-            return
-                (try? await rewardedAdManager.showAndAwaitReward(
-                    adUnitID,
-                    from: rootViewController,
-                    keywords: keywords,
-                    onColdLoad: onColdLoad
-                )) ?? false
         }
 
         /// On-demand warm of the keyword-aware pool (Google-managed units no-op

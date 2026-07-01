@@ -19,11 +19,13 @@ extension MobileAdsClient: TestDependencyKey {
         Self(
             installRevenueBridge: {},
             shouldShowFullScreenAd: { _, _, _ in true },
-            showFullScreenAd: { _, _ in },
+            showFullScreenAd: { adType, _, _ in
+                if case .rewarded = adType { return .rewardEarned }
+                return .presented
+            },
             warmFullScreenAd: { _, _ in },
             registerPreloads: { _, _ in },
             stopPreloading: { _ in },
-            showRewardedAd: { _, _ in true },
             loadStates: { AsyncStream { $0.finish() } },
             preloadStatus: { PreloadStatus() }
         )
@@ -33,14 +35,15 @@ extension MobileAdsClient: TestDependencyKey {
         Self(
             installRevenueBridge: {},
             shouldShowFullScreenAd: { _, _, _ in true },
-            showFullScreenAd: { _, _ in
+            showFullScreenAd: { adType, _, _ in
                 // Simulate ad display delay for previews
                 try await Task.sleep(nanoseconds: 1_000_000_000)
+                if case .rewarded = adType { return .rewardEarned }
+                return .presented
             },
             warmFullScreenAd: { _, _ in },
             registerPreloads: { _, _ in },
             stopPreloading: { _ in },
-            showRewardedAd: { _, _ in true },
             loadStates: { AsyncStream { $0.finish() } },
             preloadStatus: { PreloadStatus() }
         )
@@ -52,11 +55,15 @@ extension MobileAdsClient {
     public static let adsDisabled: MobileAdsClient = Self(
         installRevenueBridge: {},
         shouldShowFullScreenAd: { _, _, _ in false },
-        showFullScreenAd: { _, _ in },
+        showFullScreenAd: { adType, _, _ in
+            // Ads are off, but a rewarded ask still grants the reward so the user
+            // isn't punished — mirror the old `showRewardedAd: true` behavior.
+            if case .rewarded = adType { return .rewardEarned }
+            return .presented
+        },
         warmFullScreenAd: { _, _ in },
         registerPreloads: { _, _ in },
         stopPreloading: { _ in },
-        showRewardedAd: { _, _ in true },  // user still gets the reward
         loadStates: { AsyncStream { $0.finish() } },
         preloadStatus: { PreloadStatus() }
     )

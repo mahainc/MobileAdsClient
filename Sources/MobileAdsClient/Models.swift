@@ -122,6 +122,52 @@ extension MobileAdsClient {
         }
     }
 
+    /// Outcome of a completed `showFullScreenAd`. `.presented` for non-rewarded
+    /// formats (appOpen / interstitial / native); `.rewardEarned` / `.rewardNotEarned`
+    /// distinguish the rewarded earn result. A struct with static constants (not an
+    /// enum) to match the house `Option`-style value types — the reward result is
+    /// binary, so two constants capture it fully with no associated value.
+    public struct AdOutcome: Sendable, Equatable {
+        public let rawValue: String
+
+        public init(rawValue: String) {
+            self.rawValue = rawValue
+        }
+
+        /// A non-rewarded ad was shown and dismissed (or a rewarded ad shown
+        /// fire-and-forget, when the earn result isn't needed).
+        public static let presented = AdOutcome(rawValue: "presented")
+        /// A rewarded ad was shown and the user earned the reward.
+        public static let rewardEarned = AdOutcome(rawValue: "rewardEarned")
+        /// A rewarded ad was shown but dismissed without earning.
+        public static let rewardNotEarned = AdOutcome(rawValue: "rewardNotEarned")
+
+        /// True only for a rewarded ad the user earned.
+        public var earnedReward: Bool { self == .rewardEarned }
+    }
+
+    /// Context handed to a show endpoint's `onComplete` after a **real** show +
+    /// dismiss. Inspect `status` to decide what (if anything) to preload next.
+    public struct CompletionContext: Sendable {
+        /// The ad that was shown and dismissed.
+        public let shown: AdType
+        /// Preload snapshot captured at dismiss.
+        public let status: PreloadStatus
+
+        public init(
+            shown: AdType,
+            status: PreloadStatus
+        ) {
+            self.shown = shown
+            self.status = status
+        }
+    }
+
+    /// Post-show decision hook. Runs only after a real show + dismiss (never when the
+    /// show throws or nothing was presented). Call back into the client to preload
+    /// whatever you want — or do nothing.
+    public typealias CompletionHandler = @Sendable (CompletionContext) async -> Void
+
     public enum AdError: Error, Sendable, Equatable, CustomStringConvertible {
         case adNotReady
 

@@ -99,6 +99,9 @@
         private struct Presentation {
             let adUnitID: String
             let continuation: CheckedContinuation<Void, Error>
+            /// When true, the post-dismiss auto-warm is skipped — the caller supplied
+            /// an `onComplete` handler and owns the preload decision for this show.
+            let suppressReload: Bool
         }
 
         private var presentations: [ObjectIdentifier: Presentation] = [:]
@@ -168,13 +171,15 @@
         final func setContinuation(
             _ continuation: CheckedContinuation<Void, Error>,
             for ad: AdType,
-            adUnitID: String
+            adUnitID: String,
+            suppressReload: Bool
         ) {
             stateLock.lock()
             defer { stateLock.unlock() }
             presentations[ObjectIdentifier(ad)] = Presentation(
                 adUnitID: adUnitID,
-                continuation: continuation
+                continuation: continuation,
+                suppressReload: suppressReload
             )
         }
 
@@ -384,6 +389,7 @@
             _ adUnitID: String,
             from viewController: UIViewController,
             keywords: [String] = [],
+            suppressAutoReload: Bool = false,
             onColdLoad: (@Sendable (AdLoadPhase) -> Void)? = nil
         ) async throws {
             guard let ad = await acquireForPresentation(adUnitID, keywords: keywords, onColdLoad: onColdLoad) else {
@@ -391,7 +397,7 @@
             }
 
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                setContinuation(continuation, for: ad, adUnitID: adUnitID)
+                setContinuation(continuation, for: ad, adUnitID: adUnitID, suppressReload: suppressAutoReload)
                 presentAd(ad, from: viewController)
             }
         }
@@ -421,6 +427,12 @@
         /// last asked for.
         private func reloadAfterPresentation(_ presentation: Presentation) {
             let adUnitID = presentation.adUnitID
+            // Caller supplied an onComplete handler → it owns the post-show preload
+            // decision for this show; skip the built-in auto-warm.
+            if presentation.suppressReload {
+                logPool("reload: suppressed (caller onComplete owns it) · unit=\(adUnitID)")
+                return
+            }
             let keywords = rememberedKeywords(for: adUnitID)
             if usesGoogle(adUnitID, keywords: keywords) {
                 logPool("reload: google self-refills (no-op) · unit=\(adUnitID)")

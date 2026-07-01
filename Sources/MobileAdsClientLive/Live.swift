@@ -28,8 +28,8 @@
                 shouldShowFullScreenAd: { adType, rules, keywords in
                     await AdsManager.shared.shouldShowAd(adType, rules: rules, keywords: keywords)
                 },
-                showFullScreenAd: { adType, keywords in
-                    try await AdsManager.shared.showAd(adType, keywords: keywords)
+                showFullScreenAd: { adType, keywords, onComplete in
+                    try await AdsManager.shared.showAd(adType, keywords: keywords, onComplete: onComplete)
                 },
                 warmFullScreenAd: { adType, keywords in
                     await AdsManager.shared.warm(adType, keywords: keywords)
@@ -39,9 +39,6 @@
                 },
                 stopPreloading: { adTypes in
                     await AdsManager.shared.stopPreloading(adTypes)
-                },
-                showRewardedAd: { unitID, keywords in
-                    await AdsManager.shared.showRewardAd(unitID, keywords: keywords)
                 },
                 loadStates: {
                     AdLoadStateRelay.shared.stream()

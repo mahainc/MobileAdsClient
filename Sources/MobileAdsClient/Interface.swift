@@ -30,8 +30,14 @@ public struct MobileAdsClient: Sendable {
     public var shouldShowFullScreenAd:
         @Sendable (_ adType: AdType, _ rules: [AdRule], _ keywords: [String]) async -> Bool = { _, _, _ in false }
 
-    /// Presents a full-screen ad (`interstitial` / `appOpen`) for `adType`.
-    public var showFullScreenAd: @Sendable (_ adType: AdType, _ keywords: [String]) async throws -> Void
+    /// Presents a full-screen ad (`interstitial` / `appOpen` / `rewarded` / native)
+    /// for `adType` and returns its `AdOutcome`. `.presented` for non-rewarded formats;
+    /// `.rewardEarned` / `.rewardNotEarned` for rewarded. Throws `AdError.adNotReady`
+    /// (uniformly, for every format) when nothing could be presented. `onComplete` runs
+    /// only after a real show + dismiss (never when it throws) and replaces the built-in
+    /// post-dismiss pool warm for that show.
+    public var showFullScreenAd:
+        @Sendable (_ adType: AdType, _ keywords: [String], _ onComplete: CompletionHandler?) async throws -> AdOutcome
 
     /// Warms the keyword-aware pool for `adType` so a subsequent `showFullScreenAd`
     /// presents without a load delay. Caller resolves the unit ID upstream.
@@ -47,12 +53,6 @@ public struct MobileAdsClient: Sendable {
 
     /// Stops preloading and drops the SDK buffer for the given units.
     public var stopPreloading: @Sendable (_ adTypes: [AdType]) async -> Void
-
-    /// Presents a rewarded ad for `unitID` and resumes with `true` if the user
-    /// earned the reward, `false` if they dismissed without earning or the show
-    /// failed. Caller decides whether to grant the reward when ads are off or the
-    /// load fails.
-    public var showRewardedAd: @Sendable (_ unitID: String, _ keywords: [String]) async -> Bool = { _, _ in false }
 
     /// A fresh stream of show-time load states (`.loading` / `.ready` / `.failed`),
     /// so a host can present a spinner while `showFullScreenAd` fetches an ad it

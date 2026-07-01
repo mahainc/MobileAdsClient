@@ -106,6 +106,7 @@
             _ adUnitID: String,
             from viewController: UIViewController,
             keywords: [String] = [],
+            suppressAutoReload: Bool = false,
             onColdLoad: (@Sendable (AdLoadPhase) -> Void)? = nil
         ) async throws -> Bool {
             guard let ad = await acquireForPresentation(adUnitID, keywords: keywords, onColdLoad: onColdLoad) else {
@@ -115,7 +116,7 @@
             pendingReward.withLock { $0[adUnitID] = false }
 
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                setContinuation(continuation, for: ad, adUnitID: adUnitID)
+                setContinuation(continuation, for: ad, adUnitID: adUnitID, suppressReload: suppressAutoReload)
                 ad.present(from: viewController) { [weak self] in
                     self?.pendingReward.withLock { $0[adUnitID] = true }
                 }

@@ -26,15 +26,15 @@
             mediaAspectRatio: NativeAdClient.MediaAspectRatioOption.Ratio? = nil,
             videoStartsMuted: Bool = true,
             onColdLoad: (@Sendable (AdLoadPhase) -> Void)? = nil
-        ) async {
-            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+        ) async -> Bool {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
                 Task { @MainActor in
                     let resumeBox = ResumeOnce()
 
                     @Dependency(\.nativeAdClient) var nativeAdClient
 
                     guard let topVC = UIApplication.shared.topViewController() else {
-                        resumeBox.resume(continuation)
+                        resumeBox.resume(continuation, didShow: false)
                         return
                     }
 
@@ -68,13 +68,13 @@
                                 "[FullScreenNativePresenter] load failed adUnit=\(adUnitID) error=\(error.localizedDescription)"
                             )
                         #endif
-                        resumeBox.resume(continuation)
+                        resumeBox.resume(continuation, didShow: false)
                         return
                     }
 
                     // Re-resolve the top VC — loading may have shuffled it (rare).
                     guard let hostVC = UIApplication.shared.topViewController() else {
-                        resumeBox.resume(continuation)
+                        resumeBox.resume(continuation, didShow: false)
                         return
                     }
 
@@ -83,7 +83,7 @@
                         configuration: configuration,
                         onClose: { [weak hostVC] in
                             hostVC?.presentedViewController?.dismiss(animated: true) {
-                                resumeBox.resume(continuation)
+                                resumeBox.resume(continuation, didShow: true)
                             }
                         }
                     )
@@ -100,13 +100,17 @@
 
         /// Guards against double-resume when the dismiss animation completion
         /// races with an unexpected early exit (e.g. a later failure branch).
+        /// `didShow` is true only when the ad was actually presented and dismissed.
         @MainActor
         private final class ResumeOnce {
             private var resumed = false
-            func resume(_ continuation: CheckedContinuation<Void, Never>) {
+            func resume(
+                _ continuation: CheckedContinuation<Bool, Never>,
+                didShow: Bool
+            ) {
                 guard !resumed else { return }
                 resumed = true
-                continuation.resume()
+                continuation.resume(returning: didShow)
             }
         }
     }
