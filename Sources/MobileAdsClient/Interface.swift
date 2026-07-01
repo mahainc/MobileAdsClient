@@ -45,14 +45,20 @@ public struct MobileAdsClient: Sendable {
     /// that buffer.
     public var warmFullScreenAd: @Sendable (_ adType: AdType, _ keywords: [String]) async -> Void
 
-    /// Eagerly registers keyword-less units with Google's Preloader. Call once
-    /// after `MobileAdsBootstrap.start()`. Keep the list curated and `bufferSize`
-    /// small (2–3) — Google caps total preloaded ads (~6 app-wide) and unshown
-    /// preloaded ads dilute show rate.
-    public var registerPreloads: @Sendable (_ adTypes: [AdType], _ bufferSize: Int) async -> Void
-
-    /// Stops preloading and drops the SDK buffer for the given units.
-    public var stopPreloading: @Sendable (_ adTypes: [AdType]) async -> Void
+    // TEMPORARILY DISABLED — not exposed publicly yet. The live engine
+    // (AdsManager.registerPreloads/stopPreloading → BaseAdManager + the Google
+    // preloader bridges) is fully retained; re-enable by uncommenting these two
+    // stored endpoints plus their bindings in Live.swift / Mocks.swift and the
+    // `registerPreloads(_:)` convenience in Extensions.swift.
+    //
+    // /// Eagerly registers keyword-less units with Google's Preloader. Call once
+    // /// after `MobileAdsBootstrap.start()`. Keep the list curated and `bufferSize`
+    // /// small (2–3) — Google caps total preloaded ads (~6 app-wide) and unshown
+    // /// preloaded ads dilute show rate.
+    // public var registerPreloads: @Sendable (_ adTypes: [AdType], _ bufferSize: Int) async -> Void
+    //
+    // /// Stops preloading and drops the SDK buffer for the given units.
+    // public var stopPreloading: @Sendable (_ adTypes: [AdType]) async -> Void
 
     /// A fresh stream of show-time load states (`.loading` / `.ready` / `.failed`),
     /// so a host can present a spinner while `showFullScreenAd` fetches an ad it

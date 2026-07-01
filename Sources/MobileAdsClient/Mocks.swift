@@ -24,8 +24,7 @@ extension MobileAdsClient: TestDependencyKey {
                 return .presented
             },
             warmFullScreenAd: { _, _ in },
-            registerPreloads: { _, _ in },
-            stopPreloading: { _ in },
+            // registerPreloads / stopPreloading temporarily disabled (see Interface.swift).
             loadStates: { AsyncStream { $0.finish() } },
             preloadStatus: { PreloadStatus() }
         )
@@ -42,8 +41,7 @@ extension MobileAdsClient: TestDependencyKey {
                 return .presented
             },
             warmFullScreenAd: { _, _ in },
-            registerPreloads: { _, _ in },
-            stopPreloading: { _ in },
+            // registerPreloads / stopPreloading temporarily disabled (see Interface.swift).
             loadStates: { AsyncStream { $0.finish() } },
             preloadStatus: { PreloadStatus() }
         )
@@ -62,8 +60,7 @@ extension MobileAdsClient {
             return .presented
         },
         warmFullScreenAd: { _, _ in },
-        registerPreloads: { _, _ in },
-        stopPreloading: { _ in },
+        // registerPreloads / stopPreloading temporarily disabled (see Interface.swift).
         loadStates: { AsyncStream { $0.finish() } },
         preloadStatus: { PreloadStatus() }
     )

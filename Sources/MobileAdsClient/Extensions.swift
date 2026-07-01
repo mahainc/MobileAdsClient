@@ -134,10 +134,11 @@ extension MobileAdsClient {
         await warmFullScreenAd(adType, [])
     }
 
-    /// Convenience: registers units with a default buffer size of 2.
-    public func registerPreloads(_ adTypes: [AdType]) async {
-        await registerPreloads(adTypes, 2)
-    }
+    // TEMPORARILY DISABLED with the `registerPreloads` endpoint (see Interface.swift).
+    // /// Convenience: registers units with a default buffer size of 2.
+    // public func registerPreloads(_ adTypes: [AdType]) async {
+    //     await registerPreloads(adTypes, 2)
+    // }
 
     /// Presents a rewarded ad for `unitID` and returns whether the user earned the
     /// reward — `false` if they dismissed without earning or nothing could present.

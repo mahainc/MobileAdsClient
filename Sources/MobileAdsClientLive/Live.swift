@@ -34,12 +34,15 @@
                 warmFullScreenAd: { adType, keywords in
                     await AdsManager.shared.warm(adType, keywords: keywords)
                 },
-                registerPreloads: { adTypes, bufferSize in
-                    await AdsManager.shared.registerPreloads(adTypes, bufferSize: bufferSize)
-                },
-                stopPreloading: { adTypes in
-                    await AdsManager.shared.stopPreloading(adTypes)
-                },
+                // TEMPORARILY DISABLED — endpoints commented out in Interface.swift.
+                // AdsManager.registerPreloads/stopPreloading are retained; re-enable
+                // by uncommenting these bindings alongside the interface properties.
+                // registerPreloads: { adTypes, bufferSize in
+                //     await AdsManager.shared.registerPreloads(adTypes, bufferSize: bufferSize)
+                // },
+                // stopPreloading: { adTypes in
+                //     await AdsManager.shared.stopPreloading(adTypes)
+                // },
                 loadStates: {
                     AdLoadStateRelay.shared.stream()
                 },
