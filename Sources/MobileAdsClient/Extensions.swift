@@ -123,11 +123,6 @@ extension MobileAdsClient {
     public func showRewardedAd(_ unitID: String) async -> Bool {
         await showRewardedAd(unitID, [])
     }
-
-    /// Convenience: presents a full-screen native ad with no contextual keywords.
-    public func showNativeFullScreen(_ adUnitID: String) async {
-        await showNativeFullScreen(adUnitID, [])
-    }
 }
 
 // MARK: - Either

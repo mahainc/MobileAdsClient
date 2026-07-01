@@ -114,9 +114,13 @@
         /// 2. no match but a unit ad is ready → consume that as a fallback;
         /// 3. nothing cached → load fresh and return it.
         /// Returns nil only when nothing is cached and the fresh load fails.
+        /// `onColdLoad` fires **only** on the tier-3 fresh-load branch (exact/fallback
+        /// cache hits stay silent), so a host spinner reflects a genuine show-time
+        /// wait and nothing else.
         func acquire(
             _ adUnitID: String,
-            keywords: [String]
+            keywords: [String],
+            onColdLoad: (@Sendable (AdLoadPhase) -> Void)? = nil
         ) async -> Ad? {
             let key = pool.key(adUnitID, keywords)
 
@@ -131,9 +135,13 @@
                 return taken.ad
             }
             log("show: MISS · unit=\(adUnitID) · keywords=\(keywords) · pool empty → loading fresh")
+            onColdLoad?(.started)
             do {
-                return try await load(adUnitID, keywords)
+                let ad = try await load(adUnitID, keywords)
+                onColdLoad?(.ready)
+                return ad
             } catch {
+                onColdLoad?(.failed)
                 log(
                     "show: FAILED fresh load · unit=\(adUnitID) · keywords=\(keywords) · error=\(error.localizedDescription)"
                 )

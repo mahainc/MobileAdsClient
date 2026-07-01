@@ -42,6 +42,11 @@
 
                 case let .rewarded(adUnitID):
                     return await rewardedAdManager.shouldShowAd(adUnitID, rules: rules, keywords: keywords)
+
+                case .nativeFullScreen:
+                    // Native loads on demand at show time — no pool/preload to gate
+                    // readiness on, so readiness is just whether the rules pass.
+                    return await rules.allRulesSatisfied()
             }
         }
 
@@ -54,18 +59,60 @@
                 return
             }
 
+            let onColdLoad = Self.makeColdLoadEmitter(for: adType)
+
             switch adType {
                 case let .appOpen(adUnitID):
-                    try await openAdManager.showAd(adUnitID, from: rootViewController, keywords: keywords)
+                    try await openAdManager.showAd(
+                        adUnitID,
+                        from: rootViewController,
+                        keywords: keywords,
+                        onColdLoad: onColdLoad
+                    )
 
                 case let .interstitial(adUnitID):
-                    try await interstitialAdManager.showAd(adUnitID, from: rootViewController, keywords: keywords)
+                    try await interstitialAdManager.showAd(
+                        adUnitID,
+                        from: rootViewController,
+                        keywords: keywords,
+                        onColdLoad: onColdLoad
+                    )
 
                 case let .rewarded(adUnitID):
-                    try await rewardedAdManager.showAd(adUnitID, from: rootViewController, keywords: keywords)
+                    try await rewardedAdManager.showAd(
+                        adUnitID,
+                        from: rootViewController,
+                        keywords: keywords,
+                        onColdLoad: onColdLoad
+                    )
+
+                case let .nativeFullScreen(adUnitID):
+                    // Native has its own pipeline (AdLoader + FullScreenNativeView),
+                    // not BaseAdManager — it always loads at show time, so it reports
+                    // cold-load like any other fresh fetch.
+                    await FullScreenNativePresenter.present(
+                        adUnitID: adUnitID,
+                        keywords: keywords,
+                        onColdLoad: onColdLoad
+                    )
             }
 
             debugPrint("👉 The \(adType.description) ad has been closed, proceeding with the next action!")
+        }
+
+        /// Builds the phase → `AdLoadState` bridge that broadcasts a show-time cold
+        /// load for `adType` on the shared relay. Passed down the acquire chain;
+        /// fires only on a fresh load, so cache/preload serves stay silent.
+        nonisolated private static func makeColdLoadEmitter(
+            for adType: MobileAdsClient.AdType
+        ) -> @Sendable (AdLoadPhase) -> Void {
+            { phase in
+                switch phase {
+                    case .started: AdLoadStateRelay.shared.emit(.loading(adType))
+                    case .ready: AdLoadStateRelay.shared.emit(.ready(adType))
+                    case .failed: AdLoadStateRelay.shared.emit(.failed(adType))
+                }
+            }
         }
 
         /// Presents the rewarded ad and returns whether the user earned the reward.
@@ -80,9 +127,14 @@
             guard let rootViewController = UIApplication.shared.topViewController() else {
                 return false
             }
+            let onColdLoad = Self.makeColdLoadEmitter(for: .rewarded(adUnitID))
             return
-                (try? await rewardedAdManager.showAndAwaitReward(adUnitID, from: rootViewController, keywords: keywords))
-                ?? false
+                (try? await rewardedAdManager.showAndAwaitReward(
+                    adUnitID,
+                    from: rootViewController,
+                    keywords: keywords,
+                    onColdLoad: onColdLoad
+                )) ?? false
         }
 
         /// On-demand warm of the keyword-aware pool (Google-managed units no-op
@@ -100,6 +152,10 @@
 
                 case let .rewarded(adUnitID):
                     await rewardedAdManager.warm(adUnitID, keywords: keywords)
+
+                case .nativeFullScreen:
+                    // Native has no pool/preload buffer to warm — it loads on demand.
+                    break
             }
         }
 
@@ -119,6 +175,10 @@
 
                     case let .rewarded(adUnitID):
                         await rewardedAdManager.register(adUnitID, bufferSize: bufferSize)
+
+                    case .nativeFullScreen:
+                        // Google's Preloader has no native support; skip.
+                        break
                 }
             }
         }
@@ -135,6 +195,10 @@
 
                     case let .rewarded(adUnitID):
                         await rewardedAdManager.stopPreloading(adUnitID)
+
+                    case .nativeFullScreen:
+                        // Nothing was preloaded for native; nothing to stop.
+                        break
                 }
             }
         }

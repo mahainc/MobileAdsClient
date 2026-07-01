@@ -43,8 +43,8 @@
                 showRewardedAd: { unitID, keywords in
                     await AdsManager.shared.showRewardAd(unitID, keywords: keywords)
                 },
-                showNativeFullScreen: { adUnitID, keywords in
-                    await FullScreenNativePresenter.present(adUnitID: adUnitID, keywords: keywords)
+                loadStates: {
+                    AdLoadStateRelay.shared.stream()
                 }
             )
         }()

@@ -335,7 +335,8 @@
         /// `showAndAwaitReward`.
         final func acquireForPresentation(
             _ adUnitID: String,
-            keywords: [String]
+            keywords: [String],
+            onColdLoad: (@Sendable (AdLoadPhase) -> Void)? = nil
         ) async -> AdType? {
             rememberRequestedKeywords(adUnitID, keywords)
 
@@ -343,18 +344,20 @@
                 logPool("show: GOOGLE preloaded · unit=\(adUnitID)")
                 return ad
             }
-            return await pooledSource.acquire(adUnitID, keywords: keywords)
+            return await pooledSource.acquire(adUnitID, keywords: keywords, onColdLoad: onColdLoad)
         }
 
         /// Shows an ad for `adUnitID`, preferring a Google-preloaded ad (keyword-less
-        /// registered units) then the keyword-aware pool.
+        /// registered units) then the keyword-aware pool. `onColdLoad` reports a
+        /// show-time fresh-load (spinner signal); nil for silent shows.
         @MainActor
         public final func showAd(
             _ adUnitID: String,
             from viewController: UIViewController,
-            keywords: [String] = []
+            keywords: [String] = [],
+            onColdLoad: (@Sendable (AdLoadPhase) -> Void)? = nil
         ) async throws {
-            guard let ad = await acquireForPresentation(adUnitID, keywords: keywords) else {
+            guard let ad = await acquireForPresentation(adUnitID, keywords: keywords, onColdLoad: onColdLoad) else {
                 throw MobileAdsClient.AdError.adNotReady
             }
 

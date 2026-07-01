@@ -24,7 +24,7 @@ extension MobileAdsClient: TestDependencyKey {
             registerPreloads: { _, _ in },
             stopPreloading: { _ in },
             showRewardedAd: { _, _ in true },
-            showNativeFullScreen: { _, _ in }
+            loadStates: { AsyncStream { $0.finish() } }
         )
     }()
 
@@ -40,9 +40,7 @@ extension MobileAdsClient: TestDependencyKey {
             registerPreloads: { _, _ in },
             stopPreloading: { _ in },
             showRewardedAd: { _, _ in true },
-            showNativeFullScreen: { _, _ in
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
-            }
+            loadStates: { AsyncStream { $0.finish() } }
         )
     }()
 }
@@ -57,6 +55,6 @@ extension MobileAdsClient {
         registerPreloads: { _, _ in },
         stopPreloading: { _ in },
         showRewardedAd: { _, _ in true },  // user still gets the reward
-        showNativeFullScreen: { _, _ in }
+        loadStates: { AsyncStream { $0.finish() } }
     )
 }

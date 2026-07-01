@@ -83,10 +83,6 @@ let package = Package(
                 "NativeAdClient",
             ]
         ),
-        .testTarget(
-            name: "MobileAdsClientTests",
-            dependencies: ["MobileAdsClient", "MobileAdsClientUI"]
-        ),
     ]
 )
 

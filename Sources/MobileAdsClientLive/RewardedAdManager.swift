@@ -101,9 +101,10 @@
         func showAndAwaitReward(
             _ adUnitID: String,
             from viewController: UIViewController,
-            keywords: [String] = []
+            keywords: [String] = [],
+            onColdLoad: (@Sendable (AdLoadPhase) -> Void)? = nil
         ) async throws -> Bool {
-            guard let ad = await acquireForPresentation(adUnitID, keywords: keywords) else {
+            guard let ad = await acquireForPresentation(adUnitID, keywords: keywords, onColdLoad: onColdLoad) else {
                 throw MobileAdsClient.AdError.adNotReady
             }
 

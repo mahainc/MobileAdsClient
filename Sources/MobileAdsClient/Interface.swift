@@ -54,9 +54,11 @@ public struct MobileAdsClient: Sendable {
     /// load fails.
     public var showRewardedAd: @Sendable (_ unitID: String, _ keywords: [String]) async -> Bool = { _, _ in false }
 
-    /// Presents a native ad as a full-screen modal (`FullScreenNativeAdView` in
-    /// `MobileAdsClientUI`). Loads via `NativeAdClient`, publishes paid events
-    /// through `AdRevenueClient` (`format: .native`). Resumes once the user taps
-    /// close — or immediately if the load fails.
-    public var showNativeFullScreen: @Sendable (_ adUnitID: String, _ keywords: [String]) async -> Void = { _, _ in }
+    /// A fresh stream of show-time load states (`.loading` / `.ready` / `.failed`),
+    /// so a host can present a spinner while `showFullScreenAd` fetches an ad it
+    /// couldn't serve from cache. Emits **only** for show-time cold loads (and the
+    /// native on-demand load) — background `warmFullScreenAd` and Google preload
+    /// refills are silent. Each call returns an independent stream; subscribe once
+    /// and drive UI from the emitted `AdType`.
+    public var loadStates: @Sendable () -> AsyncStream<AdLoadState> = { AsyncStream { $0.finish() } }
 }

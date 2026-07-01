@@ -24,7 +24,8 @@
             configuration: FullScreenNativeAdView.Configuration = .default,
             adChoicesCorner: NativeAdClient.AdChoicesPositionOption.Corner = .bottomLeft,
             mediaAspectRatio: NativeAdClient.MediaAspectRatioOption.Ratio? = nil,
-            videoStartsMuted: Bool = true
+            videoStartsMuted: Bool = true,
+            onColdLoad: (@Sendable (AdLoadPhase) -> Void)? = nil
         ) async {
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 Task { @MainActor in
@@ -56,9 +57,12 @@
                     // `NativeAdManager.adLoader(_:didReceive:)` already attaches the
                     // `paidEventHandler` so revenue flows without extra wiring.
                     let nativeAd: NativeAd
+                    onColdLoad?(.started)
                     do {
                         nativeAd = try await nativeAdClient.loadAd(adUnitID, topVC, options, keywords)
+                        onColdLoad?(.ready)
                     } catch {
+                        onColdLoad?(.failed)
                         #if DEBUG
                             print(
                                 "[FullScreenNativePresenter] load failed adUnit=\(adUnitID) error=\(error.localizedDescription)"
