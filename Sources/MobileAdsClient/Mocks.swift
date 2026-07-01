@@ -16,28 +16,30 @@ extension DependencyValues {
 
 extension MobileAdsClient: TestDependencyKey {
     public static let testValue: MobileAdsClient = {
-        return Self(
-            requestTrackingAuthorizationIfNeeded: {},
-            shouldShowAd: { _, _, _ in true },
-            showAd: { _, _ in },
-            preloadAd: { _, _ in },
-            showRewardedAd: { _, _ in true },
+        Self(
             installRevenueBridge: {},
+            shouldShowFullScreenAd: { _, _, _ in true },
+            showFullScreenAd: { _, _ in },
+            warmFullScreenAd: { _, _ in },
+            registerPreloads: { _, _ in },
+            stopPreloading: { _ in },
+            showRewardedAd: { _, _ in true },
             showNativeFullScreen: { _, _ in }
         )
     }()
 
     public static let previewValue: MobileAdsClient = {
-        return Self(
-            requestTrackingAuthorizationIfNeeded: {},
-            shouldShowAd: { _, _, _ in true },
-            showAd: { _, _ in
+        Self(
+            installRevenueBridge: {},
+            shouldShowFullScreenAd: { _, _, _ in true },
+            showFullScreenAd: { _, _ in
                 // Simulate ad display delay for previews
                 try await Task.sleep(nanoseconds: 1_000_000_000)
             },
-            preloadAd: { _, _ in },
+            warmFullScreenAd: { _, _ in },
+            registerPreloads: { _, _ in },
+            stopPreloading: { _ in },
             showRewardedAd: { _, _ in true },
-            installRevenueBridge: {},
             showNativeFullScreen: { _, _ in
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
             }
@@ -48,12 +50,13 @@ extension MobileAdsClient: TestDependencyKey {
 extension MobileAdsClient {
     /// All ads disabled — simulates premium user or Remote Config kill switch.
     public static let adsDisabled: MobileAdsClient = Self(
-        requestTrackingAuthorizationIfNeeded: {},
-        shouldShowAd: { _, _, _ in false },
-        showAd: { _, _ in },
-        preloadAd: { _, _ in },
-        showRewardedAd: { _, _ in true },  // user still gets the reward
         installRevenueBridge: {},
+        shouldShowFullScreenAd: { _, _, _ in false },
+        showFullScreenAd: { _, _ in },
+        warmFullScreenAd: { _, _ in },
+        registerPreloads: { _, _ in },
+        stopPreloading: { _ in },
+        showRewardedAd: { _, _ in true },  // user still gets the reward
         showNativeFullScreen: { _, _ in }
     )
 }

@@ -7,7 +7,6 @@
 
 #if canImport(UIKit)
     import AdRevenueClient
-    import AppTrackingTransparency
     import ComposableArchitecture
     import MobileAdsClient
     @preconcurrency import GoogleMobileAds
@@ -15,32 +14,6 @@
     extension MobileAdsClient: DependencyKey {
         public static let liveValue: Self = {
             return Self(
-                requestTrackingAuthorizationIfNeeded: {
-                    guard ATTrackingManager.trackingAuthorizationStatus == .notDetermined else {
-                        return
-                    }
-
-                    await withCheckedContinuation { continuation in
-                        ATTrackingManager.requestTrackingAuthorization { _ in
-                            continuation.resume(returning: ())
-                        }
-                    }
-                },
-                shouldShowAd: { adType, rules, keywords in
-                    await AdsManager.shared.shouldShowAd(adType, rules: rules, keywords: keywords)
-                },
-                showAd: { adType, keywords in
-                    try await AdsManager.shared.showAd(adType, keywords: keywords)
-                },
-                preloadAd: { adType, keywords in
-                    // `shouldShowAd` auto-loads into the BaseAdManager cache when
-                    // nothing is resident (or re-loads when the keywords changed) —
-                    // exactly the "warm the slot" we want. The Bool is ignored here.
-                    _ = await AdsManager.shared.shouldShowAd(adType, rules: [], keywords: keywords)
-                },
-                showRewardedAd: { unitID, keywords in
-                    await AdsManager.shared.showRewardAd(unitID, keywords: keywords)
-                },
                 installRevenueBridge: {
                     // No-op. Historically registered an ads_swift AdRevenueDelegate
                     // to mirror paid events into AdRevenueClient. With ads_swift
@@ -51,6 +24,24 @@
                     // longer anything to bridge. Kept on the interface so
                     // `AdsBootstrap.installingRevenueBridge` still calls through
                     // without needing a phase rename.
+                },
+                shouldShowFullScreenAd: { adType, rules, keywords in
+                    await AdsManager.shared.shouldShowAd(adType, rules: rules, keywords: keywords)
+                },
+                showFullScreenAd: { adType, keywords in
+                    try await AdsManager.shared.showAd(adType, keywords: keywords)
+                },
+                warmFullScreenAd: { adType, keywords in
+                    await AdsManager.shared.warm(adType, keywords: keywords)
+                },
+                registerPreloads: { adTypes, bufferSize in
+                    await AdsManager.shared.registerPreloads(adTypes, bufferSize: bufferSize)
+                },
+                stopPreloading: { adTypes in
+                    await AdsManager.shared.stopPreloading(adTypes)
+                },
+                showRewardedAd: { unitID, keywords in
+                    await AdsManager.shared.showRewardAd(unitID, keywords: keywords)
                 },
                 showNativeFullScreen: { adUnitID, keywords in
                     await FullScreenNativePresenter.present(adUnitID: adUnitID, keywords: keywords)

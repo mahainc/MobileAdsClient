@@ -1,5 +1,5 @@
 //
-//  AdManager.swift
+//  Actor.swift
 //  MobileAdsClient
 //
 //  Created by Thanh Hai Khong on 4/2/25.
@@ -83,6 +83,60 @@
             return
                 (try? await rewardedAdManager.showAndAwaitReward(adUnitID, from: rootViewController, keywords: keywords))
                 ?? false
+        }
+
+        /// On-demand warm of the keyword-aware pool (Google-managed units no-op
+        /// inside the manager). Replaces the old `preloadAd` → `shouldShowAd` warm.
+        internal func warm(
+            _ adType: MobileAdsClient.AdType,
+            keywords: [String] = []
+        ) async {
+            switch adType {
+                case let .appOpen(adUnitID):
+                    await openAdManager.warm(adUnitID, keywords: keywords)
+
+                case let .interstitial(adUnitID):
+                    await interstitialAdManager.warm(adUnitID, keywords: keywords)
+
+                case let .rewarded(adUnitID):
+                    await rewardedAdManager.warm(adUnitID, keywords: keywords)
+            }
+        }
+
+        /// Eagerly register units for Google's Preloader (keyword-less, SDK-buffered).
+        /// The host calls this once after `MobileAdsBootstrap.start()`.
+        internal func registerPreloads(
+            _ adTypes: [MobileAdsClient.AdType],
+            bufferSize: Int
+        ) async {
+            for adType in adTypes {
+                switch adType {
+                    case let .appOpen(adUnitID):
+                        await openAdManager.register(adUnitID, bufferSize: bufferSize)
+
+                    case let .interstitial(adUnitID):
+                        await interstitialAdManager.register(adUnitID, bufferSize: bufferSize)
+
+                    case let .rewarded(adUnitID):
+                        await rewardedAdManager.register(adUnitID, bufferSize: bufferSize)
+                }
+            }
+        }
+
+        /// Stop preloading and drop the buffer for the given units (show-rate lever).
+        internal func stopPreloading(_ adTypes: [MobileAdsClient.AdType]) async {
+            for adType in adTypes {
+                switch adType {
+                    case let .appOpen(adUnitID):
+                        await openAdManager.stopPreloading(adUnitID)
+
+                    case let .interstitial(adUnitID):
+                        await interstitialAdManager.stopPreloading(adUnitID)
+
+                    case let .rewarded(adUnitID):
+                        await rewardedAdManager.stopPreloading(adUnitID)
+                }
+            }
         }
     }
 #endif

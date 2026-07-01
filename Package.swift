@@ -7,8 +7,8 @@ let package = Package(
     name: "MobileAdsClient",
     defaultLocalization: "en",
     platforms: [
-		.iOS(.v16),
-		.macOS(.v13),
+        .iOS(.v16),
+        .macOS(.v13),
     ],
     products: [
         .singleTargetLibrary("MobileAdsClient"),
@@ -29,7 +29,7 @@ let package = Package(
             dependencies: [
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
                 .product(name: "GoogleMobileAds", package: "swift-package-manager-google-mobile-ads"),
-				.product(name: "TCAInitializableReducer", package: "TCAInitializableReducer"),
+                .product(name: "TCAInitializableReducer", package: "TCAInitializableReducer"),
             ]
         ),
         .target(
@@ -41,6 +41,16 @@ let package = Package(
                 "MobileAdsClient",
                 "MobileAdsClientUI",
                 "NativeAdClient",
+            ],
+            swiftSettings: [
+                // Gates the Google Preloader path, which imports the Beta /
+                // `GoogleMobileAds_Private` module (the Preloader `*_Beta.h`
+                // headers are NOT in the stable public umbrella in SDK 13.5.0).
+                // Flip this OFF (delete the define) if a future SDK drops or
+                // changes that module — the hand-rolled pool (TTL + retry +
+                // keyword variants) keeps working on stable public API alone, and
+                // `BaseAdManager` falls through to it everywhere.
+                .define("MOBILEADS_GOOGLE_PRELOAD")
             ]
         ),
         .target(
@@ -48,12 +58,12 @@ let package = Package(
             dependencies: [
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
                 .product(name: "GoogleMobileAds", package: "swift-package-manager-google-mobile-ads"),
-				.product(name: "TCAInitializableReducer", package: "TCAInitializableReducer"),
+                .product(name: "TCAInitializableReducer", package: "TCAInitializableReducer"),
                 "NativeAdClient",
                 "MobileAdsClient",
             ],
             resources: [
-                .process("Resources"),
+                .process("Resources")
             ]
         ),
         .target(
@@ -61,7 +71,7 @@ let package = Package(
             dependencies: [
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
                 .product(name: "GoogleMobileAds", package: "swift-package-manager-google-mobile-ads"),
-				.product(name: "TCAInitializableReducer", package: "TCAInitializableReducer"),
+                .product(name: "TCAInitializableReducer", package: "TCAInitializableReducer"),
             ]
         ),
         .target(
@@ -85,4 +95,3 @@ extension Product {
         .library(name: name, targets: [name])
     }
 }
-

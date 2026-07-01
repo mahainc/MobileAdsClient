@@ -4,10 +4,10 @@
 //
 
 import ComposableArchitecture
-import MobileAdsClientUI
-import MobileAdsClient
-import NativeAdClient
 import Foundation
+import MobileAdsClient
+import MobileAdsClientUI
+import NativeAdClient
 import SwiftUI
 
 @Reducer
@@ -34,57 +34,71 @@ public struct GoogleAds: Sendable {
 
         Reduce { state, action in
             switch action {
-            case .onTask:
-                let staticSize: StandardSize = .banner
-                let staticType = BannerType.static(staticSize)
+                case .onTask:
+                    let inlineAdaptiveSize: InlineAdaptiveSize = .currentOrientationInlineAdaptiveBannerWidth(
+                        UIScreen.main.bounds.size.width - 40
+                    )
+                    let inlineType = BannerType.inlineAdaptive(inlineAdaptiveSize)
+                    var array: [Banner.State] = []
 
-                let inlineAdaptiveSize: InlineAdaptiveSize = .currentOrientationInlineAdaptiveBannerWidth(UIScreen.main.bounds.size.width - 40)
-                let inlineType = BannerType.inlineAdaptive(inlineAdaptiveSize)
-                var array: [Banner.State] = []
-
-                for _ in 0..<5 {
-                    let staticBanner = Banner.State(adUnitID: "ca-app-pub-3940256099942544/2435281174", type: inlineType, layer: .thick)
-                    array.append(staticBanner)
-                }
-
-                state.banners = .init(uniqueElements: array.enumerated().map(\.element))
-
-                let anchoredSize: AnchoredAdaptiveSize = .currentOrientationAnchoredAdaptiveBannerWidth(UIScreen.main.bounds.size.width - 40)
-                let config: CollapsibleConfig = .init(isCollapsible: true, anchorPosition: .top)
-                let anchoredType = BannerType.anchoredAdaptive(anchoredSize, collapsible: nil)
-                let anchoredBanner = Banner.State(adUnitID: "ca-app-pub-3940256099942544/2435281174", type: anchoredType, layer: .thick)
-                state.anchoredBanner = anchoredBanner
-
-                var items: [Either<Article, Banner>.State] = []
-                for index in 0..<15 {
-                    let article: Either<Article, Banner>.State = .content(Article.State())
-                    items.append(article)
-                    if index.isMultiple(of: 3) {
-                        let banner: Either<Article, Banner>.State = .ad(Banner.State(adUnitID: "ca-app-pub-3940256099942544/2435281174", type: inlineType, layer: .thick))
-                        items.append(banner)
+                    for _ in 0..<5 {
+                        let staticBanner = Banner.State(
+                            adUnitID: "ca-app-pub-3940256099942544/2435281174",
+                            type: inlineType,
+                            layer: .thick
+                        )
+                        array.append(staticBanner)
                     }
-                }
 
-                state.items = .init(uniqueElements: items.enumerated().map(\.element))
+                    state.banners = .init(uniqueElements: array.enumerated().map(\.element))
 
-                let options: [NativeAdClient.AnyAdLoaderOption] = [
-                    NativeAdClient.AnyAdLoaderOption(NativeAdClient.MediaAspectRatioOption(ratio: .landscape)),
-                    NativeAdClient.AnyAdLoaderOption(NativeAdClient.AdChoicesPositionOption(corner: .topRight)),
-                ]
+                    let anchoredSize: AnchoredAdaptiveSize = .currentOrientationAnchoredAdaptiveBannerWidth(
+                        UIScreen.main.bounds.size.width - 40
+                    )
+                    let anchoredType = BannerType.anchoredAdaptive(anchoredSize, collapsible: nil)
+                    let anchoredBanner = Banner.State(
+                        adUnitID: "ca-app-pub-3940256099942544/2435281174",
+                        type: anchoredType,
+                        layer: .thick
+                    )
+                    state.anchoredBanner = anchoredBanner
 
-                let native = Native.State.init(adUnitID: "ca-app-pub-3940256099942544/3986624511", options: options)
-                state.native = native
+                    var items: [Either<Article, Banner>.State] = []
+                    for index in 0..<15 {
+                        let article: Either<Article, Banner>.State = .content(Article.State())
+                        items.append(article)
+                        if index.isMultiple(of: 3) {
+                            let banner: Either<Article, Banner>.State = .ad(
+                                Banner.State(
+                                    adUnitID: "ca-app-pub-3940256099942544/2435281174",
+                                    type: inlineType,
+                                    layer: .thick
+                                )
+                            )
+                            items.append(banner)
+                        }
+                    }
 
-                return .none
+                    state.items = .init(uniqueElements: items.enumerated().map(\.element))
 
-            case .anchoredBanner:
-                return .none
+                    let options: [NativeAdClient.AnyAdLoaderOption] = [
+                        NativeAdClient.AnyAdLoaderOption(NativeAdClient.MediaAspectRatioOption(ratio: .landscape)),
+                        NativeAdClient.AnyAdLoaderOption(NativeAdClient.AdChoicesPositionOption(corner: .topRight)),
+                    ]
 
-            case .banners:
-                return .none
+                    let native = Native.State.init(adUnitID: "ca-app-pub-3940256099942544/3986624511", options: options)
+                    state.native = native
 
-            default:
-                return .none
+                    return .none
+
+                case .anchoredBanner:
+                    return .none
+
+                case .banners:
+                    return .none
+
+                default:
+                    return .none
             }
         }
         .forEach(\.banners, action: \.banners) {
@@ -101,5 +115,5 @@ public struct GoogleAds: Sendable {
         }
     }
 
-    public init() { }
+    public init() {}
 }

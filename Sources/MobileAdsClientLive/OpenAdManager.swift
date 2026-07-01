@@ -10,8 +10,16 @@
     import GoogleMobileAds
     import MobileAdsClient
 
-    final internal class OpenAdManager: BaseAdManager<AppOpenAd> {
+    #if MOBILEADS_GOOGLE_PRELOAD
+        import GoogleMobileAds_Private
+    #endif
+
+    final internal class OpenAdManager: BaseAdManager<AppOpenAd>, @unchecked Sendable {
         override var format: AdRevenueEvent.AdFormat { .appOpen }
+
+        /// App-open ads expire ~4h after load; keep the pooled TTL comfortably
+        /// under that so a served ad is always presentable.
+        override var poolMaxAge: TimeInterval { 14000 }  // ~3.9 hours
 
         override func loadAd(
             adUnitID: String,
@@ -43,7 +51,62 @@
         ) {
             ad.present(from: viewController)
         }
+
+        // MARK: - Google Preloader bridges
+
+        #if MOBILEADS_GOOGLE_PRELOAD
+            override var supportsGooglePreload: Bool { true }
+
+            override func googleRegister(
+                _ preloadID: String,
+                bufferSize: Int
+            ) -> Bool {
+                let configuration = PreloadConfigurationV2(adUnitID: preloadID, request: Request())
+                configuration.bufferSize = UInt(bufferSize)
+                return AppOpenAdPreloader.shared.preload(
+                    for: preloadID,
+                    configuration: configuration,
+                    delegate: self
+                )
+            }
+
+            override func googleIsAvailable(_ preloadID: String) -> Bool {
+                AppOpenAdPreloader.shared.isAdAvailable(with: preloadID)
+            }
+
+            override func googleDequeue(_ preloadID: String) -> AppOpenAd? {
+                AppOpenAdPreloader.shared.ad(with: preloadID)  // dequeue + auto-refill
+            }
+
+            override func googleStop(_ preloadID: String) {
+                AppOpenAdPreloader.shared.stopPreloadingAndRemoveAds(for: preloadID)
+            }
+        #endif
     }
+
+    // MARK: - PreloadDelegate
+
+    #if MOBILEADS_GOOGLE_PRELOAD
+        extension OpenAdManager: PreloadDelegate {
+            func adAvailable(
+                forPreloadID preloadID: String,
+                responseInfo: ResponseInfo
+            ) {
+                logPool("preload: ad available · unit=\(preloadID)")
+            }
+
+            func adsExhausted(forPreloadID preloadID: String) {
+                logPool("preload: EXHAUSTED · unit=\(preloadID)")
+            }
+
+            func adFailedToPreload(
+                forPreloadID preloadID: String,
+                error: Error
+            ) {
+                logPool("preload: FAILED · unit=\(preloadID) · error=\(error.localizedDescription)")
+            }
+        }
+    #endif
 
     extension AppOpenAd: @retroactive @unchecked Sendable {
 
