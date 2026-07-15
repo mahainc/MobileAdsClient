@@ -38,6 +38,9 @@
             #if DEBUG
                 print("📤 NativeAdManager loadAd START unit=\(adUnitID)")
             #endif
+            // Block until the SDK has been started (behind the app's consent
+            // gate) so the load doesn't race ahead of init and fail spuriously.
+            await MobileAdsBootstrap.awaitReady()
             return try await withCheckedThrowingContinuation { continuation in
                 let requestID = UUID()
                 let request = Request()
@@ -115,6 +118,9 @@
             #if DEBUG
                 print("📤 NativeAdManager loadAds START unit=\(adUnitID) count=\(count)")
             #endif
+            // Block until the SDK has been started (behind the app's consent
+            // gate) so the load doesn't race ahead of init and fail spuriously.
+            await MobileAdsBootstrap.awaitReady()
             return try await withCheckedThrowingContinuation { continuation in
                 let requestID = UUID()
                 let request = Request()
