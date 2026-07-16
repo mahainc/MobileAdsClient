@@ -24,13 +24,15 @@
             adUnitID: String,
             from viewController: UIViewController?,
             options: [NativeAdClient.AnyAdLoaderOption]?,
-            keywords: [String] = []
+            keywords: [String] = [],
+            featureID: String = ""
         ) async throws -> NativeAd {
             return try await manager.loadAd(
                 adUnitID: adUnitID,
                 from: viewController,
                 options: options,
-                keywords: keywords
+                keywords: keywords,
+                featureID: featureID
             )
         }
 
@@ -39,14 +41,16 @@
             from viewController: UIViewController?,
             options: [NativeAdClient.AnyAdLoaderOption]?,
             count: Int,
-            keywords: [String] = []
+            keywords: [String] = [],
+            featureID: String = ""
         ) async throws -> [NativeAd] {
             return try await manager.loadAds(
                 adUnitID: adUnitID,
                 from: viewController,
                 options: options,
                 count: count,
-                keywords: keywords
+                keywords: keywords,
+                featureID: featureID
             )
         }
     }

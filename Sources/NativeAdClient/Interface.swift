@@ -16,7 +16,8 @@ import DependenciesMacros
         public var loadAd:
             @Sendable (
                 _ adUnitID: String, _ rootViewController: UIViewController?,
-                _ options: [NativeAdClient.AnyAdLoaderOption]?, _ keywords: [String]
+                _ options: [NativeAdClient.AnyAdLoaderOption]?, _ keywords: [String],
+                _ featureID: String
             ) async throws -> NativeAd
         /// Batch fetch up to `count` native ads in a single auction via
         /// `MultipleAdsAdLoaderOptions`. Returns whatever ads landed before the
@@ -24,20 +25,23 @@ import DependenciesMacros
         public var loadAds:
             @Sendable (
                 _ adUnitID: String, _ rootViewController: UIViewController?,
-                _ options: [NativeAdClient.AnyAdLoaderOption]?, _ count: Int, _ keywords: [String]
+                _ options: [NativeAdClient.AnyAdLoaderOption]?, _ count: Int, _ keywords: [String],
+                _ featureID: String
             ) async throws -> [NativeAd]
     }
 
-    // MARK: - Backward-compatible overloads (no keywords)
+    // MARK: - Backward-compatible overloads (no keywords / no featureID)
 
     extension NativeAdClient {
         /// Convenience: loads a native ad with no contextual keywords.
         public func loadAd(
             _ adUnitID: String,
             _ rootViewController: UIViewController?,
-            _ options: [NativeAdClient.AnyAdLoaderOption]?
+            _ options: [NativeAdClient.AnyAdLoaderOption]?,
+            _ keywords: [String] = [],
+            featureID: String = ""
         ) async throws -> NativeAd {
-            try await loadAd(adUnitID, rootViewController, options, [])
+            try await loadAd(adUnitID, rootViewController, options, keywords, featureID)
         }
 
         /// Convenience: batch-loads native ads with no contextual keywords.
@@ -45,9 +49,11 @@ import DependenciesMacros
             _ adUnitID: String,
             _ rootViewController: UIViewController?,
             _ options: [NativeAdClient.AnyAdLoaderOption]?,
-            _ count: Int
+            _ count: Int,
+            _ keywords: [String] = [],
+            featureID: String = ""
         ) async throws -> [NativeAd] {
-            try await loadAds(adUnitID, rootViewController, options, count, [])
+            try await loadAds(adUnitID, rootViewController, options, count, keywords, featureID)
         }
     }
 #endif

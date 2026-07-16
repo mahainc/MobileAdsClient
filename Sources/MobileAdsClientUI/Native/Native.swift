@@ -18,6 +18,10 @@
             public let id: String = UUID().uuidString
             public let adUnitID: String
             public let adLoaderOptions: [NativeAdClient.AnyAdLoaderOption]
+            /// The feature that owns this slot (e.g. "highlights", "news"), so a
+            /// paid-impression subscriber can break ad revenue down by feature.
+            /// Empty when the caller didn't supply one.
+            public let featureID: String
             public var nativeAd: NativeAd?
             /// Seed/minimum card height used as a height floor while the slot is
             /// loading (the skeleton reserves this height so an unfilled slot
@@ -33,11 +37,13 @@
             public init(
                 adUnitID: String,
                 options: [NativeAdClient.AnyAdLoaderOption] = [],
-                configuration: NativeAdClient.AnyConfiguration = .init(NativeAdClient.Configuration.Compact.default)
+                configuration: NativeAdClient.AnyConfiguration = .init(NativeAdClient.Configuration.Compact.default),
+                featureID: String = ""
             ) {
                 self.adUnitID = adUnitID
                 self.adLoaderOptions = options
                 self.configuration = configuration
+                self.featureID = featureID
             }
 
             /// Pool-friendly initializer. Constructs state already bound to a
@@ -47,12 +53,14 @@
             /// empty because no further load will be issued for this slot.
             public init(
                 preloaded ad: NativeAd,
-                configuration: NativeAdClient.AnyConfiguration = .init(NativeAdClient.Configuration.Compact.default)
+                configuration: NativeAdClient.AnyConfiguration = .init(NativeAdClient.Configuration.Compact.default),
+                featureID: String = ""
             ) {
                 self.adUnitID = ""
                 self.adLoaderOptions = []
                 self.nativeAd = ad
                 self.configuration = configuration
+                self.featureID = featureID
             }
         }
 
@@ -95,6 +103,7 @@
                                 adUnitID = state.adUnitID,
                                 configuration = state.configuration,
                                 adLoaderOptions = state.adLoaderOptions,
+                                featureID = state.featureID,
                                 stateId = state.id
                             ] send in
                             var rootViewController: UIViewController?
@@ -104,7 +113,13 @@
                                 rootViewController = rootVC
                             }
                             let options = Native.sanitizedOptions(for: configuration, options: adLoaderOptions)
-                            let nativeAd = try await nativeAdClient.loadAd(adUnitID, rootViewController, options)
+                            let nativeAd = try await nativeAdClient.loadAd(
+                                adUnitID,
+                                rootViewController,
+                                options,
+                                [],
+                                featureID: featureID
+                            )
                             #if DEBUG
                                 print("✅ NATIVE awaited ad unit=\(adUnitID) stateId=\(stateId)")
                             #endif
@@ -135,7 +150,8 @@
                         return .run(priority: .background) {
                             [
                                 configuration = state.configuration,
-                                adLoaderOptions = state.adLoaderOptions
+                                adLoaderOptions = state.adLoaderOptions,
+                                featureID = state.featureID
                             ] send in
                             var rootViewController: UIViewController?
                             if let scene = await UIApplication.shared.connectedScenes.first as? UIWindowScene,
@@ -144,7 +160,13 @@
                                 rootViewController = rootVC
                             }
                             let options = Native.sanitizedOptions(for: configuration, options: adLoaderOptions)
-                            let nativeAd = try await nativeAdClient.loadAd(adUnitID, rootViewController, options)
+                            let nativeAd = try await nativeAdClient.loadAd(
+                                adUnitID,
+                                rootViewController,
+                                options,
+                                [],
+                                featureID: featureID
+                            )
                             await send(.receivedNativeAd(nativeAd), animation: .default)
                         } catch: { error, _ in
                             #if DEBUG

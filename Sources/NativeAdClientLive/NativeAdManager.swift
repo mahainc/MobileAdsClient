@@ -33,6 +33,7 @@
             from viewController: UIViewController?,
             options: [NativeAdClient.AnyAdLoaderOption]?,
             keywords: [String] = [],
+            featureID: String = "",
             timeout: TimeInterval = 10
         ) async throws -> NativeAd {
             #if DEBUG
@@ -83,6 +84,7 @@
                     let context = AdRequestContext(
                         id: requestID,
                         adUnitID: adUnitID,
+                        featureID: featureID,
                         adLoader: adLoader,
                         continuation: continuation,
                         timeoutTask: timeoutTask
@@ -112,6 +114,7 @@
             options: [NativeAdClient.AnyAdLoaderOption]?,
             count: Int,
             keywords: [String] = [],
+            featureID: String = "",
             timeout: TimeInterval = 15
         ) async throws -> [NativeAd] {
             guard count > 0 else { return [] }
@@ -155,6 +158,7 @@
                     let context = BatchAdRequestContext(
                         id: requestID,
                         adUnitID: adUnitID,
+                        featureID: featureID,
                         adLoader: adLoader,
                         expectedCount: count,
                         continuation: continuation,
@@ -254,6 +258,15 @@
             let adUnitID = adLoader.adUnitID
             nativeAd.delegate = self
 
+            // The feature that requested this loader — several features can share
+            // an ad unit, so the unit id alone can't attribute revenue. Resolved
+            // from the pending request/batch context keyed by this adLoader.
+            let featureID: String = queue.sync {
+                self.pendingRequests.first { $0.value.adLoader === adLoader }?.value.featureID
+                    ?? self.pendingBatchRequests.first { $0.value.adLoader === adLoader }?.value.featureID
+                    ?? ""
+            }
+
             // Publish every paid impression into `AdRevenueClient` so `AdRevenueSyncer`
             // fans out to Adjust + Analytics. Matches the pattern
             // `BaseAdManager.attachPaidEventHandler` uses for full-screen formats.
@@ -266,7 +279,8 @@
                         adUnitId: adUnitID,
                         format: .native,
                         source: .googleMobileAds,
-                        receivedAt: .now
+                        receivedAt: .now,
+                        featureId: featureID
                     )
                 )
             }
@@ -322,6 +336,7 @@
     private final class AdRequestContext: @unchecked Sendable {
         let id: UUID
         let adUnitID: String
+        let featureID: String
         let adLoader: AdLoader
         let continuation: CheckedContinuation<NativeAd, Error>
         let timeoutTask: DispatchWorkItem
@@ -329,12 +344,14 @@
         init(
             id: UUID,
             adUnitID: String,
+            featureID: String,
             adLoader: AdLoader,
             continuation: CheckedContinuation<NativeAd, Error>,
             timeoutTask: DispatchWorkItem
         ) {
             self.id = id
             self.adUnitID = adUnitID
+            self.featureID = featureID
             self.adLoader = adLoader
             self.continuation = continuation
             self.timeoutTask = timeoutTask
@@ -347,6 +364,7 @@
     private final class BatchAdRequestContext: @unchecked Sendable {
         let id: UUID
         let adUnitID: String
+        let featureID: String
         let adLoader: AdLoader
         let expectedCount: Int
         let continuation: CheckedContinuation<[NativeAd], Error>
@@ -356,6 +374,7 @@
         init(
             id: UUID,
             adUnitID: String,
+            featureID: String,
             adLoader: AdLoader,
             expectedCount: Int,
             continuation: CheckedContinuation<[NativeAd], Error>,
@@ -363,6 +382,7 @@
         ) {
             self.id = id
             self.adUnitID = adUnitID
+            self.featureID = featureID
             self.adLoader = adLoader
             self.expectedCount = expectedCount
             self.continuation = continuation
