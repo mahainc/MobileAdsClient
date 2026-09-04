@@ -24,8 +24,8 @@ struct NativeAdsPlaygroundApp: App {
 }
 
 private struct RootTabView: View {
-    // Default to the "Row+Media" tab while iterating on `RowMediaNativeAdView`.
-    @State private var selection: Int = 3
+    // Default to the "Portrait" grid tab while iterating on `PortraitNativeAdView`.
+    @State private var selection: Int = 5
 
     var body: some View {
         TabView(selection: $selection) {
@@ -78,6 +78,16 @@ private struct RootTabView: View {
                 Label("Full Screen", systemImage: "rectangle.inset.filled")
             }
             .tag(4)
+
+            PortraitAdsListView(
+                store: Store(initialState: PortraitAdsList.State()) {
+                    PortraitAdsList()
+                }
+            )
+            .tabItem {
+                Label("Portrait", systemImage: "square.grid.2x2")
+            }
+            .tag(5)
         }
     }
 }

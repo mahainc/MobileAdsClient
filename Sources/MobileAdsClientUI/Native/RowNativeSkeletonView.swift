@@ -26,12 +26,14 @@ struct RowNativeSkeletonView: View {
             bodyDisplay: configuration.bodyDisplay,
             layoutMode: configuration.layout.mode
         )
-        .padding(EdgeInsets(
-            top: configuration.insets.top,
-            leading: configuration.insets.left,
-            bottom: configuration.insets.bottom,
-            trailing: configuration.insets.right
-        ))
+        .padding(
+            EdgeInsets(
+                top: configuration.insets.top,
+                leading: configuration.insets.left,
+                bottom: configuration.insets.bottom,
+                trailing: configuration.insets.right
+            )
+        )
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(_RowSkeletonHelpers.background(configuration.style))
         .clipShape(
@@ -70,12 +72,14 @@ struct RowMediaNativeSkeletonView: View {
                 layoutMode: configuration.layout.mode
             )
         }
-        .padding(EdgeInsets(
-            top: configuration.insets.top,
-            leading: configuration.insets.left,
-            bottom: configuration.insets.bottom,
-            trailing: configuration.insets.right
-        ))
+        .padding(
+            EdgeInsets(
+                top: configuration.insets.top,
+                leading: configuration.insets.left,
+                bottom: configuration.insets.bottom,
+                trailing: configuration.insets.right
+            )
+        )
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(_RowSkeletonHelpers.background(configuration.style))
         .clipShape(
@@ -84,6 +88,46 @@ struct RowMediaNativeSkeletonView: View {
                 style: .continuous
             )
         )
+        .redacted(reason: .placeholder)
+        .accessibilityHidden(true)
+    }
+}
+
+// MARK: - Portrait poster variant
+
+struct PortraitNativeSkeletonView: View {
+    /// Mirrors `PortraitNativeAdView.mediaToFooterSpacing`.
+    private let mediaToFooterSpacing: CGFloat = 10
+    let configuration: NativeAdClient.Configuration.Portrait
+
+    var body: some View {
+        // Only the media is rounded; the footer chrome sits below it with no
+        // card background, flush to the card width.
+        VStack(spacing: mediaToFooterSpacing) {
+            RoundedRectangle(
+                cornerRadius: configuration.metrics.containerCornerRadius,
+                style: .continuous
+            )
+            .fill(_RowSkeletonHelpers.placeholderTint)
+            .aspectRatio(9.0 / 16.0, contentMode: .fit)
+            .frame(maxWidth: .infinity)
+
+            RowNativeSkeletonChrome(
+                style: configuration.style,
+                metrics: configuration.metrics,
+                bodyDisplay: configuration.bodyDisplay,
+                layoutMode: .stackedFullCTA
+            )
+        }
+        .padding(
+            EdgeInsets(
+                top: 0,
+                leading: configuration.insets.left,
+                bottom: configuration.insets.bottom,
+                trailing: configuration.insets.right
+            )
+        )
+        .frame(maxWidth: .infinity, alignment: .leading)
         .redacted(reason: .placeholder)
         .accessibilityHidden(true)
     }
@@ -103,26 +147,26 @@ private struct RowNativeSkeletonChrome: View {
 
     var body: some View {
         switch layoutMode {
-        case .inline:
-            HStack(alignment: .center, spacing: metrics.horizontalSpacing) {
-                iconPlaceholder
-                textColumn(includesCTA: false)
-                ctaPlaceholder
-            }
-        case .stacked:
-            HStack(alignment: .top, spacing: metrics.horizontalSpacing) {
-                iconPlaceholder
-                textColumn(includesCTA: true)
-            }
-        case .stackedFullCTA:
-            VStack(spacing: 10) {
-                HStack(alignment: .top, spacing: metrics.horizontalSpacing) {
+            case .inline:
+                HStack(alignment: .center, spacing: metrics.horizontalSpacing) {
                     iconPlaceholder
                     textColumn(includesCTA: false)
+                    ctaPlaceholder
                 }
-                ctaPlaceholder
-                    .frame(maxWidth: .infinity)
-            }
+            case .stacked:
+                HStack(alignment: .top, spacing: metrics.horizontalSpacing) {
+                    iconPlaceholder
+                    textColumn(includesCTA: true)
+                }
+            case .stackedFullCTA:
+                VStack(spacing: 10) {
+                    HStack(alignment: .top, spacing: metrics.horizontalSpacing) {
+                        iconPlaceholder
+                        textColumn(includesCTA: false)
+                    }
+                    ctaPlaceholder
+                        .frame(maxWidth: .infinity)
+                }
         }
     }
 
@@ -158,18 +202,20 @@ private struct RowNativeSkeletonChrome: View {
             }
 
             switch bodyDisplay.mode {
-            case .hidden:
-                EmptyView()
-            case .full:
-                Text("Body text placeholder with two lines of supporting copy that wraps naturally to fill the column width.")
+                case .hidden:
+                    EmptyView()
+                case .full:
+                    Text(
+                        "Body text placeholder with two lines of supporting copy that wraps naturally to fill the column width."
+                    )
                     .font(_RowSkeletonHelpers.font(for: style.text.bodyFont))
                     .foregroundStyle(Color(uiColor: style.text.body))
                     .lineLimit(2)
-            case .truncated(let lines):
-                Text("Body text placeholder for truncated mode, sized to fit the configured line count.")
-                    .font(_RowSkeletonHelpers.font(for: style.text.bodyFont))
-                    .foregroundStyle(Color(uiColor: style.text.body))
-                    .lineLimit(max(1, lines))
+                case .truncated(let lines):
+                    Text("Body text placeholder for truncated mode, sized to fit the configured line count.")
+                        .font(_RowSkeletonHelpers.font(for: style.text.bodyFont))
+                        .foregroundStyle(Color(uiColor: style.text.body))
+                        .lineLimit(max(1, lines))
             }
 
             if includesCTA {
@@ -187,16 +233,10 @@ private struct RowNativeSkeletonChrome: View {
             .padding(.vertical, 8)
             .padding(.horizontal, 14)
             .frame(minHeight: metrics.ctaMinHeight)
-            .background(Color(uiColor: style.actionButton.background), in: ctaShape)
-    }
-
-    private var ctaShape: AnyShape {
-        switch style.actionButton.shape.mode {
-        case .capsule:
-            return AnyShape(Capsule(style: .continuous))
-        case .rect(let radius):
-            return AnyShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
-        }
+            .background(
+                Color(uiColor: style.actionButton.background),
+                in: _RowSkeletonHelpers.ctaShape(for: style.actionButton.shape)
+            )
     }
 }
 
@@ -212,17 +252,26 @@ private enum _RowSkeletonHelpers {
         Font.system(size: adFont.resolved.pointSize)
     }
 
+    static func ctaShape(for shape: NativeAdClient.Configuration.Style.ButtonShape) -> AnyShape {
+        switch shape.mode {
+            case .capsule:
+                return AnyShape(Capsule(style: .continuous))
+            case .rect(let radius):
+                return AnyShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+        }
+    }
+
     @ViewBuilder
     static func background(_ style: NativeAdClient.Configuration.Style) -> some View {
         switch style.backgrounds.card.mode {
-        case .solid(let uiColor):
-            Color(uiColor: uiColor)
-        case .gradient(let gradient):
-            LinearGradient(
-                stops: gradientStops(from: gradient),
-                startPoint: gradient.direction.unitStart,
-                endPoint: gradient.direction.unitEnd
-            )
+            case .solid(let uiColor):
+                Color(uiColor: uiColor)
+            case .gradient(let gradient):
+                LinearGradient(
+                    stops: gradientStops(from: gradient),
+                    startPoint: gradient.direction.unitStart,
+                    endPoint: gradient.direction.unitEnd
+                )
         }
     }
 
@@ -242,24 +291,24 @@ private enum _RowSkeletonHelpers {
     }
 }
 
-private extension NativeAdClient.Configuration.Gradient.Direction {
-    var unitStart: UnitPoint {
+extension NativeAdClient.Configuration.Gradient.Direction {
+    fileprivate var unitStart: UnitPoint {
         switch self {
-        case .vertical: return UnitPoint(x: 0.5, y: 0.0)
-        case .horizontal: return UnitPoint(x: 0.0, y: 0.5)
-        case .diagonalDown: return UnitPoint(x: 0.0, y: 0.0)
-        case .diagonalUp: return UnitPoint(x: 0.0, y: 1.0)
-        case .custom(let start, _): return UnitPoint(x: start.x, y: start.y)
+            case .vertical: return UnitPoint(x: 0.5, y: 0.0)
+            case .horizontal: return UnitPoint(x: 0.0, y: 0.5)
+            case .diagonalDown: return UnitPoint(x: 0.0, y: 0.0)
+            case .diagonalUp: return UnitPoint(x: 0.0, y: 1.0)
+            case .custom(let start, _): return UnitPoint(x: start.x, y: start.y)
         }
     }
 
-    var unitEnd: UnitPoint {
+    fileprivate var unitEnd: UnitPoint {
         switch self {
-        case .vertical: return UnitPoint(x: 0.5, y: 1.0)
-        case .horizontal: return UnitPoint(x: 1.0, y: 0.5)
-        case .diagonalDown: return UnitPoint(x: 1.0, y: 1.0)
-        case .diagonalUp: return UnitPoint(x: 1.0, y: 0.0)
-        case .custom(_, let end): return UnitPoint(x: end.x, y: end.y)
+            case .vertical: return UnitPoint(x: 0.5, y: 1.0)
+            case .horizontal: return UnitPoint(x: 1.0, y: 0.5)
+            case .diagonalDown: return UnitPoint(x: 1.0, y: 1.0)
+            case .diagonalUp: return UnitPoint(x: 1.0, y: 0.0)
+            case .custom(_, let end): return UnitPoint(x: end.x, y: end.y)
         }
     }
 }

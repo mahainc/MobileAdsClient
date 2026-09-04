@@ -16,7 +16,7 @@ A multi-family TCA dependency client wrapping Google Mobile Ads SDK for iOS. One
 In your `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/mahainc/MobileAdsClient.git", from: "1.0.3"),
+.package(url: "https://github.com/mahainc/MobileAdsClient.git", from: "1.4.0"),
 ```
 
 Add the products you need to your targets — interfaces (`MobileAdsClient`, `NativeAdClient`) on feature targets, Live products on app targets, `MobileAdsClientUI` on any feature that renders native ad views.
@@ -107,7 +107,7 @@ let store = TestStore(initialState: PaywallFeature.State()) {
 - `swift-composable-architecture` from 1.25.5
 - `swift-package-manager-google-mobile-ads` (GoogleMobileAds) from 13.4.0
 - `TCAInitializableReducer` from 0.1.0
-- `AdRevenueClient` from 2.0.0
+- `AdRevenueClient` from 2.0.1
 
 ## Platform support
 

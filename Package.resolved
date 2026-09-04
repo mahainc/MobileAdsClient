@@ -1,13 +1,13 @@
 {
-  "originHash" : "2277157f481c0bbbbeb1159b45e9781804a10847e3f2d7fce7f027a3992fb8b6",
+  "originHash" : "25b408ea7e172645f0bc7b2bbb2452ca2a5cabf018f51e7b6dafe8fc3e31684e",
   "pins" : [
     {
       "identity" : "adrevenueclient",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mahainc/AdRevenueClient.git",
       "state" : {
-        "revision" : "582f72eaeeaf8ec8c880b4449495bcc2e91609fe",
-        "version" : "2.0.0"
+        "revision" : "8c8dd683d71cfa553856fdb5b1466f20b148b54b",
+        "version" : "2.0.1"
       }
     },
     {
