@@ -20,8 +20,7 @@ extension MobileAdsClient: DependencyKey {
                 try await AdsManager.shared.showAd(
                     adType,
                     keywords: keywords,
-                    featureID: requester.featureID,
-                    slotRef: requester.slotRef,
+                    requester: requester,
                     onComplete: onComplete
                 )
             },

@@ -19,17 +19,44 @@ extension MobileAdsClient {
         public let featureID: String
         /// The slot within that feature, when the caller tracks slots.
         public let slotRef: String
+        /// How the caller wants the close gate of a native full-screen ad to behave.
+        /// `nil` leaves the presenter on its own defaults, and every other ad format
+        /// ignores it — only native full-screen draws chrome we own.
+        public let nativeStyle: NativeFullScreenStyle?
 
         public init(
             featureID: String = "",
-            slotRef: String = ""
+            slotRef: String = "",
+            nativeStyle: NativeFullScreenStyle? = nil
         ) {
             self.featureID = featureID
             self.slotRef = slotRef
+            self.nativeStyle = nativeStyle
         }
 
         /// For a caller with no attribution to report.
         public static let anonymous = AdRequester()
+    }
+
+    /// Caller-supplied appearance for a native full-screen ad's close gate.
+    ///
+    /// Deliberately a plain value rather than `NativeAdClient.Configuration.FullScreen`:
+    /// this target does not depend on `NativeAdClient`, and a caller asking for a
+    /// close gate should not have to reach for the whole rendering config. The
+    /// translation happens in `MobileAdsClientLive`, which sees both.
+    public struct NativeFullScreenStyle: Sendable, Equatable {
+        /// Seconds the ad stays locked before the close button appears. `0` = no gate.
+        public let closeCountdownSeconds: Int
+        /// Extra points of touch area on every side of the close button.
+        public let closeHitSlop: CGFloat
+
+        public init(
+            closeCountdownSeconds: Int,
+            closeHitSlop: CGFloat
+        ) {
+            self.closeCountdownSeconds = closeCountdownSeconds
+            self.closeHitSlop = closeHitSlop
+        }
     }
 
     public struct AdRule: Sendable, Identifiable, Equatable, CustomStringConvertible {

@@ -1,0 +1,32 @@
+{
+  "path": "Sources/MobileAdsClientUI/Native/CloseHitSlopButton.swift",
+  "history": [
+    {
+      "markers": 0,
+      "decls_digest": "b1b45fb88bcc9e63b6ec0d08c5a4c2758757b62203ebde80f39dd5f51b03b97d"
+    },
+    {
+      "markers": 2,
+      "decls_digest": "b1b45fb88bcc9e63b6ec0d08c5a4c2758757b62203ebde80f39dd5f51b03b97d"
+    }
+  ],
+  "decls": [
+    {
+      "kind": "class",
+      "name": "CloseHitSlopButton",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "hitSlop",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "point",
+      "signature": "(inside point: CGPoint, with event: UIEvent?)"
+    }
+  ],
+  "decls_digest": "b1b45fb88bcc9e63b6ec0d08c5a4c2758757b62203ebde80f39dd5f51b03b97d",
+  "markers": 2
+}

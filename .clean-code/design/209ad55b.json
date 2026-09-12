@@ -1,0 +1,27 @@
+{
+  "path": "Sources/MobileAdsClientLive/Native/NativeFullScreenStyleMapping.swift",
+  "history": [
+    {
+      "markers": 0,
+      "decls_digest": "c97a2719f37e31a1aafbbbf7bd3deebac5ebc6e8df8b5360fe362ccba415ab3c"
+    },
+    {
+      "markers": 1,
+      "decls_digest": "c97a2719f37e31a1aafbbbf7bd3deebac5ebc6e8df8b5360fe362ccba415ab3c"
+    }
+  ],
+  "decls": [
+    {
+      "kind": "type",
+      "name": "NativeAdClient",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "applying",
+      "signature": "(_ style: MobileAdsClient.NativeFullScreenStyle?)"
+    }
+  ],
+  "decls_digest": "c97a2719f37e31a1aafbbbf7bd3deebac5ebc6e8df8b5360fe362ccba415ab3c",
+  "markers": 1
+}

@@ -859,6 +859,10 @@ extension NativeAdClient {
             /// counting down, a "closes in Ns" label shows in place of the close
             /// button. `0` = no gate (close button shown immediately).
             public var closeCountdown: Int
+            /// Points of extra touch area on every side of the close button, so a
+            /// small chip still meets the 44pt minimum tap target. Clamped by
+            /// `CloseHitSlopButton.maximumHitSlop`; `0` = the drawn bounds only.
+            public var closeHitSlop: CGFloat
 
             public init(
                 style: Style = .fullScreen,
@@ -866,7 +870,8 @@ extension NativeAdClient {
                 metrics: Metrics = .fullScreen,
                 mediaIgnoresSafeArea: Bool = false,
                 mediaContentMode: MediaContentMode = .fit,
-                closeCountdown: Int = 5
+                closeCountdown: Int = 5,
+                closeHitSlop: CGFloat = 0
             ) {
                 self.style = style
                 self.bodyDisplay = bodyDisplay
@@ -874,6 +879,7 @@ extension NativeAdClient {
                 self.mediaIgnoresSafeArea = mediaIgnoresSafeArea
                 self.mediaContentMode = mediaContentMode
                 self.closeCountdown = closeCountdown
+                self.closeHitSlop = closeHitSlop
             }
 
             public static let `default` = FullScreen()
@@ -884,6 +890,7 @@ extension NativeAdClient {
                 hasher.combine(mediaIgnoresSafeArea)
                 hasher.combine(mediaContentMode)
                 hasher.combine(closeCountdown)
+                hasher.combine(closeHitSlop)
             }
         }
     }

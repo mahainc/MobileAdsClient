@@ -1,0 +1,151 @@
+{
+  "path": "Sources/MobileAdsClientUI/Native/FullScreenNativeAdContainerView.swift",
+  "history": [
+    {
+      "markers": 0,
+      "decls_digest": "51349cfc570badc97974213dc4f8f968211e6efb4ae58de413500b49fd375eed"
+    },
+    {
+      "markers": 6,
+      "decls_digest": "51349cfc570badc97974213dc4f8f968211e6efb4ae58de413500b49fd375eed"
+    },
+    {
+      "markers": 0,
+      "decls_digest": "fe3c6719d928e01c38831e1a6b65e8cf0968304112f151bfcde792a71d143519"
+    }
+  ],
+  "decls": [
+    {
+      "kind": "enum",
+      "name": "FullScreenCloseChromeLayout",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "reservedTopSpace",
+      "signature": "()"
+    },
+    {
+      "kind": "class",
+      "name": "FullScreenNativeAdContainerView",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "style",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "closeButtonBlurView",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "countdownLabel",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "closeOverlay",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "init",
+      "signature": "(frame: CGRect = .zero, configuration: Configuration = .default)"
+    },
+    {
+      "kind": "function",
+      "name": "init",
+      "signature": "(frame: frame)"
+    },
+    {
+      "kind": "function",
+      "name": "init",
+      "signature": "(coder: NSCoder)"
+    },
+    {
+      "kind": "function",
+      "name": "deinit",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "layoutSubviews",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "didMoveToWindow",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "configure",
+      "signature": "(with nativeAd: NativeAd)"
+    },
+    {
+      "kind": "type",
+      "name": "FullScreenNativeAdContainerView",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "setupViews",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "buildHierarchy",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "layoutConstraints",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "applyInitialGateState",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "configureCloseButton",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "applyCloseChromeStyle",
+      "signature": "()"
+    },
+    {
+      "kind": "type",
+      "name": "FullScreenNativeAdContainerView",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "countdownText",
+      "signature": "(for seconds: Int)"
+    },
+    {
+      "kind": "function",
+      "name": "startCloseCountdownIfNeeded",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "tickCountdown",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "revealCloseButton",
+      "signature": "()"
+    }
+  ],
+  "decls_digest": "fe3c6719d928e01c38831e1a6b65e8cf0968304112f151bfcde792a71d143519",
+  "markers": 0
+}

@@ -106,8 +106,8 @@ The package exposes TCA dependency test and preview values. Override `mobileAdsC
 - `swift-composable-architecture` from 1.25.5
 - `swift-package-manager-google-mobile-ads` from 13.4.0
 - `TCAInitializableReducer` from 0.1.0
-- `AdRevenueClient` from 2.0.1
-- `FunnelClient` 6.0.0
+- `AdRevenueClient` from 4.0.0
+- `FunnelClient` exact 7.0.0
 
 ## Platform support
 

@@ -57,8 +57,7 @@ extension AdsManager {
     internal func showAd(
         _ adType: MobileAdsClient.AdType,
         keywords: [String] = [],
-        featureID: String = "",
-        slotRef: String = "",
+        requester: MobileAdsClient.AdRequester = .anonymous,
         onComplete: MobileAdsClient.CompletionHandler? = nil
     ) async throws -> MobileAdsClient.AdOutcome {
         guard let rootViewController = UIApplication.shared.topViewController() else {
@@ -77,8 +76,8 @@ extension AdsManager {
                     adUnitID,
                     from: rootViewController,
                     keywords: keywords,
-                    featureID: featureID,
-                    slotRef: slotRef,
+                    featureID: requester.featureID,
+                    slotRef: requester.slotRef,
                     suppressAutoReload: suppress,
                     onColdLoad: onColdLoad
                 )
@@ -89,8 +88,8 @@ extension AdsManager {
                     adUnitID,
                     from: rootViewController,
                     keywords: keywords,
-                    featureID: featureID,
-                    slotRef: slotRef,
+                    featureID: requester.featureID,
+                    slotRef: requester.slotRef,
                     suppressAutoReload: suppress,
                     onColdLoad: onColdLoad
                 )
@@ -103,8 +102,8 @@ extension AdsManager {
                     adUnitID,
                     from: rootViewController,
                     keywords: keywords,
-                    featureID: featureID,
-                    slotRef: slotRef,
+                    featureID: requester.featureID,
+                    slotRef: requester.slotRef,
                     suppressAutoReload: suppress,
                     onColdLoad: onColdLoad
                 )
@@ -117,8 +116,9 @@ extension AdsManager {
                 let didShow = await FullScreenNativePresenter.present(
                     adUnitID: adUnitID,
                     keywords: keywords,
-                    featureID: featureID,
-                    slotRef: slotRef,
+                    featureID: requester.featureID,
+                    slotRef: requester.slotRef,
+                    configuration: .applying(requester.nativeStyle),
                     onColdLoad: onColdLoad
                 )
                 guard didShow else {
