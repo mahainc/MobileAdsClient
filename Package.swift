@@ -20,7 +20,7 @@ let package = Package(
         .package(url: "https://github.com/pointfreeco/swift-composable-architecture.git", from: "1.25.5"),
         .package(url: "https://github.com/googleads/swift-package-manager-google-mobile-ads.git", from: "13.4.0"),
         .package(url: "https://github.com/mahainc/TCAInitializableReducer.git", from: "0.1.0"),
-        .package(url: "https://github.com/mahainc/AdRevenueClient.git", from: "3.0.0"),
+        .package(url: "https://github.com/mahainc/AdRevenueClient.git", from: "4.0.0"),
         .package(url: "https://github.com/mahainc/FunnelClient.git", exact: "7.0.0"),
     ],
     targets: [
