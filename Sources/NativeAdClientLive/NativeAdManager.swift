@@ -34,6 +34,7 @@
             options: [NativeAdClient.AnyAdLoaderOption]?,
             keywords: [String] = [],
             featureID: String = "",
+            slotRef: String = "",
             timeout: TimeInterval = 10
         ) async throws -> NativeAd {
             #if DEBUG
@@ -85,6 +86,7 @@
                         id: requestID,
                         adUnitID: adUnitID,
                         featureID: featureID,
+                        slotRef: slotRef,
                         adLoader: adLoader,
                         continuation: continuation,
                         timeoutTask: timeoutTask
@@ -115,6 +117,7 @@
             count: Int,
             keywords: [String] = [],
             featureID: String = "",
+            slotRef: String = "",
             timeout: TimeInterval = 15
         ) async throws -> [NativeAd] {
             guard count > 0 else { return [] }
@@ -159,6 +162,7 @@
                         id: requestID,
                         adUnitID: adUnitID,
                         featureID: featureID,
+                        slotRef: slotRef,
                         adLoader: adLoader,
                         expectedCount: count,
                         continuation: continuation,
@@ -266,6 +270,14 @@
                     ?? self.pendingBatchRequests.first { $0.value.adLoader === adLoader }?.value.featureID
                     ?? ""
             }
+            let slotRef: String = queue.sync {
+                self.pendingRequests.first { $0.value.adLoader === adLoader }?.value.slotRef
+                    ?? self.pendingBatchRequests.first { $0.value.adLoader === adLoader }?.value.slotRef
+                    ?? ""
+            }
+            // Which network in the mediation stack actually filled this ad. Read here
+            // rather than inside the handler so the closure does not retain the ad.
+            let network = nativeAd.responseInfo.loadedAdNetworkResponseInfo?.adSourceName ?? ""
 
             // Publish every paid impression into `AdRevenueClient` so `AdRevenueSyncer`
             // fans out to Adjust + Analytics. Matches the pattern
@@ -280,7 +292,9 @@
                         format: .native,
                         source: .googleMobileAds,
                         receivedAt: .now,
-                        featureId: featureID
+                        featureId: featureID,
+                        network: network,
+                        slotRef: slotRef
                     )
                 )
             }
@@ -337,6 +351,7 @@
         let id: UUID
         let adUnitID: String
         let featureID: String
+        let slotRef: String
         let adLoader: AdLoader
         let continuation: CheckedContinuation<NativeAd, Error>
         let timeoutTask: DispatchWorkItem
@@ -345,6 +360,7 @@
             id: UUID,
             adUnitID: String,
             featureID: String,
+            slotRef: String = "",
             adLoader: AdLoader,
             continuation: CheckedContinuation<NativeAd, Error>,
             timeoutTask: DispatchWorkItem
@@ -352,6 +368,7 @@
             self.id = id
             self.adUnitID = adUnitID
             self.featureID = featureID
+            self.slotRef = slotRef
             self.adLoader = adLoader
             self.continuation = continuation
             self.timeoutTask = timeoutTask
@@ -365,6 +382,7 @@
         let id: UUID
         let adUnitID: String
         let featureID: String
+        let slotRef: String
         let adLoader: AdLoader
         let expectedCount: Int
         let continuation: CheckedContinuation<[NativeAd], Error>
@@ -375,6 +393,7 @@
             id: UUID,
             adUnitID: String,
             featureID: String,
+            slotRef: String = "",
             adLoader: AdLoader,
             expectedCount: Int,
             continuation: CheckedContinuation<[NativeAd], Error>,
@@ -383,6 +402,7 @@
             self.id = id
             self.adUnitID = adUnitID
             self.featureID = featureID
+            self.slotRef = slotRef
             self.adLoader = adLoader
             self.expectedCount = expectedCount
             self.continuation = continuation

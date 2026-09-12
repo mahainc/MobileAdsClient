@@ -1,21 +1,10 @@
-//
-//  Extensions.swift
-//  MobileAdsClient
-//
-//  Effect conveniences, no-keyword overloads, the `Either` reducer, and the
-//  UIKit top-view-controller helper. Consolidated out of the per-client split so
-//  the dependency surface (`Interface.swift`) stays free of glue.
-//
-
 import ComposableArchitecture
 import Foundation
 import TCAInitializableReducer
 
 #if canImport(UIKit)
-    import UIKit
+import UIKit
 #endif
-
-// MARK: - Effect.runWithAdCheck
 
 extension Effect {
     public static func runWithAdCheck(
@@ -107,7 +96,7 @@ extension MobileAdsClient {
     /// Convenience: presents `adType` with no contextual keywords, no completion.
     @discardableResult
     public func showFullScreenAd(_ adType: AdType) async throws -> AdOutcome {
-        try await showFullScreenAd(adType, [], nil)
+        try await showFullScreenAd(adType, [], .anonymous, nil)
     }
 
     /// Convenience: presents `adType` with a completion handler, no keywords.
@@ -116,17 +105,27 @@ extension MobileAdsClient {
         _ adType: AdType,
         onComplete: CompletionHandler?
     ) async throws -> AdOutcome {
-        try await showFullScreenAd(adType, [], onComplete)
+        try await showFullScreenAd(adType, [], .anonymous, onComplete)
     }
 
     /// Convenience: presents `adType` with keywords and an optional completion handler.
+    /// Pass `featureID` (and `slotRef` where slots are tracked) to attribute this
+    /// impression's revenue; several features and slots share an ad unit, so the unit
+    /// id alone can't attribute it.
     @discardableResult
     public func showFullScreenAd(
         _ adType: AdType,
         _ keywords: [String],
+        featureID: String = "",
+        slotRef: String = "",
         onComplete: CompletionHandler? = nil
     ) async throws -> AdOutcome {
-        try await showFullScreenAd(adType, keywords, onComplete)
+        try await showFullScreenAd(
+            adType,
+            keywords,
+            AdRequester(featureID: featureID, slotRef: slotRef),
+            onComplete
+        )
     }
 
     /// Convenience: warms `adType` with no contextual keywords.
@@ -134,21 +133,22 @@ extension MobileAdsClient {
         await warmFullScreenAd(adType, [])
     }
 
-    // TEMPORARILY DISABLED with the `registerPreloads` endpoint (see Interface.swift).
-    // /// Convenience: registers units with a default buffer size of 2.
-    // public func registerPreloads(_ adTypes: [AdType]) async {
-    //     await registerPreloads(adTypes, 2)
-    // }
-
     /// Presents a rewarded ad for `unitID` and returns whether the user earned the
     /// reward — `false` if they dismissed without earning or nothing could present.
     /// A convenience over `showFullScreenAd(.rewarded(unitID))` that swallows the
     /// not-ready throw as `false`, preserving grant-friendly ergonomics.
     public func showRewardedAd(
         _ unitID: String,
-        _ keywords: [String] = []
+        _ keywords: [String] = [],
+        featureID: String = "",
+        slotRef: String = ""
     ) async -> Bool {
-        (try? await showFullScreenAd(.rewarded(unitID), keywords, nil))?.earnedReward ?? false
+        (try? await showFullScreenAd(
+            .rewarded(unitID),
+            keywords,
+            AdRequester(featureID: featureID, slotRef: slotRef),
+            nil
+        ))?.earnedReward ?? false
     }
 
     /// As `showRewardedAd(_:_:)`, with a post-show completion handler.
@@ -156,7 +156,7 @@ extension MobileAdsClient {
         _ unitID: String,
         onComplete: CompletionHandler?
     ) async -> Bool {
-        (try? await showFullScreenAd(.rewarded(unitID), [], onComplete))?.earnedReward ?? false
+        (try? await showFullScreenAd(.rewarded(unitID), [], .anonymous, onComplete))?.earnedReward ?? false
     }
 }
 
@@ -259,28 +259,28 @@ extension Either: Sendable where Content: Sendable, Ad: Sendable {}
 // MARK: - UIApplication.topViewController
 
 #if canImport(UIKit)
-    @MainActor
-    extension UIApplication {
-        public func topViewController(controller: UIViewController? = nil) -> UIViewController? {
-            let controller = controller ?? keyWindow?.rootViewController
-            if let navigationController = controller as? UINavigationController {
-                return topViewController(controller: navigationController.visibleViewController)
-            } else if let tabController = controller as? UITabBarController,
-                let selected = tabController.selectedViewController
-            {
-                return topViewController(controller: selected)
-            } else if let presented = controller?.presentedViewController {
-                return topViewController(controller: presented)
-            }
-            return controller
+@MainActor
+extension UIApplication {
+    public func topViewController(controller: UIViewController? = nil) -> UIViewController? {
+        let controller = controller ?? keyWindow?.rootViewController
+        if let navigationController = controller as? UINavigationController {
+            return topViewController(controller: navigationController.visibleViewController)
+        } else if let tabController = controller as? UITabBarController,
+            let selected = tabController.selectedViewController
+        {
+            return topViewController(controller: selected)
+        } else if let presented = controller?.presentedViewController {
+            return topViewController(controller: presented)
         }
-
-        public var keyWindow: UIWindow? {
-            return
-                connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .flatMap { $0.windows }
-                .first { $0.isKeyWindow }
-        }
+        return controller
     }
+
+    public var keyWindow: UIWindow? {
+        return
+            connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow }
+    }
+}
 #endif

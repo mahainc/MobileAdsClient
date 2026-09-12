@@ -17,7 +17,7 @@ import DependenciesMacros
             @Sendable (
                 _ adUnitID: String, _ rootViewController: UIViewController?,
                 _ options: [NativeAdClient.AnyAdLoaderOption]?, _ keywords: [String],
-                _ featureID: String
+                _ featureID: String, _ slotRef: String
             ) async throws -> NativeAd
         /// Batch fetch up to `count` native ads in a single auction via
         /// `MultipleAdsAdLoaderOptions`. Returns whatever ads landed before the
@@ -26,7 +26,7 @@ import DependenciesMacros
             @Sendable (
                 _ adUnitID: String, _ rootViewController: UIViewController?,
                 _ options: [NativeAdClient.AnyAdLoaderOption]?, _ count: Int, _ keywords: [String],
-                _ featureID: String
+                _ featureID: String, _ slotRef: String
             ) async throws -> [NativeAd]
     }
 
@@ -39,9 +39,10 @@ import DependenciesMacros
             _ rootViewController: UIViewController?,
             _ options: [NativeAdClient.AnyAdLoaderOption]?,
             _ keywords: [String] = [],
-            featureID: String = ""
+            featureID: String = "",
+            slotRef: String = ""
         ) async throws -> NativeAd {
-            try await loadAd(adUnitID, rootViewController, options, keywords, featureID)
+            try await loadAd(adUnitID, rootViewController, options, keywords, featureID, slotRef)
         }
 
         /// Convenience: batch-loads native ads with no contextual keywords.
@@ -51,9 +52,10 @@ import DependenciesMacros
             _ options: [NativeAdClient.AnyAdLoaderOption]?,
             _ count: Int,
             _ keywords: [String] = [],
-            featureID: String = ""
+            featureID: String = "",
+            slotRef: String = ""
         ) async throws -> [NativeAd] {
-            try await loadAds(adUnitID, rootViewController, options, count, keywords, featureID)
+            try await loadAds(adUnitID, rootViewController, options, count, keywords, featureID, slotRef)
         }
     }
 #endif

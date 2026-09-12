@@ -14,23 +14,25 @@
             let actor = NativeActor()
 
             return NativeAdClient(
-                loadAd: { adUnitID, viewController, options, keywords, featureID in
+                loadAd: { adUnitID, viewController, options, keywords, featureID, slotRef in
                     try await actor.loadAd(
                         adUnitID: adUnitID,
                         from: viewController,
                         options: options,
                         keywords: keywords,
-                        featureID: featureID
+                        featureID: featureID,
+                        slotRef: slotRef
                     )
                 },
-                loadAds: { adUnitID, viewController, options, count, keywords, featureID in
+                loadAds: { adUnitID, viewController, options, count, keywords, featureID, slotRef in
                     try await actor.loadAds(
                         adUnitID: adUnitID,
                         from: viewController,
                         options: options,
                         count: count,
                         keywords: keywords,
-                        featureID: featureID
+                        featureID: featureID,
+                        slotRef: slotRef
                     )
                 }
             )

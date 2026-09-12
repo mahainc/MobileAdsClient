@@ -8,6 +8,30 @@
 import Foundation
 
 extension MobileAdsClient {
+    /// Who asked for an ad, carried down to the paid-impression event.
+    ///
+    /// An ad unit alone cannot attribute revenue: several features, and several slots
+    /// within a feature, routinely share one unit. Both fields travel together because
+    /// they are only ever read together, and passing them as two adjacent strings
+    /// invites a silent swap at the call site.
+    public struct AdRequester: Sendable, Equatable {
+        /// The feature that requested the ad (e.g. "highlights").
+        public let featureID: String
+        /// The slot within that feature, when the caller tracks slots.
+        public let slotRef: String
+
+        public init(
+            featureID: String = "",
+            slotRef: String = ""
+        ) {
+            self.featureID = featureID
+            self.slotRef = slotRef
+        }
+
+        /// For a caller with no attribution to report.
+        public static let anonymous = AdRequester()
+    }
+
     public struct AdRule: Sendable, Identifiable, Equatable, CustomStringConvertible {
         public let id: String
         public let name: String
