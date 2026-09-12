@@ -1,29 +1,26 @@
 # MobileAdsClient
 
-A multi-family TCA dependency client wrapping Google Mobile Ads SDK for iOS. One Swift package shipping two sibling client families plus a SwiftUI presentation sublayer:
+A TCA dependency client wrapping Google Mobile Ads for iOS. The package separates ad interfaces, live SDK orchestration, native loading, and reusable UI renderers.
 
-**Ads family**
-- **`MobileAdsClient`** — interface for app-open / interstitial / rewarded / banner formats, presentation lifecycle hooks, revenue events.
-- **`MobileAdsClientLive`** — `GoogleMobileAds` wrapper, registers the live `DependencyKey`.
-- **`MobileAdsClientUI`** — SwiftUI views for native ad layouts plus bundled resource assets (`.process("Resources")`).
+## Products
 
-**Native ads family**
-- **`NativeAdClient`** — interface for `GADNativeAd` lifecycle: load / present / dismiss.
-- **`NativeAdClientLive`** — `GoogleMobileAds` wrapper, registers the live `DependencyKey`.
+- **`MobileAdsClient`** — dependency interface for app-open, interstitial, rewarded, and native full-screen ads.
+- **`MobileAdsClientLive`** — live Google Mobile Ads orchestration and `FunnelClient.Ad.Providing` conformance.
+- **`MobileAdsClientUI`** — SwiftUI/UIKit banner and native-ad renderers.
+- **`NativeAdClient`** — native-ad loading contract and configuration models.
+- **`NativeAdClientLive`** — live native-ad loading, batching, readiness, and revenue attribution.
 
 ## Installation
 
 In your `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/mahainc/MobileAdsClient.git", from: "1.4.0"),
+.package(url: "https://github.com/mahainc/MobileAdsClient.git", from: "1.4.0")
 ```
 
-Add the products you need to your targets — interfaces (`MobileAdsClient`, `NativeAdClient`) on feature targets, Live products on app targets, `MobileAdsClientUI` on any feature that renders native ad views.
+Add interface products to feature targets, live products to the app target, and `MobileAdsClientUI` to targets that render banner or native-ad views.
 
 ## Configure Google Mobile Ads
-
-In your app's entry point:
 
 ```swift
 import GoogleMobileAds
@@ -33,86 +30,88 @@ struct MyApp: App {
     init() {
         MobileAds.shared.start(completionHandler: nil)
     }
-    var body: some Scene { /* … */ }
+
+    var body: some Scene {
+        /* ... */
+    }
 }
 ```
 
-Make sure your `Info.plist` declares `GADApplicationIdentifier` and any SKAdNetwork identifiers Google's docs require for your placements.
+Declare `GADApplicationIdentifier` and the required SKAdNetwork identifiers in `Info.plist`.
 
-## Usage
+## Full-screen ads
 
 ```swift
-import MobileAdsClient
 import ComposableArchitecture
+import MobileAdsClient
 
 @Reducer
 struct PaywallFeature {
     @ObservableState
-    struct State { /* … */ }
+    struct State: Equatable, Sendable {}
 
-    enum Action {
-        case onAppear
+    enum Action: Equatable, Sendable {
         case showInterstitial
-        case revenueRecorded(MobileAdsClient.AdRevenue)
     }
 
     @Dependency(\.mobileAdsClient) var ads
 
     var body: some ReducerOf<Self> {
-        Reduce { state, action in
+        Reduce { _, action in
             switch action {
-            case .onAppear:
-                return .run { _ in await ads.preloadInterstitial() }
-
-            case .showInterstitial:
-                return .run { send in
-                    if let revenue = try await ads.presentInterstitial() {
-                        await send(.revenueRecorded(revenue))
+                case .showInterstitial:
+                    return .run { _ in
+                        _ = try await ads.showFullScreenAd(.interstitial("unit-id"))
                     }
-                }
-
-            case .revenueRecorded:
-                return .none
             }
         }
     }
 }
 ```
 
-## Native ads
+`MobileAdsClient.AdType` supports `appOpen`, `interstitial`, `rewarded`, and `nativeFullScreen`. `showFullScreenAd` throws `AdError.adNotReady` when an ad cannot be presented. Rewarded outcomes distinguish `rewardEarned` from `rewardNotEarned`.
 
-`MobileAdsClientUI` ships SwiftUI containers that pair `NativeAdClient` data with Google's required impression / click tracking views:
+## Native UI
+
+`MobileAdsClientUI` provides SwiftUI containers and UIKit renderers for custom, row, row-media, portrait, and full-screen native layouts:
 
 ```swift
 import MobileAdsClientUI
 
-NativeAdView(store: store.scope(state: \.nativeAd, action: \.nativeAd))
+NativeView(store: store.scope(state: \.nativeAd, action: \.nativeAd))
 ```
+
+Use `NativeAdClient` for loader options/configuration and `NativeAdClientLive` for SDK-backed loading.
+
+## FunnelClient integration
+
+`MobileAdsClientLive` conforms to `FunnelClient.Ad.Providing`. The adapter maps:
+
+| Funnel action/type | MobileAdsClient format |
+| --- | --- |
+| `showInterstitial` / `interstitial` | `interstitial` |
+| `showRewarded` / `rewarded` | `rewarded` |
+| `showNative` / `native` | `nativeFullScreen` |
+| `showResume` / `resume` | `appOpen` |
+| `showBanner` / `banner` | fail-open; banner is rendered through `MobileAdsClientUI` |
+
+Funnel's protocol extension owns the process-wide presentation guard. Rewarded failures fail closed; non-rewarded failures fail open. Native invocations forward `featureID` for revenue attribution and apply `NativeStyle.closeDelayMs` to the full-screen close countdown. `slotRef`, `adFormat`, and `grantCredits` remain Funnel-side metadata because the underlying Google presentation API has no corresponding parameters.
 
 ## Testing
 
-The interface modules expose unimplemented `testValue` defaults via `@DependencyClient`:
-
-```swift
-let store = TestStore(initialState: PaywallFeature.State()) {
-    PaywallFeature()
-} withDependencies: {
-    $0.mobileAdsClient.preloadInterstitial = { /* no-op */ }
-    $0.mobileAdsClient.presentInterstitial = { .init(value: 0.01, currency: "USD") }
-}
-```
+The package exposes TCA dependency test and preview values. Override `mobileAdsClient` endpoints in feature tests with the current `showFullScreenAd` and `warmFullScreenAd` APIs.
 
 ## Dependencies
 
 - `swift-composable-architecture` from 1.25.5
-- `swift-package-manager-google-mobile-ads` (GoogleMobileAds) from 13.4.0
+- `swift-package-manager-google-mobile-ads` from 13.4.0
 - `TCAInitializableReducer` from 0.1.0
 - `AdRevenueClient` from 2.0.1
+- `FunnelClient` 6.0.0
 
 ## Platform support
 
-- iOS 16+
-- macOS 13+ (compiles, but Google Mobile Ads is iOS-only — Live calls are no-ops)
+- iOS 17+
 
 ## License
 
