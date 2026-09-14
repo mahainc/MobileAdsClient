@@ -126,7 +126,7 @@ final internal class RewardedAdManager: BaseAdManager<RewardedAd>, @unchecked Se
         pendingReward.withLock { $0[adUnitID] = false }
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            setContinuation(continuation, for: ad, adUnitID: adUnitID, suppressReload: suppressAutoReload)
+            beginPresentation(continuation, for: ad, adUnitID: adUnitID, suppressReload: suppressAutoReload)
             ad.present(from: viewController) { [weak self] in
                 self?.pendingReward.withLock { $0[adUnitID] = true }
             }

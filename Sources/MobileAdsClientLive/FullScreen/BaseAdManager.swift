@@ -168,22 +168,27 @@ class BaseAdManager<AdType: FullScreenPresentingAd & Sendable>: NSObject, FullSc
 
     // MARK: - Presentation bookkeeping
 
-    /// Registers the `showAd` continuation against the exact ad object being
-    /// presented. The ad's identity — not the unit string — is the key, so a
-    /// later cache/buffer change can't orphan it.
-    final func setContinuation(
+    /// Registers the `showAd` continuation against the exact ad object about to
+    /// be presented, and starts loading its replacement while it is on screen —
+    /// so the next request for the unit (typically a back-to-back rewarded
+    /// watch) finds an ad ready instead of waiting on a load that only began at
+    /// dismiss. The ad's identity — not the unit string — is the key, so a later
+    /// cache/buffer change can't orphan it.
+    final func beginPresentation(
         _ continuation: CheckedContinuation<Void, Error>,
         for ad: AdType,
         adUnitID: String,
         suppressReload: Bool
     ) {
-        stateLock.lock()
-        defer { stateLock.unlock() }
-        presentations[ObjectIdentifier(ad)] = Presentation(
+        let presentation = Presentation(
             adUnitID: adUnitID,
             continuation: continuation,
             suppressReload: suppressReload
         )
+        stateLock.lock()
+        presentations[ObjectIdentifier(ad)] = presentation
+        stateLock.unlock()
+        refillPool(replacing: presentation, moment: "while presenting")
     }
 
     private func removePresentation(for ad: FullScreenPresentingAd) -> Presentation? {
@@ -435,7 +440,7 @@ class BaseAdManager<AdType: FullScreenPresentingAd & Sendable>: NSObject, FullSc
         }
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            setContinuation(continuation, for: ad, adUnitID: adUnitID, suppressReload: suppressAutoReload)
+            beginPresentation(continuation, for: ad, adUnitID: adUnitID, suppressReload: suppressAutoReload)
             presentAd(ad, from: viewController)
         }
     }
@@ -446,7 +451,7 @@ class BaseAdManager<AdType: FullScreenPresentingAd & Sendable>: NSObject, FullSc
     func adDidDismissFullScreenContent(_ ad: FullScreenPresentingAd) {
         guard let presentation = removePresentation(for: ad) else { return }
         presentation.continuation.resume(returning: ())
-        reloadAfterPresentation(presentation)
+        refillPool(replacing: presentation, moment: "after dismiss")
     }
 
     @objc
@@ -456,14 +461,19 @@ class BaseAdManager<AdType: FullScreenPresentingAd & Sendable>: NSObject, FullSc
     ) {
         guard let presentation = removePresentation(for: ad) else { return }
         presentation.continuation.resume(throwing: error)
-        reloadAfterPresentation(presentation)
+        refillPool(replacing: presentation, moment: "after failed present")
     }
 
-    /// After an impression (or a failed present), reload the next ad. Google
-    /// units self-refill in the SDK, so this only reloads the pool — using the
-    /// unit's remembered request keywords so the pool reloads toward what was
-    /// last asked for.
-    private func reloadAfterPresentation(_ presentation: Presentation) {
+    /// Reloads the ad a presentation consumed. Runs when the presentation begins
+    /// and again when it ends; the second call reuses or joins the first load,
+    /// and retries it if that load failed. Google units self-refill in the SDK,
+    /// so this only reloads the pool — using the unit's remembered request
+    /// keywords so the pool reloads toward what was last asked for. `moment`
+    /// only labels the log line.
+    private func refillPool(
+        replacing presentation: Presentation,
+        moment: String
+    ) {
         let adUnitID = presentation.adUnitID
         // Caller supplied an onComplete handler → it owns the post-show preload
         // decision for this show; skip the built-in auto-warm.
@@ -476,7 +486,7 @@ class BaseAdManager<AdType: FullScreenPresentingAd & Sendable>: NSObject, FullSc
             logPool("reload: google self-refills (no-op) · unit=\(adUnitID)")
             return
         }
-        logPool("reload: pool · unit=\(adUnitID) · keywords=\(keywords) (after dismiss)")
+        logPool("reload: pool · unit=\(adUnitID) · keywords=\(keywords) (\(moment))")
         Task { [weak self] in
             _ = await self?.pooledSource.warm(adUnitID, keywords: keywords)
         }
