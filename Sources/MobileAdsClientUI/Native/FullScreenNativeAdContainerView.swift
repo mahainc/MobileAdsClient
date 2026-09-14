@@ -3,7 +3,7 @@
 //  MobileAdsClient
 //
 //  Hosts `FullScreenNativeAdView` and overlays the close chrome — countdown pill,
-//  blur chip, close button — as a sibling rather than a subview of the ad view.
+//  accent close chip — as a sibling rather than a subview of the ad view.
 //
 
 #if canImport(UIKit)
@@ -16,13 +16,18 @@ import UIKit
 /// its content cluster never slides underneath. Both read the one definition
 /// instead of each assuming the other's numbers.
 enum FullScreenCloseChromeLayout {
-    static let topInset: CGFloat = 8
+    static let topInset: CGFloat = 0
     static let horizontalInset: CGFloat = 20
     static let height: CGFloat = 34
     /// Minimum gap between the chrome and the content cluster below it.
-    static let contentGap: CGFloat = 12
+    static let contentGap: CGFloat = 16
     /// Inset of the countdown pill's text inside its own rounded background.
     static let countdownPadding = UIEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
+    /// Radius that rounds a `height`-tall chip or pill into a capsule. A constant
+    /// rather than half of a measured `bounds`: the chrome is laid out by the
+    /// overlay, so a container-level `layoutSubviews()` reads its descendants
+    /// before the overlay has sized them and would round them to nothing.
+    static let cornerRadius: CGFloat = height / 2
 
     /// Space the ad view keeps clear at its top for the overlaid chrome.
     static var reservedTopSpace: CGFloat {
@@ -65,13 +70,6 @@ public final class FullScreenNativeAdContainerView: UIView {
 
     private let adView: FullScreenNativeAdView
 
-    private let closeButtonBlurView: UIVisualEffectView = {
-        let view = UIVisualEffectView(effect: UIBlurEffect(style: .dark))
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.clipsToBounds = true
-        return view
-    }()
-
     /// Occupies the close button's slot while the gate is counting down; the two
     /// swap at zero and are never both visible.
     private let countdownLabel: PaddedLabel = {
@@ -79,7 +77,9 @@ public final class FullScreenNativeAdContainerView: UIView {
         label.accessibilityIdentifier = "Full Screen Native Countdown"
         label.translatesAutoresizingMaskIntoConstraints = false
         label.textAlignment = .center
-        label.font = .preferredFont(forTextStyle: .footnote)
+        label.layer.cornerRadius = FullScreenCloseChromeLayout.cornerRadius
+        // Font comes from the style token in `applyCloseChromeStyle()`, like the
+        // pill's colors — nothing here to hardcode.
         label.layer.masksToBounds = true
         return label
     }()
@@ -90,9 +90,11 @@ public final class FullScreenNativeAdContainerView: UIView {
         return view
     }()
 
-    /// Point size of the `xmark` glyph. The SF symbol renders narrower than its
-    /// point size, so this yields a roughly 20pt mark inside the 34pt chip.
-    private static let closeGlyphPointSize: CGFloat = 11
+    /// Point size and weight of the `xmark` glyph — the same mark the funnel's
+    /// offer popups draw in their close button, so every close control in the
+    /// app reads alike.
+    private static let closeGlyphPointSize: CGFloat = 13
+    private static let closeGlyphWeight: UIImage.SymbolWeight = .heavy
     /// Cross-dissolve when the countdown pill gives way to the close chip.
     private static let revealDuration: TimeInterval = 0.2
 
@@ -124,13 +126,6 @@ public final class FullScreenNativeAdContainerView: UIView {
         countdownTimer?.invalidate()
     }
 
-    public override func layoutSubviews() {
-        super.layoutSubviews()
-        closeButton.layer.cornerRadius = closeButton.bounds.height / 2
-        closeButtonBlurView.layer.cornerRadius = closeButtonBlurView.bounds.height / 2
-        countdownLabel.layer.cornerRadius = countdownLabel.bounds.height / 2
-    }
-
     public override func didMoveToWindow() {
         super.didMoveToWindow()
         if window == nil {
@@ -159,8 +154,7 @@ extension FullScreenNativeAdContainerView {
         adView.translatesAutoresizingMaskIntoConstraints = false
         configureCloseButton()
 
-        closeButtonBlurView.contentView.addSubview(closeButton)
-        closeOverlay.addSubview(closeButtonBlurView)
+        closeOverlay.addSubview(closeButton)
         closeOverlay.addSubview(countdownLabel)
 
         // Ad view first, chrome on top of it — as siblings, so nothing in the
@@ -172,7 +166,6 @@ extension FullScreenNativeAdContainerView {
     private func layoutConstraints() -> [NSLayoutConstraint] {
         let guide = safeAreaLayoutGuide
         let layout = FullScreenCloseChromeLayout.self
-        let chip = closeButtonBlurView.contentView
 
         return [
             adView.topAnchor.constraint(equalTo: topAnchor),
@@ -191,22 +184,19 @@ extension FullScreenNativeAdContainerView {
             ),
             closeOverlay.heightAnchor.constraint(equalToConstant: layout.height),
 
-            closeButtonBlurView.leadingAnchor.constraint(equalTo: closeOverlay.leadingAnchor),
-            closeButtonBlurView.centerYAnchor.constraint(equalTo: closeOverlay.centerYAnchor),
-            closeButtonBlurView.widthAnchor.constraint(equalToConstant: layout.height),
-            closeButtonBlurView.heightAnchor.constraint(equalToConstant: layout.height),
-
-            // The button fills the chip, so the whole circle is tappable before
+            // The button is the chip: the whole drawn circle is tappable before
             // `hitSlop` widens the target any further.
-            closeButton.topAnchor.constraint(equalTo: chip.topAnchor),
-            closeButton.leadingAnchor.constraint(equalTo: chip.leadingAnchor),
-            closeButton.trailingAnchor.constraint(equalTo: chip.trailingAnchor),
-            closeButton.bottomAnchor.constraint(equalTo: chip.bottomAnchor),
+            closeButton.trailingAnchor.constraint(equalTo: closeOverlay.trailingAnchor),
+            closeButton.centerYAnchor.constraint(equalTo: closeOverlay.centerYAnchor),
+            closeButton.widthAnchor.constraint(equalToConstant: layout.height),
+            closeButton.heightAnchor.constraint(equalToConstant: layout.height),
 
-            countdownLabel.leadingAnchor.constraint(equalTo: closeOverlay.leadingAnchor),
+            countdownLabel.trailingAnchor.constraint(equalTo: closeOverlay.trailingAnchor),
             countdownLabel.centerYAnchor.constraint(equalTo: closeOverlay.centerYAnchor),
-            countdownLabel.topAnchor.constraint(greaterThanOrEqualTo: closeOverlay.topAnchor),
-            countdownLabel.bottomAnchor.constraint(lessThanOrEqualTo: closeOverlay.bottomAnchor),
+            // Full-height pill, so it reads as the same chip the close button
+            // takes over at zero rather than a shorter tag next to it.
+            countdownLabel.topAnchor.constraint(equalTo: closeOverlay.topAnchor),
+            countdownLabel.bottomAnchor.constraint(equalTo: closeOverlay.bottomAnchor),
         ]
     }
 
@@ -215,30 +205,35 @@ extension FullScreenNativeAdContainerView {
     private func applyInitialGateState() {
         let isGated = closeCountdown > 0
         countdownLabel.isHidden = !isGated
-        closeButtonBlurView.isHidden = isGated
+        closeButton.isHidden = isGated
         if isGated {
             countdownLabel.text = countdownText(for: secondsRemaining)
         }
     }
 
     private func configureCloseButton() {
+        closeButton.layer.cornerRadius = FullScreenCloseChromeLayout.cornerRadius
         closeButton.accessibilityIdentifier = "Full Screen Native Close Button"
         closeButton.translatesAutoresizingMaskIntoConstraints = false
-        let symbol = UIImage.SymbolConfiguration(pointSize: Self.closeGlyphPointSize, weight: .bold)
+        let symbol = UIImage.SymbolConfiguration(
+            pointSize: Self.closeGlyphPointSize,
+            weight: Self.closeGlyphWeight
+        )
         closeButton.setImage(UIImage(systemName: "xmark", withConfiguration: symbol), for: .normal)
         closeButton.imageView?.contentMode = .scaleAspectFit
         closeButton.layer.masksToBounds = true
     }
 
     private func applyCloseChromeStyle() {
-        // `closeButton.text` doubles as the glyph tint. The background is the
-        // blur effect, so the button itself stays clear and lets it through.
+        // Accent glyph on a tint of the same accent — the offer popups' close
+        // button. `closeButton.text` doubles as the glyph tint.
         closeButton.tintColor = style.closeButton.text
-        closeButton.backgroundColor = .clear
+        closeButton.backgroundColor = style.closeButton.background
         // The countdown pill borrows the chip's colors so the swap at zero is
         // visually seamless.
         countdownLabel.backgroundColor = style.closeButton.background
         countdownLabel.textColor = style.closeButton.text
+        countdownLabel.font = style.closeButton.font.resolved
     }
 }
 
@@ -295,7 +290,7 @@ extension FullScreenNativeAdContainerView {
             options: [.transitionCrossDissolve, .beginFromCurrentState]
         ) {
             self.countdownLabel.isHidden = true
-            self.closeButtonBlurView.isHidden = false
+            self.closeButton.isHidden = false
         }
     }
 }

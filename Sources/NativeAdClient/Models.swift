@@ -433,24 +433,25 @@ extension NativeAdClient {
                     headline: .white,
                     body: UIColor.white.withAlphaComponent(0.9),
                     sponsor: UIColor.white.withAlphaComponent(0.8),
-                    headlineFont: .textStyle(.headline, weight: .bold),
-                    bodyFont: .textStyle(.subheadline),
-                    sponsorFont: .textStyle(.caption1)
+                    headlineFont: .system(size: 20, weight: .bold),
+                    bodyFont: .system(size: 15, weight: .regular),
+                    sponsorFont: .system(size: 13, weight: .regular)
                 ),
                 actionButton: .init(
-                    background: .systemBlue,
+                    background: .systemGreen,
                     title: .white,
                     shape: .capsule,
-                    font: .textStyle(.subheadline, weight: .semibold)
+                    font: .system(size: 17, weight: .semibold)
                 ),
                 attribution: .init(
-                    background: .systemBlue,
+                    background: .systemGreen,
                     text: .white,
-                    font: .textStyle(.caption2, weight: .semibold)
+                    font: .system(size: 11, weight: .semibold)
                 ),
                 closeButton: .init(
-                    background: UIColor.black.withAlphaComponent(0.25),
-                    text: .white
+                    background: UIColor.systemGreen.withAlphaComponent(0.18),
+                    text: .systemGreen,
+                    font: .system(size: 13, weight: .semibold)
                 )
             )
 
@@ -623,7 +624,7 @@ extension NativeAdClient {
                 iconSize: CGSize(width: 56, height: 56),
                 iconCornerRadius: 12,
                 containerCornerRadius: 0,
-                ctaMinHeight: 56,
+                ctaMinHeight: 50,
                 horizontalSpacing: 12,
                 verticalSpacing: 2
             )
@@ -849,11 +850,11 @@ extension NativeAdClient {
             public var style: Style
             public var bodyDisplay: BodyDisplay
             public var metrics: Metrics
-            /// When `true` the media view bleeds to every screen edge (under the
-            /// notch + home indicator). When `false` (default) the media is
+            /// When `true` (default) the media view bleeds to every screen edge
+            /// (under the notch + home indicator). When `false` the media is
             /// inset to the safe area instead.
             public var mediaIgnoresSafeArea: Bool
-            /// How the media creative fills its frame (default `.fit`).
+            /// How the media creative fills its frame (default `.fill`).
             public var mediaContentMode: MediaContentMode
             /// Seconds the ad stays locked before the close button appears. While
             /// counting down, a "closes in Ns" label shows in place of the close
@@ -868,8 +869,8 @@ extension NativeAdClient {
                 style: Style = .fullScreen,
                 bodyDisplay: BodyDisplay = .truncated(lines: 3),
                 metrics: Metrics = .fullScreen,
-                mediaIgnoresSafeArea: Bool = false,
-                mediaContentMode: MediaContentMode = .fit,
+                mediaIgnoresSafeArea: Bool = true,
+                mediaContentMode: MediaContentMode = .fill,
                 closeCountdown: Int = 5,
                 closeHitSlop: CGFloat = 0
             ) {

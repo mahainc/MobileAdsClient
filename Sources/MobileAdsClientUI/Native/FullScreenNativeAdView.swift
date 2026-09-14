@@ -12,7 +12,7 @@
 //  creative imagery.
 //
 //    ┌────────────────────────────────────┐
-//    │  (close chrome — not ours)         │   reserved space, drawn by the container
+//    │           (close chrome — not ours)│   top-right, reserved space drawn by the container
 //    │                                    │
 //    │         FULL-BLEED MEDIA           │   edge-to-edge, scaleAspectFill
 //    │         (under notch +             │
@@ -156,7 +156,7 @@ public class FullScreenNativeAdView: NativeAdView {
 
     // Each interactive asset lives inside a plain container `UIView` (see the
     // file header). Held as properties so `updateVisibility(for:)` can collapse
-    // the header / body rows inside `midStack` when their assets are absent.
+    // the header / body rows inside `bottomCluster` when their assets are absent.
     private let headerContainer = FullScreenNativeAdView.makeContainer()
     private let bodyContainer = FullScreenNativeAdView.makeContainer()
     private let ctaContainer = FullScreenNativeAdView.makeContainer()
@@ -431,9 +431,21 @@ extension FullScreenNativeAdView {
         adMediaView.contentMode = mediaContentMode
         adIconImageView.image = nativeAd.icon?.image
         adHeadlineLabel.text = nativeAd.headline?.capitalizingFirstLetter()
-        adSponsorLabel.text = nativeAd.advertiser?.capitalizingFirstLetter()
+        adSponsorLabel.text = advertiserText(for: nativeAd)?.capitalizingFirstLetter()
         adBodyLabel.text = nativeAd.body?.capitalizingFirstLetter()
-        actionButton.setTitle(nativeAd.callToAction?.uppercased(), for: .normal)
+        actionButton.setTitle(nativeAd.callToAction, for: .normal)
+    }
+
+    /// The advertiser asset, or the store listing when the creative has no
+    /// advertiser name. `nil` when neither is present or the advertiser is
+    /// blank, so callers can drive both the label text and its visibility
+    /// from one value instead of re-deriving the fallback twice.
+    private func advertiserText(for nativeAd: NativeAd) -> String? {
+        let advertiser = nativeAd.advertiser ?? nativeAd.store
+        guard let advertiser, !advertiser.isEmpty else {
+            return nil
+        }
+        return advertiser
     }
 
     private func updateViewBindings() {
@@ -450,13 +462,14 @@ extension FullScreenNativeAdView {
         // (rare for full-screen), the solid card background fills behind the
         // scrim, keeping the overlaid text legible. No collapse here.
 
+        let advertiserText = advertiserText(for: nativeAd)
         adIconImageView.isHidden = nativeAd.icon?.image == nil
         adHeadlineLabel.isHidden = nativeAd.headline == nil
-        adSponsorLabel.isHidden = nativeAd.advertiser == nil
+        adSponsorLabel.isHidden = advertiserText == nil
         // Collapse the whole header row when none of its assets are present so
-        // `midStack` reclaims the spacing.
+        // `bottomCluster` reclaims the spacing.
         headerContainer.isHidden =
-            nativeAd.icon?.image == nil && nativeAd.headline == nil && nativeAd.advertiser == nil
+            nativeAd.icon?.image == nil && nativeAd.headline == nil && advertiserText == nil
 
         // Hide the body when the creative has none OR config says `.hidden`.
         let bodyHidden = nativeAd.body == nil || bodyDisplay.mode == .hidden
