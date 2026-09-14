@@ -18,9 +18,14 @@ final internal actor AdsManager {
 
     private init() {
         #if DEBUG
-        MobileAds.shared.requestConfiguration.testDeviceIdentifiers = [
-            "74A6AE8F-C95C-44AF-8DF6-0F6918E7360D"
-        ]
+        // `shared` is created lazily on first use, which can be moments after a
+        // host app sets its own test device IDs — union ours in rather than
+        // overwrite theirs.
+        let ourTestDeviceID = "74A6AE8F-C95C-44AF-8DF6-0F6918E7360D"
+        let existingTestDeviceIDs = MobileAds.shared.requestConfiguration.testDeviceIdentifiers ?? []
+        if !existingTestDeviceIDs.contains(ourTestDeviceID) {
+            MobileAds.shared.requestConfiguration.testDeviceIdentifiers = existingTestDeviceIDs + [ourTestDeviceID]
+        }
         #endif
     }
 }
