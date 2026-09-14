@@ -1,0 +1,47 @@
+{
+  "path": "Sources/MobileAdsClientLive/Native/NativeFullScreenPreloads.swift",
+  "history": [
+    {
+      "markers": 5,
+      "decls_digest": "dfa897aa59c3c48869c4973f3427c8d6e647912cf53c99b1d263abdfc785c22a"
+    },
+    {
+      "markers": 0,
+      "decls_digest": "0e9c667e0e6ff7f90bb5d382f11b8331d33ddbb72dff98e46dbd07ccb19bcb86"
+    }
+  ],
+  "decls": [
+    {
+      "kind": "class",
+      "name": "NativeFullScreenPreloads",
+      "signature": "()"
+    },
+    {
+      "kind": "struct",
+      "name": "Preload",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "isFresh",
+      "signature": "()"
+    },
+    {
+      "kind": "function",
+      "name": "warm",
+      "signature": "(_ adUnitID: String)"
+    },
+    {
+      "kind": "function",
+      "name": "take",
+      "signature": "(_ adUnitID: String)"
+    },
+    {
+      "kind": "function",
+      "name": "loadPreload",
+      "signature": "(_ adUnitID: String)"
+    }
+  ],
+  "decls_digest": "0e9c667e0e6ff7f90bb5d382f11b8331d33ddbb72dff98e46dbd07ccb19bcb86",
+  "markers": 0
+}

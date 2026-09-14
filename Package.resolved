@@ -1,5 +1,5 @@
 {
-  "originHash" : "0102d012442b9f6ee8f7dd35ccc12d95f0f60c1c0a24b26f501369e36cf5dde7",
+  "originHash" : "1124e723517c4e899d484276c09f8a93611f150a43edace2fce794037f5bfda9",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mahainc/AdRevenueClient.git",
       "state" : {
-        "revision" : "7a7fe957430c6c6c26af8c6682066539a2ed2682",
-        "version" : "4.0.0"
+        "revision" : "ba5fb9e77c08330344b35fcb10d6be02deec5dcb",
+        "version" : "4.0.1"
       }
     },
     {

@@ -18,10 +18,17 @@ extension MobileAdsClient: FunnelClient.Ad.Providing {
             return
         }
         Task {
-            await warmFullScreenAd(mobileAdType, [])
+            if case .nativeFullScreen = mobileAdType {
+                _ = await NativeFullScreenPreloads.shared.warm(unitID)
+            } else {
+                await warmFullScreenAd(mobileAdType, [])
+            }
         }
     }
 
+    /// Native full-screen has no pool, so its readiness here is a real load held in
+    /// `NativeFullScreenPreloads` — the guest must not pick a native unit that has
+    /// nothing to show, and the show that follows presents the held ad.
     public func ensureLoaded(
         unitID: String,
         adType: FunnelClient.AdType
@@ -29,7 +36,11 @@ extension MobileAdsClient: FunnelClient.Ad.Providing {
         guard let mobileAdType = MobileAdsClient.AdType.funnelAdType(adType, unitID: unitID) else {
             return false
         }
-        return await shouldShowFullScreenAd(mobileAdType, [], [])
+        let rulesAllowShow = await shouldShowFullScreenAd(mobileAdType, [], [])
+        guard rulesAllowShow, case .nativeFullScreen = mobileAdType else {
+            return rulesAllowShow
+        }
+        return await NativeFullScreenPreloads.shared.warm(unitID)
     }
 
     public func present(
@@ -67,10 +78,29 @@ extension MobileAdsClient: FunnelClient.Ad.Providing {
         }
     }
 
+    /// Waits for the top view controller to settle — not being presented, not being
+    /// dismissed, not mid-transition — because the SDK fails a present from one that
+    /// is still moving, costing the impression or the reward. Past the budget it
+    /// answers with whatever is on top, so a stuck transition cannot block a gate.
     public func awaitPresentable() async -> Bool {
-        await MainActor.run {
-            UIApplication.shared.topViewController() != nil
+        let deadline = ContinuousClock.now + Self.presentableSettleBudget
+        while ContinuousClock.now < deadline {
+            if await Self.topViewControllerIsSettled() {
+                return true
+            }
+            try? await Task.sleep(for: Self.presentableSettlePoll)
         }
+        return await MainActor.run { UIApplication.shared.topViewController() != nil }
+    }
+
+    private static var presentableSettleBudget: Duration { .milliseconds(1_500) }
+    private static var presentableSettlePoll: Duration { .milliseconds(50) }
+
+    @MainActor
+    private static func topViewControllerIsSettled() -> Bool {
+        guard let top = UIApplication.shared.topViewController() else { return false }
+        let isMoving = top.isBeingPresented || top.isBeingDismissed || top.transitionCoordinator != nil
+        return !isMoving
     }
 }
 

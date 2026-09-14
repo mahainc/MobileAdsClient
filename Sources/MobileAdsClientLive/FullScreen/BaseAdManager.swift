@@ -25,6 +25,38 @@ protocol PaidEventCapable: AnyObject {
 extension InterstitialAd: PaidEventCapable {}
 extension AppOpenAd: PaidEventCapable {}
 extension RewardedAd: PaidEventCapable {}
+extension NativeAd: PaidEventCapable {}
+
+extension PaidEventCapable {
+    /// Replaces the ad's paid-event handler with one that publishes every paid
+    /// impression to `AdRevenueClient`, attributed to `requester`.
+    func publishPaidEvents(
+        adUnitID: String,
+        format: AdRevenueEvent.AdFormat,
+        requester: MobileAdsClient.AdRequester
+    ) {
+        // Read now, not inside the handler: the ad is loaded by the time this runs, the
+        // value does not change afterwards, and capturing the ad in its own handler would
+        // retain it forever.
+        let network = responseInfo.loadedAdNetworkResponseInfo?.adSourceName ?? ""
+        paidEventHandler = { adValue in
+            @Dependency(\.adRevenueClient) var adRevenueClient
+            adRevenueClient.publish(
+                AdRevenueEvent(
+                    amount: Double(truncating: adValue.value),
+                    currency: adValue.currencyCode,
+                    adUnitId: adUnitID,
+                    format: format,
+                    source: .googleMobileAds,
+                    receivedAt: .now,
+                    featureId: requester.featureID,
+                    network: network,
+                    slotRef: requester.slotRef
+                )
+            )
+        }
+    }
+}
 
 /// Thin router over the two ways a full-screen ad can be acquired:
 /// `PooledAdSource` (keyword-aware hand-rolled pool with TTL + retry) and
@@ -105,9 +137,18 @@ class BaseAdManager<AdType: FullScreenPresentingAd & Sendable>: NSObject, FullSc
         /// When true, the post-dismiss auto-warm is skipped — the caller supplied
         /// an `onComplete` handler and owns the preload decision for this show.
         let suppressReload: Bool
+        /// Set by the SDK's will-present callback; the present watchdog only
+        /// abandons a presentation that never reached the screen.
+        var hasAppeared = false
     }
 
     private var presentations: [ObjectIdentifier: Presentation] = [:]
+
+    /// How long a presentation may wait for the SDK's will-present or fail
+    /// callback. A present UIKit refuses without telling the SDK — the view
+    /// controller is already presenting, or is mid-dismiss — reports neither, and
+    /// would leave `showAd` suspended forever.
+    private static var presentWatchdog: Duration { .seconds(4) }
 
     // MARK: - Debug logging
 
@@ -173,7 +214,7 @@ class BaseAdManager<AdType: FullScreenPresentingAd & Sendable>: NSObject, FullSc
     /// so the next request for the unit (typically a back-to-back rewarded
     /// watch) finds an ad ready instead of waiting on a load that only began at
     /// dismiss. The ad's identity — not the unit string — is the key, so a later
-    /// cache/buffer change can't orphan it.
+    /// cache/buffer change can't orphan it. Arms the present watchdog.
     final func beginPresentation(
         _ continuation: CheckedContinuation<Void, Error>,
         for ad: AdType,
@@ -189,12 +230,33 @@ class BaseAdManager<AdType: FullScreenPresentingAd & Sendable>: NSObject, FullSc
         presentations[ObjectIdentifier(ad)] = presentation
         stateLock.unlock()
         refillPool(replacing: presentation, moment: "while presenting")
+        armPresentWatchdog(for: ObjectIdentifier(ad))
     }
 
     private func removePresentation(for ad: FullScreenPresentingAd) -> Presentation? {
         stateLock.lock()
         defer { stateLock.unlock() }
         return presentations.removeValue(forKey: ObjectIdentifier(ad))
+    }
+
+    /// Fails the presentation with `adNotReady` if it has neither appeared nor
+    /// failed once the watchdog elapses. Holds the ad's identity, not the ad, so
+    /// a dismissed ad is not kept alive for the wait.
+    private func armPresentWatchdog(for adID: ObjectIdentifier) {
+        Task { [weak self] in
+            try? await Task.sleep(for: Self.presentWatchdog)
+            guard let self, let presentation = self.removeUnappearedPresentation(adID) else { return }
+            self.logPool("present watchdog fired: no present/fail callback · unit=\(presentation.adUnitID)")
+            presentation.continuation.resume(throwing: MobileAdsClient.AdError.adNotReady)
+            self.refillPool(replacing: presentation, moment: "after present timeout")
+        }
+    }
+
+    private func removeUnappearedPresentation(_ adID: ObjectIdentifier) -> Presentation? {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        guard presentations[adID]?.hasAppeared == false else { return nil }
+        return presentations.removeValue(forKey: adID)
     }
 
     // MARK: - Revenue attribution
@@ -212,27 +274,11 @@ class BaseAdManager<AdType: FullScreenPresentingAd & Sendable>: NSObject, FullSc
         featureID: String = "",
         slotRef: String = ""
     ) {
-        let format = self.format
-        // Read now, not inside the handler: the ad is loaded by the time this runs, the
-        // value does not change afterwards, and capturing `ad` in its own handler would
-        // retain it forever.
-        let network = ad.responseInfo.loadedAdNetworkResponseInfo?.adSourceName ?? ""
-        ad.paidEventHandler = { adValue in
-            @Dependency(\.adRevenueClient) var adRevenueClient
-            adRevenueClient.publish(
-                AdRevenueEvent(
-                    amount: Double(truncating: adValue.value),
-                    currency: adValue.currencyCode,
-                    adUnitId: adUnitID,
-                    format: format,
-                    source: .googleMobileAds,
-                    receivedAt: .now,
-                    featureId: featureID,
-                    network: network,
-                    slotRef: slotRef
-                )
-            )
-        }
+        ad.publishPaidEvents(
+            adUnitID: adUnitID,
+            format: format,
+            requester: MobileAdsClient.AdRequester(featureID: featureID, slotRef: slotRef)
+        )
     }
 
     /// Re-wires a Google-dequeued ad: the Preloader does **not** set our
@@ -446,6 +492,13 @@ class BaseAdManager<AdType: FullScreenPresentingAd & Sendable>: NSObject, FullSc
     }
 
     // MARK: - FullScreenContentDelegate
+
+    @objc
+    func adWillPresentFullScreenContent(_ ad: FullScreenPresentingAd) {
+        stateLock.lock()
+        presentations[ObjectIdentifier(ad)]?.hasAppeared = true
+        stateLock.unlock()
+    }
 
     @objc
     func adDidDismissFullScreenContent(_ ad: FullScreenPresentingAd) {
