@@ -11,10 +11,10 @@ import FunnelClient
 import MobileAdsClient
 import UIKit
 
-extension MobileAdsClient: FunnelClient.Ad.Providing {
-    public static let funnelPresentationGuard = FunnelClient.Ad.PresentationGuard()
+extension MobileAdsClient: FunnelClient.Mediation.Ads.Providing {
+    public static let funnelPresentationGuard = FunnelClient.Mediation.Ads.PresentationGuard()
 
-    public var presentationGuard: FunnelClient.Ad.PresentationGuard {
+    public var presentationGuard: FunnelClient.Mediation.Ads.PresentationGuard {
         Self.funnelPresentationGuard
     }
 
@@ -52,8 +52,8 @@ extension MobileAdsClient: FunnelClient.Ad.Providing {
     }
 
     public func present(
-        _ invocation: FunnelClient.Ad.Invocation,
-        onComplete: @escaping @Sendable (FunnelClient.Ad.PresentationOutcome) -> Void
+        _ invocation: FunnelClient.Mediation.Ads.Invocation,
+        onComplete: @escaping @Sendable (FunnelClient.Mediation.Ads.PresentationOutcome) -> Void
     ) async {
         guard
             let mobileAdType = MobileAdsClient.AdType.funnelAdType(
@@ -86,7 +86,7 @@ extension MobileAdsClient: FunnelClient.Ad.Providing {
             #endif
             onComplete(
                 invocation.action == .showRewarded
-                    ? FunnelClient.Ad.PresentationOutcome(
+                    ? FunnelClient.Mediation.Ads.PresentationOutcome(
                         proceeded: false,
                         didDismiss: false,
                         failureReason: "ad_not_ready"
@@ -137,7 +137,7 @@ extension MobileAdsClient.NativeFullScreenStyle {
     /// seconds, because what it shows is "closes in Ns". Rounding to nearest keeps
     /// 2 999 ms reading as the 3 s the guest meant, and `0` stays `0` — the one value
     /// that means "no gate at all" rather than "a very short one".
-    fileprivate init(_ funnelStyle: FunnelClient.Ad.NativeStyle) {
+    fileprivate init(_ funnelStyle: FunnelClient.Mediation.Ads.NativeStyle) {
         let milliseconds = Int(funnelStyle.closeDelayMs)
         let seconds = (milliseconds + Self.roundingOffsetMilliseconds) / Self.millisecondsPerSecond
         self.init(
