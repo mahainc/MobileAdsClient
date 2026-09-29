@@ -1,13 +1,13 @@
 {
-  "originHash" : "62a791ebb1bb3670d66863f5dfbf38b3e9aaa39ba3ddd63405cde19e4849dccb",
+  "originHash" : "1261fed4c09b9a9842f0bd96eb15c8dde3bb3e324631275ff320d3ec946e4a67",
   "pins" : [
     {
       "identity" : "adrevenueclient",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mahainc/AdRevenueClient.git",
       "state" : {
-        "revision" : "9556f9bcd9149030162fa5b74a4bb976966ba8b6",
-        "version" : "4.1.0"
+        "revision" : "4340e51d682b3dcda2a55f4f792cd2a1589982c7",
+        "version" : "4.2.0"
       }
     },
     {
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mahainc/FunnelClient.git",
       "state" : {
-        "revision" : "68bfb0484a308d77ec5325d3b6d33febf1bea33d",
-        "version" : "9.0.0"
+        "revision" : "5de60b3f38c5cce1fbe218eba2cfffe60ed64553",
+        "version" : "9.2.0"
       }
     },
     {

@@ -1,3 +1,11 @@
+// The funnel conformer compiles only when the `Funnel` trait is enabled — the
+// trait is what puts FunnelClient in the dependency graph at all, so without it
+// this file has no module to import. See Package.swift.
+//
+// `#if Funnel` sits OUTSIDE the existing `canImport(UIKit)` guard: the trait
+// decides whether this file has a reason to exist, the platform check only
+// narrows where it can compile once it does.
+#if Funnel
 #if canImport(UIKit)
 import FunnelClient
 import MobileAdsClient
@@ -66,6 +74,16 @@ extension MobileAdsClient: FunnelClient.Ad.Providing {
             let outcome = try await showFullScreenAd(mobileAdType, [], requester, nil)
             onComplete(.dismissed(proceeded: outcome != .rewardNotEarned))
         } catch {
+            // The funnel's outcome vocabulary has no case for "why", so the reason it
+            // receives stays `ad_not_ready` whatever threw. The error is logged rather than
+            // dropped because this is the only record of it: every sibling catch in the
+            // package logs `error.localizedDescription`, and without it a presentation
+            // failure is indistinguishable from an ad that was merely absent.
+            #if DEBUG
+            print(
+                "[MobileAdsClient+Funnel] present FAILED · unit=\(invocation.placement.unitID) · action=\(invocation.action) · error=\(error.localizedDescription)"
+            )
+            #endif
             onComplete(
                 invocation.action == .showRewarded
                     ? FunnelClient.Ad.PresentationOutcome(
@@ -157,4 +175,5 @@ extension MobileAdsClient.AdType {
         }
     }
 }
-#endif
+#endif  // canImport(UIKit)
+#endif  // Funnel
